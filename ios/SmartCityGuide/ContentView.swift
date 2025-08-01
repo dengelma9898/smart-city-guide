@@ -936,13 +936,32 @@ class RouteService: ObservableObject {
       }
     }
     
-    // Return best route found, or fallback to first attempt
-    return bestRoute.isEmpty ? try await buildSimpleRoute(
-      startLocation: startLocation,
-      places: Array(potentialPlaces.prefix(numberOfPlaces)),
-      endpointOption: endpointOption,
-      customEndpoint: customEndpoint
-    ) : bestRoute
+    // If no route found within distance limit, try with fewer stops
+    if bestRoute.isEmpty && numberOfPlaces > 1 {
+      print("⚠️ Keine Route mit \(numberOfPlaces) Stopps innerhalb \(Int(maxTotalDistance/1000))km gefunden")
+      print("🔄 Versuche mit \(numberOfPlaces-1) Stopps...")
+      
+      // Retry with one fewer place
+      return try await findBestRouteCombination(
+        startLocation: startLocation,
+        potentialPlaces: potentialPlaces,
+        numberOfPlaces: numberOfPlaces - 1,
+        endpointOption: endpointOption,
+        customEndpoint: customEndpoint,
+        maxTotalDistance: maxTotalDistance
+      )
+    }
+    
+    // If still no route found, throw error instead of exceeding distance limit
+    guard !bestRoute.isEmpty else {
+      throw NSError(
+        domain: "RouteService",
+        code: 400,
+        userInfo: [NSLocalizedDescriptionKey: "Keine Route innerhalb der gewünschten Entfernung von \(Int(maxTotalDistance/1000))km möglich. Versuchen Sie eine längere Routenoption oder weniger Zwischenstopps."]
+      )
+    }
+    
+    return bestRoute
   }
   
   private func selectPlacesForAttempt(
