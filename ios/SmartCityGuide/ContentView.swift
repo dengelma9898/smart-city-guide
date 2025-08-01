@@ -1322,9 +1322,36 @@ struct LocationSearchField: View {
   }
   
   private func selectLocation(_ item: MKMapItem) {
-    text = item.name ?? item.placemark.title ?? ""
+    text = formatFullAddress(item.placemark)
     searchResults = []
     isFocused = false
+  }
+  
+  private func formatFullAddress(_ placemark: MKPlacemark) -> String {
+    var components: [String] = []
+    
+    // Add street name and number
+    if let thoroughfare = placemark.thoroughfare {
+      var streetComponent = thoroughfare
+      if let subThoroughfare = placemark.subThoroughfare {
+        streetComponent = "\(thoroughfare) \(subThoroughfare)"
+      }
+      components.append(streetComponent)
+    }
+    
+    // Add postal code and city
+    var cityComponent: String? = nil
+    if let postalCode = placemark.postalCode, let locality = placemark.locality {
+      cityComponent = "\(postalCode) \(locality)"
+    } else if let locality = placemark.locality {
+      cityComponent = locality
+    }
+    
+    if let city = cityComponent {
+      components.append(city)
+    }
+    
+    return components.joined(separator: ", ")
   }
 }
 
@@ -1344,21 +1371,21 @@ struct RouteBuilderView: View {
     NavigationView {
       ScrollView {
         VStack(spacing: 24) {
-          // Header
-          VStack(spacing: 12) {
-            Text("Route wird erstellt...")
-              .font(.title2)
-              .fontWeight(.semibold)
-            
-            Text("Wir suchen die besten \(numberOfPlaces) Zwischenstopps in \(startingCity)")
-              .font(.subheadline)
-              .foregroundColor(.secondary)
-              .multilineTextAlignment(.center)
-              .padding(.horizontal)
-          }
-          .padding(.top, 20)
-          
           if routeService.isGenerating {
+            // Header - only show during generation
+            VStack(spacing: 12) {
+              Text("Route wird erstellt...")
+                .font(.title2)
+                .fontWeight(.semibold)
+              
+              Text("Wir suchen die besten \(numberOfPlaces) Zwischenstopps in \(startingCity)")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal)
+            }
+            .padding(.top, 20)
+            
             // Loading State
             VStack(spacing: 16) {
               ProgressView()
