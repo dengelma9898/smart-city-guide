@@ -867,13 +867,15 @@ class RouteService: ObservableObject {
       excluding: [startLocation]
     )
     
-    guard potentialPlaces.count >= numberOfPlaces else {
-      // Fallback if not enough places found
-      return try await buildSimpleRoute(
-        startLocation: startLocation,
-        places: potentialPlaces,
-        endpointOption: endpointOption,
-        customEndpoint: customEndpoint
+    // Always try with available places, even if fewer than requested
+    // The distance checking will handle reduction if needed
+    let actualCount = min(numberOfPlaces, potentialPlaces.count)
+    
+    guard actualCount > 0 else {
+      throw NSError(
+        domain: "RouteService", 
+        code: 404,
+        userInfo: [NSLocalizedDescriptionKey: "Keine interessanten Orte in der Nähe von \(startLocation.name) gefunden."]
       )
     }
     
@@ -881,7 +883,7 @@ class RouteService: ObservableObject {
     let bestCombination = try await findBestRouteCombination(
       startLocation: startLocation,
       potentialPlaces: potentialPlaces,
-      numberOfPlaces: numberOfPlaces,
+      numberOfPlaces: actualCount,
       endpointOption: endpointOption,
       customEndpoint: customEndpoint,
       maxTotalDistance: routeLength.maxTotalDistanceMeters
@@ -921,13 +923,21 @@ class RouteService: ObservableObject {
         customEndpoint: customEndpoint
       )
       
-      // Calculate total distance for this combination
-      let totalDistance = calculateTotalRouteDistance(testRoute)
+      // Calculate ACTUAL walking distance using real routes
+      let testRoutes = try await generateRoutesBetweenWaypoints(testRoute)
+      let actualDistance = testRoutes.reduce(0) { $0 + $1.distance }
       
-      // Check if this is better and within limits
-      if totalDistance <= maxTotalDistance && totalDistance < bestDistance {
+      print("🔍 Teste Route: \(testRoute.count) Waypoints")
+      print("   Luftlinie: \(Int(calculateTotalRouteDistance(testRoute)/1000))km")
+      print("   Tatsächlich: \(Int(actualDistance/1000))km (Limit: \(Int(maxTotalDistance/1000))km)")
+      
+      // Check if this is better and within limits using ACTUAL distance
+      if actualDistance <= maxTotalDistance && actualDistance < bestDistance {
         bestRoute = testRoute
-        bestDistance = totalDistance
+        bestDistance = actualDistance
+        print("   ✅ NEUE BESTE ROUTE: \(Int(actualDistance/1000))km")
+      } else {
+        print("   ❌ ZU LANG: \(Int(actualDistance/1000))km > \(Int(maxTotalDistance/1000))km")
       }
       
       // If we found a good short route, stop early
