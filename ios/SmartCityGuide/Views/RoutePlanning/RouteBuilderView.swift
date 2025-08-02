@@ -73,7 +73,7 @@ struct RouteBuilderView: View {
                         .foregroundColor(.blue)
                         .font(.caption)
                       
-                      Text("Maximal 10 POIs aus 3 Hauptkategorien für optimale Performance")
+                      Text("10 POIs mit nur 1 API-Call - ultraschnell & effizient")
                         .font(.caption2)
                         .foregroundColor(.secondary)
                     }

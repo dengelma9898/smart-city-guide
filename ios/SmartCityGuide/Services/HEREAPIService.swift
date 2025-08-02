@@ -143,22 +143,77 @@ class HEREAPIService: ObservableObject {
         isLoading = true
         defer { isLoading = false }
         
-        var allPOIs: [POI] = []
+        // 🚀 SINGLE API CALL: Comprehensive search for all tourist POIs
+        let combinedQuery = "tourist attraction museum park sightseeing landmark monument"
+        let encodedQuery = combinedQuery.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? combinedQuery
         
-        // Search for each category separately to get better results
-        for category in categories {
-            let categoryPOIs = try await searchPOIsForCategory(category, near: location, cityName: cityName)
-            allPOIs.append(contentsOf: categoryPOIs)
+        // Single API call with higher limit to get diverse results
+        let urlString = "\(baseURL)/discover?at=\(location.latitude),\(location.longitude)&q=\(encodedQuery)&limit=50&apiKey=\(apiKey)"
+        
+        guard let url = URL(string: urlString) else {
+            throw HEREError.invalidURL
         }
         
-        // Remove duplicates by ID
-        let uniquePOIs = Array(Set(allPOIs))
+        do {
+            // Minimal delay since we only make one API call
+            try await Task.sleep(nanoseconds: 50_000_000) // 50ms delay
+            
+            let (data, response) = try await urlSession.data(from: url)
+            
+            guard let httpResponse = response as? HTTPURLResponse else {
+                throw HEREError.invalidResponse(statusCode: -1)
+            }
+            
+            if httpResponse.statusCode == 429 {
+                throw HEREError.rateLimitExceeded
+            }
+            
+            guard httpResponse.statusCode == 200 else {
+                throw HEREError.invalidResponse(statusCode: httpResponse.statusCode)
+            }
+            
+            let searchResponse = try JSONDecoder().decode(HERESearchResponse.self, from: data)
+            
+            // Convert to POIs and categorize them intelligently
+            let allPOIs = searchResponse.results.compactMap { item -> POI? in
+                let detectedCategory = detectCategory(for: item)
+                return POI(from: item, category: detectedCategory, requestedCity: cityName)
+            }
+            
+            // Remove duplicates and limit to 10 results
+            let uniquePOIs = Array(Set(allPOIs))
+            let limitedPOIs = Array(uniquePOIs.prefix(10))
+            
+            print("HEREAPIService: Single API call found \(allPOIs.count) POIs, returning \(limitedPOIs.count) for '\(cityName)'")
+            return limitedPOIs
+            
+        } catch HEREError.rateLimitExceeded {
+            throw HEREError.rateLimitExceeded
+        } catch {
+            print("HEREAPIService: Search failed for '\(cityName)': \(error)")
+            throw HEREError.searchFailed("Failed to search POIs: \(error.localizedDescription)")
+        }
+    }
+    
+    /// Intelligently detects the category of a POI based on its name and properties
+    private func detectCategory(for item: HERESearchItem) -> PlaceCategory {
+        let title = item.title.lowercased()
+        let categoryIds = item.categories?.compactMap { $0.id } ?? []
         
-        // Limit to maximum 10 POIs to avoid overwhelming the user and ensure fast performance
-        let limitedPOIs = Array(uniquePOIs.prefix(10))
+        // Check for museums first (most specific)
+        if title.contains("museum") || title.contains("gallery") || 
+           categoryIds.contains(where: { $0.contains("museum") || $0.contains("gallery") }) {
+            return .museum
+        }
         
-        print("HEREAPIService: Found \(uniquePOIs.count) unique POIs, returning \(limitedPOIs.count) for '\(cityName)'")
-        return limitedPOIs
+        // Check for parks and gardens
+        if title.contains("park") || title.contains("garden") || title.contains("garten") ||
+           categoryIds.contains(where: { $0.contains("park") || $0.contains("garden") }) {
+            return .park
+        }
+        
+        // Default to attraction for everything else
+        return .attraction
     }
     
     private func searchPOIsForCategory(_ category: PlaceCategory, near location: CLLocationCoordinate2D, cityName: String, retryCount: Int = 0) async throws -> [POI] {
