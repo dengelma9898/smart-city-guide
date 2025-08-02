@@ -78,12 +78,20 @@ class HEREAPIService: ObservableObject {
             
             // Handle rate limiting specifically
             if httpResponse.statusCode == 429 {
-                print("HEREAPIService: Rate limit hit, waiting 2 seconds...")
+                // Extract more details from rate limiting response  
+                if let responseString = String(data: data, encoding: .utf8) {
+                    print("HEREAPIService: Geocoding rate limit details: \(responseString)")
+                }
+                print("HEREAPIService: Rate limit hit during geocoding, waiting 2 seconds...")
                 try await Task.sleep(nanoseconds: 2_000_000_000) // 2 second delay
                 throw HEREError.rateLimitExceeded
             }
             
             guard httpResponse.statusCode == 200 else {
+                // Extract error details from geocoding API response
+                if let responseString = String(data: data, encoding: .utf8) {
+                    print("HEREAPIService: Geocoding API Error \(httpResponse.statusCode): \(responseString)")
+                }
                 throw HEREError.invalidResponse(statusCode: httpResponse.statusCode)
             }
             
@@ -135,6 +143,28 @@ class HEREAPIService: ObservableObject {
             }
         }
         
+        // NEW: Handle "City Street Number" format (e.g., "Feucht Bienenweg 4")
+        let words = trimmedInput.components(separatedBy: " ")
+        if words.count >= 2 {
+            // If the last word is a number, assume first word is the city
+            if let lastWord = words.last, lastWord.allSatisfy(\.isNumber) {
+                let cityName = words.first!
+                print("HEREAPIService: Detected 'City Street Number' format, extracted city '\(cityName)' from '\(trimmedInput)'")
+                return cityName
+            }
+            
+            // If last 2 words contain numbers/street info, take first word as city
+            let lastTwoWords = Array(words.suffix(2)).joined(separator: " ")
+            if lastTwoWords.contains(where: \.isNumber) || 
+               lastTwoWords.lowercased().contains("str") || 
+               lastTwoWords.lowercased().contains("weg") ||
+               lastTwoWords.lowercased().contains("platz") {
+                let cityName = words.first!
+                print("HEREAPIService: Detected street address pattern, extracted city '\(cityName)' from '\(trimmedInput)'")
+                return cityName
+            }
+        }
+        
         // Return original input if no extraction needed
         return trimmedInput
     }
@@ -165,10 +195,18 @@ class HEREAPIService: ObservableObject {
             }
             
             if httpResponse.statusCode == 429 {
+                // Extract more details from rate limiting response
+                if let responseString = String(data: data, encoding: .utf8) {
+                    print("HEREAPIService: Rate limit details: \(responseString)")
+                }
                 throw HEREError.rateLimitExceeded
             }
             
             guard httpResponse.statusCode == 200 else {
+                // Extract error details from API response
+                if let responseString = String(data: data, encoding: .utf8) {
+                    print("HEREAPIService: API Error \(httpResponse.statusCode): \(responseString)")
+                }
                 throw HEREError.invalidResponse(statusCode: httpResponse.statusCode)
             }
             
@@ -216,63 +254,7 @@ class HEREAPIService: ObservableObject {
         return .attraction
     }
     
-    private func searchPOIsForCategory(_ category: PlaceCategory, near location: CLLocationCoordinate2D, cityName: String, retryCount: Int = 0) async throws -> [POI] {
-        let categoryQuery = category.hereSearchQuery
-        let encodedQuery = categoryQuery.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? categoryQuery
-        
-        // Search in a 20km radius around the city center - limit to 5 per category for max 15 total
-        let urlString = "\(baseURL)/discover?at=\(location.latitude),\(location.longitude)&q=\(encodedQuery)&limit=5&apiKey=\(apiKey)"
-        
-        guard let url = URL(string: urlString) else {
-            throw HEREError.invalidURL
-        }
-        
-        do {
-            // Reduced delay since we only have 3 categories now
-            let baseDelay = 100_000_000 // 100ms base delay  
-            let categoryDelay = retryCount * 200_000_000 // Additional delay for retries
-            try await Task.sleep(nanoseconds: UInt64(baseDelay + categoryDelay))
-            
-            let (data, response) = try await urlSession.data(from: url)
-            
-            guard let httpResponse = response as? HTTPURLResponse else {
-                throw HEREError.invalidResponse(statusCode: -1)
-            }
-            
-            // Handle rate limiting with retry logic
-            if httpResponse.statusCode == 429 {
-                if retryCount < 2 { // Max 2 retries
-                    let retryDelay = (retryCount + 1) * 2_000_000_000 // 2s, 4s delays
-                    print("HEREAPIService: Rate limit hit for '\(category.rawValue)', retrying in \((retryDelay / 1_000_000_000))s (attempt \(retryCount + 1))")
-                    try await Task.sleep(nanoseconds: UInt64(retryDelay))
-                    return try await searchPOIsForCategory(category, near: location, cityName: cityName, retryCount: retryCount + 1)
-                } else {
-                    print("HEREAPIService: Max retries reached for '\(category.rawValue)', skipping")
-                    return []
-                }
-            }
-            
-            guard httpResponse.statusCode == 200 else {
-                print("HEREAPIService: HTTP \(httpResponse.statusCode) for category '\(category.rawValue)', skipping")
-                return []
-            }
-            
-            let searchResponse = try JSONDecoder().decode(HERESearchResponse.self, from: data)
-            
-            let pois = searchResponse.results.compactMap { item in
-                POI(from: item, category: category, requestedCity: cityName)
-            }
-            
-            print("HEREAPIService: Found \(pois.count) POIs for category '\(category.rawValue)'")
-            return pois
-            
-        } catch let error as HEREError {
-            throw error
-        } catch {
-            print("HEREAPIService: Error searching for category '\(category.rawValue)': \(error)")
-            return []
-        }
-    }
+    // OLD CODE REMOVED: searchPOIsForCategory - replaced by single API call in searchPOIs
 }
 
 // MARK: - HERE API Response Models
