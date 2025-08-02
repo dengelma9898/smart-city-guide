@@ -12,12 +12,16 @@ struct RouteBuilderView: View {
   
   @StateObject private var routeService = RouteService()
   @StateObject private var historyManager = RouteHistoryManager()
+  @StateObject private var overpassService = OverpassAPIService()
+  
+  @State private var discoveredPOIs: [POI] = []
+  @State private var isLoadingPOIs = false
   
   var body: some View {
     NavigationView {
       ScrollView {
         VStack(spacing: 24) {
-          if routeService.isGenerating {
+          if isLoadingPOIs || routeService.isGenerating {
             // Header - only show during generation
             VStack(spacing: 12) {
               Text("Route wird erstellt...")
@@ -37,7 +41,7 @@ struct RouteBuilderView: View {
               ProgressView()
                 .scaleEffect(1.2)
               
-              Text("Route wird berechnet...")
+              Text(isLoadingPOIs ? "Suche nach interessanten Orten..." : "Route wird berechnet...")
                 .font(.body)
                 .foregroundColor(.secondary)
             }
@@ -359,6 +363,41 @@ struct RouteBuilderView: View {
       routeService.setHistoryManager(historyManager)
     }
     .task {
+      await loadPOIsAndGenerateRoute()
+    }
+  }
+  
+  // MARK: - POI Loading and Route Generation
+  
+  private func loadPOIsAndGenerateRoute() async {
+    do {
+      // Step 1: Load POIs from Overpass API
+      isLoadingPOIs = true
+      print("RouteBuilderView: Loading POIs for city '\(startingCity)'")
+      
+      discoveredPOIs = try await overpassService.fetchPOIs(
+        for: startingCity,
+        categories: PlaceCategory.defaultCategories
+      )
+      
+      print("RouteBuilderView: Loaded \(discoveredPOIs.count) POIs")
+      isLoadingPOIs = false
+      
+      // Step 2: Generate route using traditional method (for now)
+      // TODO: Integrate POIs into route generation
+      await routeService.generateRoute(
+        startingCity: startingCity,
+        numberOfPlaces: numberOfPlaces,
+        endpointOption: endpointOption,
+        customEndpoint: customEndpoint,
+        routeLength: routeLength
+      )
+      
+    } catch {
+      isLoadingPOIs = false
+      print("RouteBuilderView Error: Failed to load POIs - \(error.localizedDescription)")
+      
+      // Fallback: Generate route using traditional method
       await routeService.generateRoute(
         startingCity: startingCity,
         numberOfPlaces: numberOfPlaces,

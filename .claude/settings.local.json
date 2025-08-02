@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir:*)",
+      "mcp__context7__resolve-library-id",
+      "mcp__context7__get-library-docs",
+      "WebFetch(domain:developer.apple.com)",
+      "WebFetch(domain:medium.com)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git checkout:*)",
+      "Bash(xcodebuild:*)",
+      "Bash(swiftc:*)",
+      "Bash(find:*)",
+      "mcp__XcodeBuildMCP__discover_projs",
+      "mcp__XcodeBuildMCP__diagnostic",
+      "mcp__XcodeBuildMCP__list_sims",
+      "mcp__XcodeBuildMCP__list_schems_proj",
+      "mcp__XcodeBuildMCP__build_sim_name_proj",
+      "mcp__XcodeBuildMCP__clean_proj"
+    ],
+    "deny": []
+  }
+}
