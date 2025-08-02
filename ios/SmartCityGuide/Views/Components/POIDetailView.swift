@@ -56,6 +56,43 @@ struct POIDetailView: View {
                         Text(address.fullAddress)
                             .font(.body)
                             .foregroundColor(.primary)
+                        
+                        // Show city separately if available
+                        if let city = address.city {
+                            HStack(spacing: 4) {
+                                Image(systemName: "building.2.fill")
+                                    .font(.caption2)
+                                    .foregroundColor(.orange)
+                                
+                                Text("Stadt: \(city)")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                    .fontWeight(.medium)
+                            }
+                            .padding(.top, 2)
+                        }
+                    }
+                }
+            }
+            
+            // City information even if no full address
+            else if let address = poi.address, let city = address.city {
+                HStack(alignment: .top, spacing: 8) {
+                    Image(systemName: "building.2.fill")
+                        .font(.caption)
+                        .foregroundColor(.orange)
+                        .padding(.top, 2)
+                    
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Stadt")
+                            .font(.caption)
+                            .fontWeight(.medium)
+                            .foregroundColor(.secondary)
+                        
+                        Text(city)
+                            .font(.body)
+                            .foregroundColor(.primary)
+                            .fontWeight(.medium)
                     }
                 }
             }

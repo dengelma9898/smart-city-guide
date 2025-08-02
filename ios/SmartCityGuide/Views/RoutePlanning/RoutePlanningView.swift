@@ -54,6 +54,11 @@ struct RoutePlanningView: View {
                 placeholder: "z.B. Berlin, München, Hamburg",
                 text: $startingCity
               )
+              
+              // City extraction hint
+              if !startingCity.isEmpty {
+                CityInputHintView(inputText: startingCity)
+              }
             }
             
             // Number of Places Section
@@ -194,6 +199,12 @@ struct RoutePlanningView: View {
                     text: $customEndpoint
                   )
                   .padding(.top, 8)
+                  
+                  // City extraction hint for custom endpoint
+                  if !customEndpoint.isEmpty {
+                    CityInputHintView(inputText: customEndpoint)
+                      .padding(.top, 4)
+                  }
                 }
               }
             }

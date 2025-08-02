@@ -12,7 +12,7 @@ struct RouteBuilderView: View {
   
   @StateObject private var routeService = RouteService()
   @StateObject private var historyManager = RouteHistoryManager()
-  @StateObject private var overpassService = OverpassAPIService()
+  @StateObject private var hereService = HEREAPIService.shared
   
   @State private var discoveredPOIs: [POI] = []
   @State private var isLoadingPOIs = false
@@ -42,9 +42,9 @@ struct RouteBuilderView: View {
               ProgressView()
                 .scaleEffect(1.2)
               
-              Text(isLoadingPOIs ? "Suche nach interessanten Orten..." : "Route wird berechnet...")
-                .font(.body)
-                .foregroundColor(.secondary)
+                          Text(isLoadingPOIs ? "Suche nach POIs mit HERE API..." : "Route wird berechnet...")
+              .font(.body)
+              .foregroundColor(.secondary)
             }
             .padding(.vertical, 40)
             
@@ -59,7 +59,10 @@ struct RouteBuilderView: View {
                     .font(.headline)
                     .fontWeight(.semibold)
                   
-                  Text("Es wurden \(discoveredPOIs.count) interessante Orte in \(startingCity) gefunden:")
+                  let poisWithCity = discoveredPOIs.filter { $0.address?.city != nil }
+                  let cityInfo = poisWithCity.isEmpty ? "keine Stadt-Info verfügbar" : "\(poisWithCity.count)/\(discoveredPOIs.count) mit Stadt-Info"
+                  
+                  Text("Es wurden \(discoveredPOIs.count) interessante Orte in \(startingCity) gefunden (\(cityInfo)):")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                   
@@ -448,16 +451,16 @@ struct RouteBuilderView: View {
   
   private func loadPOIsAndGenerateRoute() async {
     do {
-      // Step 1: Load POIs from Overpass API
+      // Step 1: Load POIs from HERE API
       isLoadingPOIs = true
-      print("RouteBuilderView: Loading POIs for city '\(startingCity)'")
+      print("RouteBuilderView: Loading POIs for city '\(startingCity)' using HERE API")
       
-      discoveredPOIs = try await overpassService.fetchPOIs(
+      discoveredPOIs = try await hereService.fetchPOIs(
         for: startingCity,
         categories: PlaceCategory.defaultCategories
       )
       
-      print("RouteBuilderView: Loaded \(discoveredPOIs.count) POIs")
+      print("RouteBuilderView: Loaded \(discoveredPOIs.count) POIs from HERE API")
       isLoadingPOIs = false
       
       // Step 2: Generate route using discovered POIs
@@ -472,16 +475,8 @@ struct RouteBuilderView: View {
       
     } catch {
       isLoadingPOIs = false
-      print("RouteBuilderView Error: Failed to load POIs - \(error.localizedDescription)")
-      
-      // Fallback: Generate route using traditional method
-      await routeService.generateRoute(
-        startingCity: startingCity,
-        numberOfPlaces: numberOfPlaces,
-        endpointOption: endpointOption,
-        customEndpoint: customEndpoint,
-        routeLength: routeLength
-      )
+      print("RouteBuilderView Error: Failed to load POIs from HERE API - \(error.localizedDescription)")
+      routeService.errorMessage = "Fehler beim Laden der POIs von HERE API: \(error.localizedDescription)"
     }
   }
 }

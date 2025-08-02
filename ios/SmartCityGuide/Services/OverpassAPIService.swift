@@ -48,7 +48,7 @@ class OverpassAPIService: ObservableObject {
         }
         
         do {
-            let query = buildOverpassQuery(boundingBox: boundingBox, categories: categories)
+            let query = buildOverpassQuery(boundingBox: boundingBox, categories: categories, cityName: cityName)
             let response = try await executeQuery(query)
             let pois = parseResponse(response, cityName: cityName)
             
@@ -97,27 +97,43 @@ class OverpassAPIService: ObservableObject {
         }
     }
     
-    private func buildOverpassQuery(boundingBox: BoundingBox, categories: [PlaceCategory]) -> String {
-        let bbox = "\(boundingBox.south),\(boundingBox.west),\(boundingBox.north),\(boundingBox.east)"
-        
+    private func buildOverpassQuery(boundingBox: BoundingBox, categories: [PlaceCategory], cityName: String? = nil) -> String {
+        var query = "[out:json][timeout:60];\n"
         var queryParts: [String] = []
         
-        // Add queries for each category
-        for category in categories {
-            for (key, value) in category.overpassTags {
-                // Add both nodes and ways for each tag
-                queryParts.append("  node[\"\(key)\"=\"\(value)\"](\(bbox));")
-                queryParts.append("  way[\"\(key)\"=\"\(value)\"](\(bbox));")
+        // Use area-based filtering if city name is provided (more accurate!)
+        if let cityName = cityName {
+            query += "{{geocodeArea:\(cityName)}}->.searchArea;\n"
+            
+            // Add queries for each category using area constraint
+            for category in categories {
+                for (key, value) in category.overpassTags {
+                    queryParts.append("  node[\"\(key)\"=\"\(value)\"](area.searchArea);")
+                    queryParts.append("  way[\"\(key)\"=\"\(value)\"](area.searchArea);")
+                    queryParts.append("  relation[\"\(key)\"=\"\(value)\"](area.searchArea);")
+                }
             }
+            
+            query += "(\n"
+            query += queryParts.joined(separator: "\n")
+            query += "\n);\n"
+        } else {
+            // Fallback to bounding box if no city name
+            let bbox = "\(boundingBox.south),\(boundingBox.west),\(boundingBox.north),\(boundingBox.east)"
+            
+            for category in categories {
+                for (key, value) in category.overpassTags {
+                    queryParts.append("  node[\"\(key)\"=\"\(value)\"](\(bbox));")
+                    queryParts.append("  way[\"\(key)\"=\"\(value)\"](\(bbox));")
+                }
+            }
+            
+            query += "(\n"
+            query += queryParts.joined(separator: "\n")
+            query += "\n);\n"
         }
         
-        let query = """
-        [out:json][timeout:25];
-        (
-        \(queryParts.joined(separator: "\n"))
-        );
-        out center geom;
-        """
+        query += "out center meta;"
         
         print("OverpassAPIService Query: \(query)")
         return query
@@ -179,17 +195,11 @@ class OverpassAPIService: ObservableObject {
                 continue
             }
             
-            // Filter by city if specified
-            if let cityName = cityName {
-                guard poi.isInCity(cityName) else {
-                    continue
-                }
-            }
-            
+            // No manual city filtering needed - Overpass API with geocodeArea already filters by city boundaries!
             pois.append(poi)
         }
         
-        print("OverpassAPIService: Parsed \(pois.count) valid POIs from \(response.elements.count) elements")
+        print("OverpassAPIService: Parsed \(pois.count) valid POIs from \(response.elements.count) elements (city-filtered by Overpass API)")
         return pois
     }
 }
