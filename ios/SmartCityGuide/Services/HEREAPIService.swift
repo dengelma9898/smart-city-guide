@@ -203,12 +203,14 @@ class HEREAPIService: ObservableObject {
             }
         }
         
-        // 🚀 SINGLE API CALL: Comprehensive search for all tourist POIs
-        let combinedQuery = "tourist attraction museum park sightseeing landmark monument"
-        let encodedQuery = combinedQuery.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? combinedQuery
+        // 🚀 SINGLE API CALL: Use HERE category IDs for precise results
+        let allCategoryIDs = categories.flatMap { $0.hereCategoryIDs }
+        let categoriesParam = allCategoryIDs.joined(separator: ",")
         
-        // Single API call with higher limit to get diverse results
-        let urlString = "\(baseURL)/discover?at=\(location.latitude),\(location.longitude)&q=\(encodedQuery)&limit=50&apiKey=\(apiKey)"
+        // HERE Discover API with correct parameters (like your example!)
+        let urlString = "\(baseURL)/discover?at=\(location.latitude),\(location.longitude)&categories=\(categoriesParam)&limit=50&radius=10000&apiKey=\(apiKey)"
+        
+        print("HEREAPIService: 🌐 Using HERE Discover API: \(urlString)")
         
         guard let url = URL(string: urlString) else {
             throw HEREError.invalidURL
@@ -248,7 +250,7 @@ class HEREAPIService: ObservableObject {
             let searchResponse = try JSONDecoder().decode(HERESearchResponse.self, from: data)
             
             // Convert to POIs and categorize them intelligently
-            let allPOIs = searchResponse.results.compactMap { item -> POI? in
+            let allPOIs = searchResponse.items.compactMap { item -> POI? in
                 let detectedCategory = detectCategory(for: item)
                 return POI(from: item, category: detectedCategory, requestedCity: cityName)
             }
@@ -393,7 +395,7 @@ struct HEREAddress: Codable {
 }
 
 struct HERESearchResponse: Codable {
-    let results: [HERESearchItem]
+    let items: [HERESearchItem] // CORRECTED: HERE API returns "items" not "results"
 }
 
 struct HERESearchItem: Codable {
@@ -522,6 +524,20 @@ extension PlaceCategory {
         .museum,      // Museums 
         .park         // Parks and green spaces
     ]
+    
+    /// HERE API category IDs for more precise results
+    var hereCategoryIDs: [String] {
+        switch self {
+        case .attraction:
+            return ["300-3000-0000", "300-3100-0000"] // Sightseeing, Tourist attractions
+        case .museum:
+            return ["300-3200-0000"] // Museums
+        case .park:
+            return ["500-5100-0000", "500-5200-0000"] // Parks, Recreation areas
+        default:
+            return ["300-3000-0000"] // Default to sightseeing
+        }
+    }
     
     var hereSearchQuery: String {
         switch self {
