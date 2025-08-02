@@ -66,6 +66,20 @@ struct RouteBuilderView: View {
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                   
+                  // Info about limited results
+                  if discoveredPOIs.count > 0 {
+                    HStack(spacing: 6) {
+                      Image(systemName: "info.circle.fill")
+                        .foregroundColor(.blue)
+                        .font(.caption)
+                      
+                      Text("Maximal 10 POIs aus 3 Hauptkategorien für optimale Performance")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                    }
+                    .padding(.top, 2)
+                  }
+                  
                   // POI Categories Summary
                   let categoryGroups = Dictionary(grouping: discoveredPOIs) { $0.category }
                   LazyVGrid(columns: [
@@ -457,7 +471,7 @@ struct RouteBuilderView: View {
       
       discoveredPOIs = try await hereService.fetchPOIs(
         for: startingCity,
-        categories: PlaceCategory.defaultCategories
+        categories: PlaceCategory.essentialCategories
       )
       
       print("RouteBuilderView: Loaded \(discoveredPOIs.count) POIs from HERE API")

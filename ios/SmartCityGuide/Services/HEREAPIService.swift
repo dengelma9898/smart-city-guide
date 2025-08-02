@@ -21,7 +21,7 @@ class HEREAPIService: ObservableObject {
     // MARK: - Public API
     
     /// Fetches POIs for a given city name with caching and rate limit handling
-    func fetchPOIs(for cityName: String, categories: [PlaceCategory] = PlaceCategory.defaultCategories, retryCount: Int = 0) async throws -> [POI] {
+    func fetchPOIs(for cityName: String, categories: [PlaceCategory] = PlaceCategory.essentialCategories, retryCount: Int = 0) async throws -> [POI] {
         // Check cache first
         if let cachedPOIs = await POICacheService.shared.getCachedPOIs(for: cityName) {
             print("HEREAPIService: Using cached POIs for '\(cityName)'")
@@ -67,8 +67,8 @@ class HEREAPIService: ObservableObject {
         }
         
         do {
-            // Add delay to prevent rate limiting
-            try await Task.sleep(nanoseconds: 200_000_000) // 200ms delay
+            // Minimal delay for geocoding
+            try await Task.sleep(nanoseconds: 50_000_000) // 50ms delay
             
             let (data, response) = try await urlSession.data(from: url)
             
@@ -154,25 +154,28 @@ class HEREAPIService: ObservableObject {
         // Remove duplicates by ID
         let uniquePOIs = Array(Set(allPOIs))
         
-        print("HEREAPIService: Found \(uniquePOIs.count) unique POIs for '\(cityName)'")
-        return uniquePOIs
+        // Limit to maximum 10 POIs to avoid overwhelming the user and ensure fast performance
+        let limitedPOIs = Array(uniquePOIs.prefix(10))
+        
+        print("HEREAPIService: Found \(uniquePOIs.count) unique POIs, returning \(limitedPOIs.count) for '\(cityName)'")
+        return limitedPOIs
     }
     
     private func searchPOIsForCategory(_ category: PlaceCategory, near location: CLLocationCoordinate2D, cityName: String, retryCount: Int = 0) async throws -> [POI] {
         let categoryQuery = category.hereSearchQuery
         let encodedQuery = categoryQuery.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? categoryQuery
         
-        // Search in a 20km radius around the city center
-        let urlString = "\(baseURL)/discover?at=\(location.latitude),\(location.longitude)&q=\(encodedQuery)&limit=20&apiKey=\(apiKey)"
+        // Search in a 20km radius around the city center - limit to 5 per category for max 15 total
+        let urlString = "\(baseURL)/discover?at=\(location.latitude),\(location.longitude)&q=\(encodedQuery)&limit=5&apiKey=\(apiKey)"
         
         guard let url = URL(string: urlString) else {
             throw HEREError.invalidURL
         }
         
         do {
-            // Add progressive delay between requests to avoid rate limiting
-            let baseDelay = 300_000_000 // 300ms base delay
-            let categoryDelay = retryCount * 500_000_000 // Additional delay for retries
+            // Reduced delay since we only have 3 categories now
+            let baseDelay = 100_000_000 // 100ms base delay  
+            let categoryDelay = retryCount * 200_000_000 // Additional delay for retries
             try await Task.sleep(nanoseconds: UInt64(baseDelay + categoryDelay))
             
             let (data, response) = try await urlSession.data(from: url)
@@ -381,6 +384,13 @@ enum HEREError: LocalizedError {
 // MARK: - PlaceCategory HERE Integration
 
 extension PlaceCategory {
+    // Essential categories to avoid rate limiting - only 3 categories = 3 API calls
+    static let essentialCategories: [PlaceCategory] = [
+        .attraction,  // Main tourist attractions
+        .museum,      // Museums 
+        .park         // Parks and green spaces
+    ]
+    
     var hereSearchQuery: String {
         switch self {
         case .attraction:
