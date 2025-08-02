@@ -30,7 +30,7 @@ class OverpassAPIService: ObservableObject {
         let boundingBox = try await getBoundingBox(for: cityName)
         
         // Then fetch POIs within that bounding box
-        let pois = try await fetchPOIs(in: boundingBox, categories: categories)
+        let pois = try await fetchPOIs(in: boundingBox, categories: categories, cityName: cityName)
         
         // Cache the results
         POICacheService.shared.cachePOIs(pois, for: cityName)
@@ -39,7 +39,7 @@ class OverpassAPIService: ObservableObject {
     }
     
     /// Fetches POIs within a specific bounding box
-    func fetchPOIs(in boundingBox: BoundingBox, categories: [PlaceCategory] = PlaceCategory.defaultCategories) async throws -> [POI] {
+    func fetchPOIs(in boundingBox: BoundingBox, categories: [PlaceCategory] = PlaceCategory.defaultCategories, cityName: String? = nil) async throws -> [POI] {
         isLoading = true
         errorMessage = nil
         
@@ -50,7 +50,7 @@ class OverpassAPIService: ObservableObject {
         do {
             let query = buildOverpassQuery(boundingBox: boundingBox, categories: categories)
             let response = try await executeQuery(query)
-            let pois = parseResponse(response)
+            let pois = parseResponse(response, cityName: cityName)
             
             print("OverpassAPIService: Found \(pois.count) POIs in bounding box")
             return pois
@@ -157,7 +157,7 @@ class OverpassAPIService: ObservableObject {
         }
     }
     
-    private func parseResponse(_ response: OverpassResponse) -> [POI] {
+    private func parseResponse(_ response: OverpassResponse, cityName: String? = nil) -> [POI] {
         var pois: [POI] = []
         
         for element in response.elements {
@@ -175,11 +175,21 @@ class OverpassAPIService: ObservableObject {
             let poi = POI(from: element, category: category)
             
             // Skip POIs without names (optional filter)
-            if !poi.name.isEmpty && poi.name != category.rawValue {
-                pois.append(poi)
+            guard !poi.name.isEmpty && poi.name != category.rawValue else {
+                continue
             }
+            
+            // Filter by city if specified
+            if let cityName = cityName {
+                guard poi.isInCity(cityName) else {
+                    continue
+                }
+            }
+            
+            pois.append(poi)
         }
         
+        print("OverpassAPIService: Parsed \(pois.count) valid POIs from \(response.elements.count) elements")
         return pois
     }
 }

@@ -32,6 +32,56 @@ struct OverpassMember: Codable {
     let role: String?
 }
 
+// MARK: - POI Supporting Types
+struct POIAddress: Codable {
+    let street: String?
+    let houseNumber: String?
+    let city: String?
+    let postcode: String?
+    let country: String?
+    
+    var fullAddress: String {
+        var components: [String] = []
+        
+        if let street = street, let houseNumber = houseNumber {
+            components.append("\(street) \(houseNumber)")
+        } else if let street = street {
+            components.append(street)
+        }
+        
+        if let city = city {
+            if let postcode = postcode {
+                components.append("\(postcode) \(city)")
+            } else {
+                components.append(city)
+            }
+        }
+        
+        if let country = country {
+            components.append(country)
+        }
+        
+        return components.joined(separator: ", ")
+    }
+}
+
+struct POIContact: Codable {
+    let phone: String?
+    let email: String?
+    let website: String?
+}
+
+struct POIAccessibility: Codable {
+    let wheelchair: String? // "yes", "no", "limited"
+    let wheelchairDescription: String?
+}
+
+struct POIPricing: Codable {
+    let fee: String? // "yes", "no"
+    let feeAmount: String?
+    let feeDescription: String?
+}
+
 // MARK: - POI Model for App
 struct POI: Identifiable, Codable {
     let id: String
@@ -44,8 +94,27 @@ struct POI: Identifiable, Codable {
     let overpassType: String // "node", "way", or "relation"
     let overpassId: Int64
     
+    // Extended information
+    let address: POIAddress?
+    let contact: POIContact?
+    let accessibility: POIAccessibility?
+    let pricing: POIPricing?
+    let operatingHours: String?
+    let website: String?
+    
     var coordinate: CLLocationCoordinate2D {
         CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
+    }
+    
+    var fullAddress: String {
+        address?.fullAddress ?? ""
+    }
+    
+    var displayDescription: String {
+        if let desc = description, !desc.isEmpty, desc != category.rawValue {
+            return desc
+        }
+        return category.rawValue
     }
     
     // Initialize from Overpass API element
@@ -64,9 +133,9 @@ struct POI: Identifiable, Codable {
         
         // Extract description
         self.description = element.tags?["description"] ?? 
-                          element.tags?["tourism"] ?? 
-                          element.tags?["amenity"] ?? 
-                          element.tags?["leisure"]
+                          element.tags?["description:de"] ?? 
+                          element.tags?["short_name"] ??
+                          element.tags?["alt_name"]
         
         // Extract coordinates
         if let lat = element.lat, let lon = element.lon {
@@ -82,6 +151,83 @@ struct POI: Identifiable, Codable {
             self.latitude = 0.0
             self.longitude = 0.0
         }
+        
+        // Extract address information
+        let street = element.tags?["addr:street"]
+        let houseNumber = element.tags?["addr:housenumber"]
+        let city = element.tags?["addr:city"]
+        let postcode = element.tags?["addr:postcode"]
+        let country = element.tags?["addr:country"]
+        
+        if street != nil || houseNumber != nil || city != nil || postcode != nil || country != nil {
+            self.address = POIAddress(
+                street: street,
+                houseNumber: houseNumber,
+                city: city,
+                postcode: postcode,
+                country: country
+            )
+        } else {
+            self.address = nil
+        }
+        
+        // Extract contact information
+        let phone = element.tags?["phone"] ?? element.tags?["contact:phone"]
+        let email = element.tags?["email"] ?? element.tags?["contact:email"]
+        let website = element.tags?["website"] ?? element.tags?["contact:website"] ?? element.tags?["url"]
+        
+        if phone != nil || email != nil || website != nil {
+            self.contact = POIContact(phone: phone, email: email, website: website)
+        } else {
+            self.contact = nil
+        }
+        
+        // Extract accessibility information
+        let wheelchair = element.tags?["wheelchair"]
+        let wheelchairDesc = element.tags?["wheelchair:description"]
+        
+        if wheelchair != nil || wheelchairDesc != nil {
+            self.accessibility = POIAccessibility(
+                wheelchair: wheelchair,
+                wheelchairDescription: wheelchairDesc
+            )
+        } else {
+            self.accessibility = nil
+        }
+        
+        // Extract pricing information
+        let fee = element.tags?["fee"]
+        let feeAmount = element.tags?["fee:amount"] ?? element.tags?["charge"]
+        let feeDesc = element.tags?["fee:description"]
+        
+        if fee != nil || feeAmount != nil || feeDesc != nil {
+            self.pricing = POIPricing(
+                fee: fee,
+                feeAmount: feeAmount,
+                feeDescription: feeDesc
+            )
+        } else {
+            self.pricing = nil
+        }
+        
+        // Extract operating hours
+        self.operatingHours = element.tags?["opening_hours"]
+        
+        // Extract website (if not already in contact)
+        self.website = element.tags?["website"] ?? element.tags?["url"]
+    }
+    
+    // City filtering
+    func isInCity(_ cityName: String) -> Bool {
+        // Check if POI has address with matching city
+        if let city = address?.city {
+            return city.lowercased().contains(cityName.lowercased()) || 
+                   cityName.lowercased().contains(city.lowercased())
+        }
+        
+        // Fallback: If no address, we assume it's in the requested city
+        // since it was found within the city's bounding box
+        return true
     }
 }
 

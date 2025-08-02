@@ -32,11 +32,11 @@ class RouteService: ObservableObject {
     
     do {
       // Step 1: Find starting location
-      let startLocation = try await findLocation(query: startingCity)
+      let startLocationPoint = try await findLocation(query: startingCity)
+      let startLocation = startLocationPoint.coordinate
       
-      // Step 2: Find interesting places based on endpoint option and available POIs
-      var waypoints: [RoutePoint]
-      
+      // Step 2: Generate route using POIs (no fallback)
+      let waypoints: [RoutePoint]
       if let pois = availablePOIs, !pois.isEmpty {
         // Use provided POIs for route generation
         waypoints = try await findOptimalRouteWithPOIs(
@@ -48,19 +48,11 @@ class RouteService: ObservableObject {
           routeLength: routeLength
         )
       } else {
-        // Fallback to traditional route finding
-        let startPoint = RoutePoint(
-          name: "Start",
-          coordinate: startLocation,
-          address: "Startpunkt",
-          category: .attraction
-        )
-        waypoints = try await findOptimalRoute(
-          startLocation: startPoint,
-          numberOfPlaces: numberOfPlaces,
-          endpointOption: endpointOption,
-          customEndpoint: customEndpoint,
-          routeLength: routeLength
+        // No POIs available - throw error
+        throw NSError(
+          domain: "RouteService",
+          code: 404,
+          userInfo: [NSLocalizedDescriptionKey: "Keine POIs für diese Stadt verfügbar. Bitte versuchen Sie eine andere Stadt."]
         )
       }
       
@@ -563,7 +555,7 @@ class RouteService: ObservableObject {
       let routePoint = RoutePoint(
         name: poi.name,
         coordinate: poi.coordinate,
-        address: poi.description ?? "",
+        address: poi.fullAddress.isEmpty ? poi.displayDescription : poi.fullAddress,
         category: poi.category
       )
       waypoints.append(routePoint)
@@ -588,10 +580,10 @@ class RouteService: ObservableObject {
     case .custom:
       if !customEndpoint.isEmpty {
         do {
-          let endLocation = try await findLocation(query: customEndpoint)
+          let endLocationPoint = try await findLocation(query: customEndpoint)
           let endPoint = RoutePoint(
             name: customEndpoint,
-            coordinate: endLocation,
+            coordinate: endLocationPoint.coordinate,
             address: customEndpoint,
             category: .attraction
           )
