@@ -203,14 +203,13 @@ class HEREAPIService: ObservableObject {
             }
         }
         
-        // 🚀 SINGLE API CALL: HERE API requires BOTH 'q' and 'categories' parameters
-        let allCategoryIDs = categories.flatMap { $0.hereCategoryIDs }
-        let categoriesParam = allCategoryIDs.joined(separator: ",")
-        let queryParam = "tourist attraction museum park" // Required 'q' parameter
+        // 🚀 SIMPLIFIED HERE API: Only q parameter needed (like official example)
+        let queryParam = "tourist attraction museum park" // Search query
         let encodedQuery = queryParam.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? queryParam
         
-        // HERE Discover API with correct parameters per official documentation
-        let urlString = "\(baseURL)/discover?at=\(location.latitude),\(location.longitude)&q=\(encodedQuery)&categories=\(categoriesParam)&limit=50&radius=10000&apiKey=\(apiKey)"
+        // HERE Discover API with simplified parameters per official example:
+        // GET /discover?at=lat,lng&limit=50&lang=en&q=query&apiKey=key
+        let urlString = "\(baseURL)/discover?at=\(location.latitude),\(location.longitude)&limit=50&lang=de&q=\(encodedQuery)&apiKey=\(apiKey)"
         
         print("HEREAPIService: 🌐 Using HERE Discover API: \(urlString)")
         
@@ -527,19 +526,7 @@ extension PlaceCategory {
         .park         // Parks and green spaces
     ]
     
-    /// HERE API category IDs for more precise results
-    var hereCategoryIDs: [String] {
-        switch self {
-        case .attraction:
-            return ["300-3000-0000", "300-3100-0000"] // Sightseeing, Tourist attractions
-        case .museum:
-            return ["300-3200-0000"] // Museums
-        case .park:
-            return ["500-5100-0000", "500-5200-0000"] // Parks, Recreation areas
-        default:
-            return ["300-3000-0000"] // Default to sightseeing
-        }
-    }
+    // NOTE: hereCategoryIDs removed - HERE Discover API works better with text queries
     
     var hereSearchQuery: String {
         switch self {
