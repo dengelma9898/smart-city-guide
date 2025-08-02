@@ -59,6 +59,15 @@ class HEREAPIService: ObservableObject {
     private func geocodeCity(_ cityName: String) async throws -> CLLocationCoordinate2D {
         // Extract city name from full address if needed
         let cleanCityName = extractCityFromInput(cityName)
+        
+        // 🚀 CHECK CACHE FIRST - eliminates geocoding API call for known cities!
+        if let cachedCoordinates = CityCoordinatesCache.getCoordinates(for: cleanCityName) {
+            print("HEREAPIService: ✅ Using cached coordinates for '\(cleanCityName)': \(cachedCoordinates.latitude), \(cachedCoordinates.longitude)")
+            return cachedCoordinates
+        }
+        
+        print("HEREAPIService: ⚠️ City '\(cleanCityName)' not in cache, falling back to HERE Geocoding API...")
+        
         let encodedCity = cleanCityName.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? cleanCityName
         let urlString = "\(geocodeURL)/geocode.json?searchtext=\(encodedCity)&apiKey=\(apiKey)"
         
@@ -255,6 +264,66 @@ class HEREAPIService: ObservableObject {
     }
     
     // OLD CODE REMOVED: searchPOIsForCategory - replaced by single API call in searchPOIs
+}
+
+// MARK: - City Coordinates Cache
+
+/// Static cache of known German city coordinates to avoid geocoding API calls
+struct CityCoordinatesCache {
+    static let coordinates: [String: CLLocationCoordinate2D] = [
+        // Major cities
+        "berlin": CLLocationCoordinate2D(latitude: 52.5200, longitude: 13.4050),
+        "münchen": CLLocationCoordinate2D(latitude: 48.1351, longitude: 11.5820),
+        "munich": CLLocationCoordinate2D(latitude: 48.1351, longitude: 11.5820),
+        "hamburg": CLLocationCoordinate2D(latitude: 53.5511, longitude: 9.9937),
+        "köln": CLLocationCoordinate2D(latitude: 50.9375, longitude: 6.9603),
+        "cologne": CLLocationCoordinate2D(latitude: 50.9375, longitude: 6.9603),
+        "frankfurt": CLLocationCoordinate2D(latitude: 50.1109, longitude: 8.6821),
+        "stuttgart": CLLocationCoordinate2D(latitude: 48.7758, longitude: 9.1829),
+        "düsseldorf": CLLocationCoordinate2D(latitude: 51.2277, longitude: 6.7735),
+        "leipzig": CLLocationCoordinate2D(latitude: 51.3397, longitude: 12.3731),
+        "dortmund": CLLocationCoordinate2D(latitude: 51.5136, longitude: 7.4653),
+        "essen": CLLocationCoordinate2D(latitude: 51.4556, longitude: 7.0116),
+        "bremen": CLLocationCoordinate2D(latitude: 53.0793, longitude: 8.8017),
+        "dresden": CLLocationCoordinate2D(latitude: 51.0504, longitude: 13.7373),
+        "hannover": CLLocationCoordinate2D(latitude: 52.3759, longitude: 9.7320),
+        "nürnberg": CLLocationCoordinate2D(latitude: 49.4521, longitude: 11.0767),
+        "nuremberg": CLLocationCoordinate2D(latitude: 49.4521, longitude: 11.0767),
+        
+        // Bavarian cities (around Nuremberg)
+        "feucht": CLLocationCoordinate2D(latitude: 49.3794, longitude: 11.2058),
+        "erlangen": CLLocationCoordinate2D(latitude: 49.5897, longitude: 11.0044),
+        "fürth": CLLocationCoordinate2D(latitude: 49.4775, longitude: 10.9888),
+        "bamberg": CLLocationCoordinate2D(latitude: 49.8988, longitude: 10.9027),
+        "regensburg": CLLocationCoordinate2D(latitude: 49.0134, longitude: 12.1016),
+        "würzburg": CLLocationCoordinate2D(latitude: 49.7913, longitude: 9.9534),
+        "augsburg": CLLocationCoordinate2D(latitude: 48.3705, longitude: 10.8978),
+        "ingolstadt": CLLocationCoordinate2D(latitude: 48.7665, longitude: 11.4257),
+        
+        // Other popular cities
+        "heidelberg": CLLocationCoordinate2D(latitude: 49.3988, longitude: 8.6724),
+        "kiel": CLLocationCoordinate2D(latitude: 54.3233, longitude: 10.1228),
+        "magdeburg": CLLocationCoordinate2D(latitude: 52.1205, longitude: 11.6276),
+        "freiburg": CLLocationCoordinate2D(latitude: 47.9990, longitude: 7.8421),
+        "rostock": CLLocationCoordinate2D(latitude: 54.0887, longitude: 12.1403),
+        "kassel": CLLocationCoordinate2D(latitude: 51.3127, longitude: 9.4797),
+        "halle": CLLocationCoordinate2D(latitude: 51.4819, longitude: 11.9697),
+        "mainz": CLLocationCoordinate2D(latitude: 49.9929, longitude: 8.2473),
+        "saarbrücken": CLLocationCoordinate2D(latitude: 49.2401, longitude: 6.9969),
+        "potsdam": CLLocationCoordinate2D(latitude: 52.3906, longitude: 13.0645),
+        "oldenburg": CLLocationCoordinate2D(latitude: 53.1435, longitude: 8.2146),
+        "osnabrück": CLLocationCoordinate2D(latitude: 52.2799, longitude: 8.0472),
+        "lübeck": CLLocationCoordinate2D(latitude: 53.8655, longitude: 10.6866),
+        "erfurt": CLLocationCoordinate2D(latitude: 50.9848, longitude: 11.0299)
+    ]
+    
+    static func getCoordinates(for cityName: String) -> CLLocationCoordinate2D? {
+        let normalizedCity = cityName.lowercased()
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .folding(options: .diacriticInsensitive, locale: .current)
+        
+        return coordinates[normalizedCity]
+    }
 }
 
 // MARK: - HERE API Response Models
