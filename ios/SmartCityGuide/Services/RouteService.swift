@@ -627,6 +627,8 @@ class RouteService: ObservableObject {
       return 90 * 60 // 1.5 hours
     case .ruins:
       return 30 * 60 // 30 minutes
+    case .landmarkAttraction:
+      return 25 * 60 // 25 minutes
     }
   }
   

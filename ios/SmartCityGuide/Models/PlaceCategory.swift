@@ -26,6 +26,7 @@ enum PlaceCategory: String, CaseIterable, Codable {
   case waterfall = "Wasserfall"
   case lake = "See"
   case nationalPark = "Nationalpark"
+  case landmarkAttraction = "Wahrzeichen"
   
   var icon: String {
     switch self {
@@ -52,6 +53,7 @@ enum PlaceCategory: String, CaseIterable, Codable {
     case .waterfall: return "water.waves"
     case .lake: return "lake"
     case .nationalPark: return "mountain.2.fill"
+    case .landmarkAttraction: return "location.circle.fill"
     }
   }
   
@@ -80,6 +82,7 @@ enum PlaceCategory: String, CaseIterable, Codable {
     case .waterfall: return .blue
     case .lake: return .teal
     case .nationalPark: return .green
+    case .landmarkAttraction: return .orange
     }
   }
   
@@ -131,6 +134,8 @@ enum PlaceCategory: String, CaseIterable, Codable {
       return ["see", "lake", "natural lake", "water body", "reservoir"]
     case .nationalPark:
       return ["nationalpark", "national park", "nature reserve", "wildlife park", "forest park"]
+    case .landmarkAttraction:
+      return ["wahrzeichen", "landmark", "landmark attraction", "famous landmark", "iconic site"]
     }
   }
   

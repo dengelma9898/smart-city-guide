@@ -183,6 +183,8 @@ extension POICacheService {
             return 0.4
         case .nationalPark:
             return 0.9
+        case .landmarkAttraction:
+            return 1.0
         }
     }
     

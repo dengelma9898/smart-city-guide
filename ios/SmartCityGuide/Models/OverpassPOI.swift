@@ -281,6 +281,8 @@ extension PlaceCategory {
             return [("natural", "lake")]
         case .nationalPark:
             return [("leisure", "nature_reserve")]
+        case .landmarkAttraction:
+            return [("tourism", "attraction")]
         }
     }
     

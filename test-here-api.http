@@ -1,0 +1,79 @@
+### HERE API Testing File
+### Use this file to manually test HERE API calls
+### Works in VSCode with REST Client extension, IntelliJ, and other HTTP clients
+
+@apiKey = IJQ_FHors1UT0Bf-Ekex9Sgg41jDWgOWgcW58EedIWo
+@baseURL = https://discover.search.hereapi.com/v1
+
+### Test 1: Basic Discover API Call for Feucht
+# Coordinates for Feucht: 49.3794, 11.2058
+GET {{baseURL}}/discover?at=49.3794,11.2058&limit=10&lang=de&q=tourist attraction museum park Feucht 90537&apiKey={{apiKey}}
+
+###
+
+### Test 2: Discover API with different query
+GET {{baseURL}}/discover?at=49.3794,11.2058&limit=10&lang=de&q=museum&apiKey={{apiKey}}
+
+###
+
+### Test 3: Discover API for Berlin (known working location)
+# Coordinates for Berlin: 52.5200, 13.4050
+GET {{baseURL}}/discover?at=52.5200,13.4050&limit=10&lang=de&q=tourist attraction museum&apiKey={{apiKey}}
+
+###
+
+### Test 4: Minimal Discover API call (like HERE example)
+GET {{baseURL}}/discover?at=49.3794,11.2058&limit=10&lang=de&q=TucherSchloss&apiKey={{apiKey}}
+
+###
+
+### Test 5: Geocoding API Test for Feucht
+GET https://geocoder.ls.hereapi.com/6.2/geocode.json?searchtext=Feucht,Germany&apiKey={{apiKey}}
+
+###
+
+### Test 6: Browse API with Level 3 Categories (NEW APPROACH)
+# Our 4 essential categories: Tourist Attraction, Historical Monument, Castle, Landmark-Attraction
+GET {{baseURL}}/browse?at=49.3794,11.2058&categories=300-3000-0000,300-3100-0000,300-3100-0023,300-3000-0023&limit=50&apiKey={{apiKey}}
+
+###
+
+### Test 7: Discover API with specific radius
+GET {{baseURL}}/discover?at=49.3794,11.2058&limit=10&lang=de&q=tourist attraction&radius=5000&apiKey={{apiKey}}
+
+###
+
+### Test 8: Test coordinates from LocationSearchField
+# These are the exact coordinates we get when selecting from autocomplete
+GET {{baseURL}}/discover?at=49.3784125,11.2203086&limit=10&lang=de&q=tourist attraction museum park&apiKey={{apiKey}}
+
+###
+
+### Test 9: Minimal test without lang parameter
+GET {{baseURL}}/discover?at=49.3794,11.2058&limit=5&q=attraction&apiKey={{apiKey}}
+
+###
+
+### Test 10: Browse API - Single Category Tests
+# Test Tourist Attraction category only
+GET {{baseURL}}/browse?at=49.3794,11.2058&categories=300-3000-0000&limit=10&apiKey={{apiKey}}
+
+###
+
+### Test 11: Browse API - Historical Monument only  
+GET {{baseURL}}/browse?at=49.3794,11.2058&categories=300-3100-0000&limit=10&apiKey={{apiKey}}
+
+###
+
+### Test 12: Browse API - Castle only
+GET {{baseURL}}/browse?at=49.3794,11.2058&categories=300-3100-0023&limit=10&apiKey={{apiKey}}
+
+###
+
+### Test 13: Browse API - Landmark-Attraction only
+GET {{baseURL}}/browse?at=49.3794,11.2058&categories=300-3000-0023&limit=10&apiKey={{apiKey}}
+
+###
+
+### Test 14: Check if API key is valid
+GET {{baseURL}}/discover?at=52.5200,13.4050&limit=1&q=test&apiKey={{apiKey}}

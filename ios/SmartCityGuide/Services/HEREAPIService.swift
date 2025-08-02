@@ -203,15 +203,15 @@ class HEREAPIService: ObservableObject {
             }
         }
         
-        // 🚀 SIMPLIFIED HERE API: Only q parameter needed (like official example)
-        let queryParam = "tourist attraction museum park" // Search query
-        let encodedQuery = queryParam.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? queryParam
+        // 🚀 HERE BROWSE API: Category-based search for precise POI filtering
+        let categoryIDs = categories.map { $0.hereBrowseCategoryID }
+        let categoriesParam = categoryIDs.joined(separator: ",")
         
-        // HERE Discover API with simplified parameters per official example:
-        // GET /discover?at=lat,lng&limit=50&lang=en&q=query&apiKey=key
-        let urlString = "\(baseURL)/discover?at=\(location.latitude),\(location.longitude)&limit=50&lang=de&q=\(encodedQuery)&apiKey=\(apiKey)"
+        // HERE Browse API with Level 3 Category IDs for precise results:
+        // GET /browse?at=lat,lng&categories=300-3000-0000,300-3100-0000&limit=50&apiKey=key
+        let urlString = "\(baseURL)/browse?at=\(location.latitude),\(location.longitude)&categories=\(categoriesParam)&limit=50&apiKey=\(apiKey)"
         
-        print("HEREAPIService: 🌐 Using HERE Discover API: \(urlString)")
+        print("HEREAPIService: 🌐 Using HERE Browse API: \(urlString)")
         
         guard let url = URL(string: urlString) else {
             throw HEREError.invalidURL
@@ -519,14 +519,29 @@ enum HEREError: LocalizedError {
 // MARK: - PlaceCategory HERE Integration
 
 extension PlaceCategory {
-    // Essential categories to avoid rate limiting - only 3 categories = 3 API calls
+    // Essential categories to avoid rate limiting - only 4 Level 3 categories
     static let essentialCategories: [PlaceCategory] = [
-        .attraction,  // Main tourist attractions
-        .museum,      // Museums 
-        .park         // Parks and green spaces
+        .attraction,        // Tourist Attraction
+        .monument,          // Historical Monument  
+        .castle,            // Castle
+        .landmarkAttraction // Landmark-Attraction
     ]
     
-    // NOTE: hereCategoryIDs removed - HERE Discover API works better with text queries
+    /// HERE Browse API Level 3 Category IDs (more precise than Discover API)
+    var hereBrowseCategoryID: String {
+        switch self {
+        case .attraction:
+            return "300-3000-0000"  // Tourist Attraction
+        case .monument:
+            return "300-3100-0000"  // Historical Monument
+        case .castle:
+            return "300-3100-0023"  // Castle
+        case .landmarkAttraction:
+            return "300-3000-0023"  // Landmark-Attraction
+        default:
+            return "300-3000-0000"  // Default to Tourist Attraction
+        }
+    }
     
     var hereSearchQuery: String {
         switch self {
@@ -576,6 +591,8 @@ extension PlaceCategory {
             return "lake"
         case .nationalPark:
             return "national park nature reserve"
+        case .landmarkAttraction:
+            return "landmark famous site"
         }
     }
 }
