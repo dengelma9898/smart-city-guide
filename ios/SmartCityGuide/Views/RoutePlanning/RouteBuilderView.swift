@@ -383,14 +383,14 @@ struct RouteBuilderView: View {
       print("RouteBuilderView: Loaded \(discoveredPOIs.count) POIs")
       isLoadingPOIs = false
       
-      // Step 2: Generate route using traditional method (for now)
-      // TODO: Integrate POIs into route generation
+      // Step 2: Generate route using discovered POIs
       await routeService.generateRoute(
         startingCity: startingCity,
         numberOfPlaces: numberOfPlaces,
         endpointOption: endpointOption,
         customEndpoint: customEndpoint,
-        routeLength: routeLength
+        routeLength: routeLength,
+        availablePOIs: discoveredPOIs
       )
       
     } catch {

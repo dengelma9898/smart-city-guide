@@ -23,7 +23,8 @@ class RouteService: ObservableObject {
     numberOfPlaces: Int,
     endpointOption: EndpointOption,
     customEndpoint: String,
-    routeLength: RouteLength
+    routeLength: RouteLength,
+    availablePOIs: [POI]? = nil
   ) async {
     isGenerating = true
     errorMessage = nil
@@ -33,17 +34,35 @@ class RouteService: ObservableObject {
       // Step 1: Find starting location
       let startLocation = try await findLocation(query: startingCity)
       
-      // Step 2: Find interesting places based on endpoint option
+      // Step 2: Find interesting places based on endpoint option and available POIs
       var waypoints: [RoutePoint]
       
-      // Find optimal route combination that fits within distance limit
-      waypoints = try await findOptimalRoute(
-        startLocation: startLocation,
-        numberOfPlaces: numberOfPlaces,
-        endpointOption: endpointOption,
-        customEndpoint: customEndpoint,
-        routeLength: routeLength
-      )
+      if let pois = availablePOIs, !pois.isEmpty {
+        // Use provided POIs for route generation
+        waypoints = try await findOptimalRouteWithPOIs(
+          startLocation: startLocation,
+          availablePOIs: pois,
+          numberOfPlaces: numberOfPlaces,
+          endpointOption: endpointOption,
+          customEndpoint: customEndpoint,
+          routeLength: routeLength
+        )
+      } else {
+        // Fallback to traditional route finding
+        let startPoint = RoutePoint(
+          name: "Start",
+          coordinate: startLocation,
+          address: "Startpunkt",
+          category: .attraction
+        )
+        waypoints = try await findOptimalRoute(
+          startLocation: startPoint,
+          numberOfPlaces: numberOfPlaces,
+          endpointOption: endpointOption,
+          customEndpoint: customEndpoint,
+          routeLength: routeLength
+        )
+      }
       
       // Step 4: Generate routes between waypoints
       let routes = try await generateRoutesBetweenWaypoints(waypoints)
@@ -502,5 +521,151 @@ class RouteService: ObservableObject {
         }
       }
     }
+  }
+  
+  // MARK: - POI-based Route Generation
+  
+  private func findOptimalRouteWithPOIs(
+    startLocation: CLLocationCoordinate2D,
+    availablePOIs: [POI],
+    numberOfPlaces: Int,
+    endpointOption: EndpointOption,
+    customEndpoint: String,
+    routeLength: RouteLength
+  ) async throws -> [RoutePoint] {
+    
+    print("RouteService: Generating route with \(availablePOIs.count) available POIs")
+    
+    // Step 1: Select best POIs for the route
+    let selectedPOIs = POICacheService.shared.selectBestPOIs(
+      from: availablePOIs,
+      count: numberOfPlaces,
+      routeLength: routeLength,
+      startCoordinate: startLocation
+    )
+    
+    print("RouteService: Selected \(selectedPOIs.count) POIs for route")
+    
+    // Step 2: Convert POIs to RoutePoints
+    var waypoints: [RoutePoint] = []
+    
+    // Add starting point
+    let startPoint = RoutePoint(
+      name: "Start",
+      coordinate: startLocation,
+      address: "Startpunkt",
+      category: .attraction
+    )
+    waypoints.append(startPoint)
+    
+    // Add POI waypoints
+    for poi in selectedPOIs {
+      let routePoint = RoutePoint(
+        name: poi.name,
+        coordinate: poi.coordinate,
+        address: poi.description ?? "",
+        category: poi.category
+      )
+      waypoints.append(routePoint)
+    }
+    
+    // Step 3: Handle endpoint option
+    switch endpointOption {
+    case .roundtrip:
+      // Add starting point as endpoint for roundtrip
+      let endPoint = RoutePoint(
+        name: "Zurück zum Start",
+        coordinate: startLocation,
+        address: "Startpunkt",
+        category: .attraction
+      )
+      waypoints.append(endPoint)
+      
+    case .lastPlace:
+      // Route ends at last POI - no additional endpoint needed
+      break
+      
+    case .custom:
+      if !customEndpoint.isEmpty {
+        do {
+          let endLocation = try await findLocation(query: customEndpoint)
+          let endPoint = RoutePoint(
+            name: customEndpoint,
+            coordinate: endLocation,
+            address: customEndpoint,
+            category: .attraction
+          )
+          waypoints.append(endPoint)
+        } catch {
+          print("RouteService: Failed to find custom endpoint, falling back to open end")
+        }
+      }
+    }
+    
+    // Step 4: Optimize the order of waypoints for shortest route
+    if waypoints.count > 3 { // Only optimize if we have multiple intermediate points
+      waypoints = optimizeWaypointOrder(waypoints)
+    }
+    
+    print("RouteService: Generated route with \(waypoints.count) waypoints")
+    return waypoints
+  }
+  
+  private func getEstimatedVisitDuration(for category: PlaceCategory) -> TimeInterval {
+    switch category {
+    case .museum, .gallery:
+      return 60 * 60 // 1 hour
+    case .castle, .cathedral, .archaeologicalSite:
+      return 45 * 60 // 45 minutes
+    case .monument, .memorial, .viewpoint:
+      return 20 * 60 // 20 minutes
+    case .park, .garden:
+      return 30 * 60 // 30 minutes
+    case .artwork, .shrine:
+      return 15 * 60 // 15 minutes
+    case .attraction:
+      return 30 * 60 // 30 minutes (default)
+    case .artsCenter, .townhall:
+      return 25 * 60 // 25 minutes
+    case .placeOfWorship, .chapel, .monastery:
+      return 20 * 60 // 20 minutes
+    case .spring, .waterfall, .lake:
+      return 25 * 60 // 25 minutes
+    case .nationalPark:
+      return 90 * 60 // 1.5 hours
+    case .ruins:
+      return 30 * 60 // 30 minutes
+    }
+  }
+  
+  private func optimizeWaypointOrder(_ waypoints: [RoutePoint]) -> [RoutePoint] {
+    // Keep start and end points fixed
+    guard waypoints.count > 3 else { return waypoints }
+    
+    let startPoint = waypoints.first!
+    let endPoint = waypoints.last!
+    let intermediatePOIs = Array(waypoints[1..<waypoints.count-1])
+    
+    // Simple nearest neighbor optimization for intermediate points
+    var optimizedPOIs: [RoutePoint] = []
+    var remainingPOIs = intermediatePOIs
+    var currentLocation = startPoint.coordinate
+    
+    while !remainingPOIs.isEmpty {
+      // Find nearest POI to current location
+      let nearestIndex = remainingPOIs.enumerated().min { first, second in
+        let distance1 = CLLocation(latitude: currentLocation.latitude, longitude: currentLocation.longitude)
+          .distance(from: CLLocation(latitude: first.element.coordinate.latitude, longitude: first.element.coordinate.longitude))
+        let distance2 = CLLocation(latitude: currentLocation.latitude, longitude: currentLocation.longitude)
+          .distance(from: CLLocation(latitude: second.element.coordinate.latitude, longitude: second.element.coordinate.longitude))
+        return distance1 < distance2
+      }?.offset ?? 0
+      
+      let nearestPOI = remainingPOIs.remove(at: nearestIndex)
+      optimizedPOIs.append(nearestPOI)
+      currentLocation = nearestPOI.coordinate
+    }
+    
+    return [startPoint] + optimizedPOIs + [endPoint]
   }
 }

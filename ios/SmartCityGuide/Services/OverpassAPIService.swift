@@ -15,13 +15,27 @@ class OverpassAPIService: ObservableObject {
     
     // MARK: - Public API
     
-    /// Fetches POIs for a given city name
+    /// Fetches POIs for a given city name with caching
     func fetchPOIs(for cityName: String, categories: [PlaceCategory] = PlaceCategory.defaultCategories) async throws -> [POI] {
+        // Check cache first
+        if let cachedPOIs = POICacheService.shared.getCachedPOIs(for: cityName) {
+            print("OverpassAPIService: Using cached POIs for '\(cityName)'")
+            return cachedPOIs
+        }
+        
+        // Cache miss - fetch from API
+        print("OverpassAPIService: Fetching POIs from API for '\(cityName)'")
+        
         // First, get bounding box for the city
         let boundingBox = try await getBoundingBox(for: cityName)
         
         // Then fetch POIs within that bounding box
-        return try await fetchPOIs(in: boundingBox, categories: categories)
+        let pois = try await fetchPOIs(in: boundingBox, categories: categories)
+        
+        // Cache the results
+        POICacheService.shared.cachePOIs(pois, for: cityName)
+        
+        return pois
     }
     
     /// Fetches POIs within a specific bounding box
