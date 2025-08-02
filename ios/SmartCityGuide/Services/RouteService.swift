@@ -8,6 +8,16 @@ class RouteService: ObservableObject {
   @Published var generatedRoute: GeneratedRoute?
   @Published var errorMessage: String?
   
+  private var historyManager: RouteHistoryManager?
+  
+  init(historyManager: RouteHistoryManager? = nil) {
+    self.historyManager = historyManager
+  }
+  
+  func setHistoryManager(_ manager: RouteHistoryManager) {
+    self.historyManager = manager
+  }
+  
   func generateRoute(
     startingCity: String,
     numberOfPlaces: Int,
@@ -50,13 +60,22 @@ class RouteService: ObservableObject {
       
       let totalExperienceTime = totalWalkingTime + averageVisitTime
       
-      generatedRoute = GeneratedRoute(
+      let route = GeneratedRoute(
         waypoints: waypoints,
         routes: routes,
         totalDistance: totalDistance,
         totalTravelTime: totalWalkingTime,
         totalVisitTime: averageVisitTime,
         totalExperienceTime: totalExperienceTime
+      )
+      
+      generatedRoute = route
+      
+      // Auto-save route to history
+      historyManager?.saveRoute(
+        route,
+        routeLength: routeLength,
+        endpointOption: endpointOption
       )
       
     } catch {

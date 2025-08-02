@@ -11,6 +11,7 @@ struct RouteBuilderView: View {
   let onRouteGenerated: (GeneratedRoute) -> Void
   
   @StateObject private var routeService = RouteService()
+  @StateObject private var historyManager = RouteHistoryManager()
   
   var body: some View {
     NavigationView {
@@ -353,6 +354,9 @@ struct RouteBuilderView: View {
           }
         }
       }
+    }
+    .onAppear {
+      routeService.setHistoryManager(historyManager)
     }
     .task {
       await routeService.generateRoute(

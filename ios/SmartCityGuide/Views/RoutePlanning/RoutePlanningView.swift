@@ -3,6 +3,8 @@ import SwiftUI
 // MARK: - Route Planning View
 struct RoutePlanningView: View {
   @Environment(\.dismiss) private var dismiss
+  @StateObject private var settingsManager = ProfileSettingsManager()
+  
   @State private var startingCity = ""
   @State private var numberOfPlaces = 3
   @State private var endpointOption: EndpointOption = .roundtrip
@@ -242,6 +244,30 @@ struct RoutePlanningView: View {
         routeLength: routeLength,
         onRouteGenerated: onRouteGenerated
       )
+    }
+    .onAppear {
+      loadDefaultSettings()
+    }
+  }
+  
+  private func loadDefaultSettings() {
+    // Load default values from profile settings, but only if not already set
+    let defaults = settingsManager.settings.getDefaultsForRoutePlanning()
+    
+    if numberOfPlaces == 3 { // Only update if still at default value
+      numberOfPlaces = defaults.0
+    }
+    
+    if endpointOption == .roundtrip { // Only update if still at default value
+      endpointOption = defaults.1
+    }
+    
+    if routeLength == .medium { // Only update if still at default value
+      routeLength = defaults.2
+    }
+    
+    if customEndpoint.isEmpty { // Only update if empty
+      customEndpoint = defaults.3
     }
   }
 }

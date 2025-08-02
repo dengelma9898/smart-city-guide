@@ -2,7 +2,7 @@ import SwiftUI
 import MapKit
 
 // MARK: - Place Categories
-enum PlaceCategory: String, CaseIterable {
+enum PlaceCategory: String, CaseIterable, Codable {
   case attraction = "Sehenswürdigkeit"
   case museum = "Museum"
   case park = "Park"
