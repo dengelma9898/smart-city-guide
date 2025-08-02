@@ -1,4 +1,5 @@
 import SwiftUI
+import MapKit
 
 // MARK: - Route Planning View
 struct RoutePlanningView: View {
@@ -6,9 +7,11 @@ struct RoutePlanningView: View {
   @StateObject private var settingsManager = ProfileSettingsManager()
   
   @State private var startingCity = ""
+  @State private var startingCoordinates: CLLocationCoordinate2D? = nil // NEW: Store coordinates
   @State private var numberOfPlaces = 3
   @State private var endpointOption: EndpointOption = .roundtrip
   @State private var customEndpoint = ""
+  @State private var customEndpointCoordinates: CLLocationCoordinate2D? = nil // NEW: Store endpoint coordinates
   @State private var routeLength: RouteLength = .medium
   @State private var showingRouteBuilder = false
   
@@ -52,7 +55,11 @@ struct RoutePlanningView: View {
               
               LocationSearchField(
                 placeholder: "z.B. Berlin, München, Hamburg",
-                text: $startingCity
+                text: $startingCity,
+                onLocationSelected: { coordinates, address in
+                  startingCoordinates = coordinates
+                  print("RoutePlanningView: Starting location coordinates saved: \(coordinates)")
+                }
               )
               
               // City extraction hint
@@ -249,9 +256,11 @@ struct RoutePlanningView: View {
     .sheet(isPresented: $showingRouteBuilder) {
       RouteBuilderView(
         startingCity: startingCity,
+        startingCoordinates: startingCoordinates, // NEW: Pass coordinates
         numberOfPlaces: numberOfPlaces,
         endpointOption: endpointOption,
         customEndpoint: customEndpoint,
+        customEndpointCoordinates: customEndpointCoordinates, // NEW: Pass endpoint coordinates
         routeLength: routeLength,
         onRouteGenerated: onRouteGenerated
       )

@@ -5,6 +5,7 @@ import MapKit
 struct LocationSearchField: View {
   let placeholder: String
   @Binding var text: String
+  var onLocationSelected: ((CLLocationCoordinate2D, String) -> Void)? = nil // NEW: Callback with coordinates
   @State private var searchResults: [MKMapItem] = []
   @State private var isSearching = false
   @FocusState private var isFocused: Bool
@@ -89,9 +90,16 @@ struct LocationSearchField: View {
   }
   
   private func selectLocation(_ item: MKMapItem) {
-    text = formatFullAddress(item.placemark)
+    let formattedAddress = formatFullAddress(item.placemark)
+    text = formattedAddress
     searchResults = []
     isFocused = false
+    
+    // NEW: Call the callback with coordinates and text
+    let coordinates = item.placemark.coordinate
+    onLocationSelected?(coordinates, formattedAddress)
+    
+    print("LocationSearchField: Selected location '\(formattedAddress)' at \(coordinates.latitude), \(coordinates.longitude)")
   }
   
   private func formatFullAddress(_ placemark: MKPlacemark) -> String {

@@ -1,12 +1,15 @@
 import SwiftUI
+import MapKit
 
 // MARK: - Route Builder View (Next Step)
 struct RouteBuilderView: View {
   @Environment(\.dismiss) private var dismiss
   let startingCity: String
+  let startingCoordinates: CLLocationCoordinate2D? // NEW: Optional coordinates
   let numberOfPlaces: Int
   let endpointOption: EndpointOption
   let customEndpoint: String
+  let customEndpointCoordinates: CLLocationCoordinate2D? // NEW: Optional endpoint coordinates
   let routeLength: RouteLength
   let onRouteGenerated: (GeneratedRoute) -> Void
   
@@ -467,12 +470,24 @@ struct RouteBuilderView: View {
     do {
       // Step 1: Load POIs from HERE API
       isLoadingPOIs = true
-      print("RouteBuilderView: Loading POIs for city '\(startingCity)' using HERE API")
       
-      discoveredPOIs = try await hereService.fetchPOIs(
-        for: startingCity,
-        categories: PlaceCategory.essentialCategories
-      )
+      // 🚀 USE DIRECT COORDINATES if available (eliminates geocoding!)
+      if let coordinates = startingCoordinates {
+        print("RouteBuilderView: 🎯 Using direct coordinates \(coordinates.latitude), \(coordinates.longitude) for '\(startingCity)' - NO GEOCODING!")
+        
+        discoveredPOIs = try await hereService.fetchPOIs(
+          at: coordinates,
+          cityName: startingCity,
+          categories: PlaceCategory.essentialCategories
+        )
+      } else {
+        print("RouteBuilderView: ⚠️ No coordinates available, falling back to geocoding for '\(startingCity)'")
+        
+        discoveredPOIs = try await hereService.fetchPOIs(
+          for: startingCity,
+          categories: PlaceCategory.essentialCategories
+        )
+      }
       
       print("RouteBuilderView: Loaded \(discoveredPOIs.count) POIs from HERE API")
       isLoadingPOIs = false

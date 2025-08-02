@@ -54,6 +54,21 @@ class HEREAPIService: ObservableObject {
         }
     }
     
+    /// NEW: Direct POI search with coordinates (eliminates geocoding entirely!)
+    func fetchPOIs(at coordinates: CLLocationCoordinate2D, cityName: String, categories: [PlaceCategory] = PlaceCategory.essentialCategories) async throws -> [POI] {
+        print("HEREAPIService: 🚀 Direct POI search at \(coordinates.latitude), \(coordinates.longitude) for '\(cityName)' - NO GEOCODING!")
+        
+        // Check cache first
+        if let cachedPOIs = await POICacheService.shared.getCachedPOIs(for: cityName) {
+            print("HEREAPIService: Using cached POIs for '\(cityName)'")
+            return cachedPOIs
+        }
+        
+        let pois = try await searchPOIs(near: coordinates, categories: categories, cityName: cityName)
+        await POICacheService.shared.cachePOIs(pois, for: cityName)
+        return pois
+    }
+    
     // MARK: - Private Implementation
     
     private func geocodeCity(_ cityName: String) async throws -> CLLocationCoordinate2D {
@@ -179,8 +194,14 @@ class HEREAPIService: ObservableObject {
     }
     
     private func searchPOIs(near location: CLLocationCoordinate2D, categories: [PlaceCategory], cityName: String) async throws -> [POI] {
-        isLoading = true
-        defer { isLoading = false }
+        await MainActor.run {
+            isLoading = true
+        }
+        defer { 
+            Task { @MainActor in
+                isLoading = false
+            }
+        }
         
         // 🚀 SINGLE API CALL: Comprehensive search for all tourist POIs
         let combinedQuery = "tourist attraction museum park sightseeing landmark monument"
@@ -217,6 +238,11 @@ class HEREAPIService: ObservableObject {
                     print("HEREAPIService: API Error \(httpResponse.statusCode): \(responseString)")
                 }
                 throw HEREError.invalidResponse(statusCode: httpResponse.statusCode)
+            }
+            
+            // Debug: Print actual API response to understand format
+            if let responseString = String(data: data, encoding: .utf8) {
+                print("HEREAPIService: Raw API Response: \(String(responseString.prefix(500)))...")
             }
             
             let searchResponse = try JSONDecoder().decode(HERESearchResponse.self, from: data)
