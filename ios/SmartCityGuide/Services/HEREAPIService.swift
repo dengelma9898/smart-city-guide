@@ -203,12 +203,14 @@ class HEREAPIService: ObservableObject {
             }
         }
         
-        // 🚀 SINGLE API CALL: Use HERE category IDs for precise results
+        // 🚀 SINGLE API CALL: HERE API requires BOTH 'q' and 'categories' parameters
         let allCategoryIDs = categories.flatMap { $0.hereCategoryIDs }
         let categoriesParam = allCategoryIDs.joined(separator: ",")
+        let queryParam = "tourist attraction museum park" // Required 'q' parameter
+        let encodedQuery = queryParam.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? queryParam
         
-        // HERE Discover API with correct parameters (like your example!)
-        let urlString = "\(baseURL)/discover?at=\(location.latitude),\(location.longitude)&categories=\(categoriesParam)&limit=50&radius=10000&apiKey=\(apiKey)"
+        // HERE Discover API with correct parameters per official documentation
+        let urlString = "\(baseURL)/discover?at=\(location.latitude),\(location.longitude)&q=\(encodedQuery)&categories=\(categoriesParam)&limit=50&radius=10000&apiKey=\(apiKey)"
         
         print("HEREAPIService: 🌐 Using HERE Discover API: \(urlString)")
         
