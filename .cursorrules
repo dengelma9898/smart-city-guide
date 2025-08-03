@@ -1,0 +1,109 @@
+# Smart City Guide - Cursor AI Rules
+
+## Project Context
+Smart City Guide ist eine iOS SwiftUI-App für intelligente Multi-Stop-Walking-Routen in Städten. Die App nutzt TSP-Optimierung für effiziente Routen zwischen Sehenswürdigkeiten, Museen, Parks und kulturellen Stätten.
+
+## Development Guidelines
+
+### Language & Communication
+- Alle Antworten und Kommentare auf Deutsch
+- Freundlicher, conversational Ton verwenden ("du" statt "Sie")
+- UI-Texte verwenden deutschen Stil: "Los, planen wir!", "Wir basteln deine Route!"
+
+### Architecture Patterns
+- SwiftUI mit @State, @StateObject, @Published
+- @MainActor für UI-Thread-Safety (besonders RouteService)
+- Async/await für MapKit und HERE API
+- Environment objects für shared state
+- Singleton pattern für Services (HEREAPIService.shared)
+
+### Core Services
+1. **RouteService (@MainActor)**: Zentrale Route-Generierung mit TSP-Optimierung
+2. **HEREAPIService**: POI-Discovery mit Caching über POICacheService  
+3. **MapKit Integration**: Walking routes mit MKDirections, 0.2s rate limiting
+
+### Project Structure
+```
+ios/SmartCityGuide/
+├── Services/           # RouteService, HEREAPIService, POICacheService
+├── Models/            # RouteModels, PlaceCategory, OverpassPOI
+├── Views/
+│   ├── RoutePlanning/ # Route creation flows
+│   ├── Profile/       # User profile, history, settings
+│   └── Components/    # Reusable UI components
+└── Utilities/         # Extensions
+```
+
+### Key Implementation Details
+
+#### Route Generation Algorithm
+1. MKLocalSearch für Location Discovery
+2. HERE API POI search mit category-based selection
+3. Geographic distribution (200m minimum distance)
+4. TSP optimization mit actual walking distances
+5. Distance validation gegen user limits (5km/15km/50km)
+6. Smart fallback mit weniger Stops bei Überschreitung
+
+#### Data Models
+- `RoutePoint`: Waypoint mit location, category, metadata
+- `GeneratedRoute`: Complete route mit waypoints, directions, timing
+- `PlaceCategory`: attraction, museum, park, nationalPark
+- `POI`: HERE API response mit contact info
+
+#### Error Handling
+- Result/throwing patterns mit async/await
+- Graceful degradation bei API failures
+- User-friendly error messages auf Deutsch
+- Loading states mit descriptive messages
+
+### Build & Testing
+- **Projekt**: `ios/SmartCityGuide.xcodeproj`
+- **Scheme**: `SmartCityGuide`  
+- **Target iOS**: 17.5+
+- **Bundle ID**: de.dengelma.smartcity-guide
+- **Build**: Cmd+B in Xcode oder MCP tools
+- **Run**: Cmd+R in Xcode, bevorzugt iPhone 16 Simulator
+
+#### MCP Verification & Testing (REQUIRED)
+🚨 **MANDATORY**: Nach Code-Änderungen MUSS das Xcode MCP verwendet werden:
+- **Build Verification**: `mcp_XcodeBuildMCP_build_sim_name_proj` für erfolgreiche Kompilierung
+- **Simulator Testing**: MCP Simulator-Kontrolle für konkrete Implementation Testing
+- **Real Device Testing**: Bei Hardware-spezifischen Features physische Geräte nutzen
+- **UI Verification**: `mcp_XcodeBuildMCP_describe_ui` für UI-Element-Validierung
+- Diese Verifikation ist PFLICHT vor jeder Feature-Freigabe
+
+### Code Style Rules
+- SwiftUI best practices befolgen
+- Async/await statt completion handlers
+- @MainActor für UI-relevante Services
+- Proper error handling mit do/catch
+- Rate limiting bei API calls
+- German comments und documentation
+
+### FAQ Maintenance Rule
+🚨 **MANDATORY**: Bei jeder neuen Feature-Implementation MÜSSEN die FAQs in `HelpSupportView.swift` aktualisiert werden:
+- Neue Features → FAQ-Eintrag hinzufügen
+- Geänderte Funktionalität → entsprechende FAQ aktualisieren  
+- Neue UI-Elemente → Erklärung in relevanter FAQ-Kategorie
+- Diese Regel gilt für ALLE Code-Änderungen die User-sichtbare Features betreffen
+
+### Current Status
+✅ **Completed**: TSP optimization, HERE API integration, category-based place selection, friendly German UI
+🔄 **In Progress**: Profile optimizations, achievement system
+📋 **Planned**: Advanced TSP algorithms, cycling routes, offline storage
+
+### Security Notes
+⚠️ HERE API key currently hardcoded in HEREAPIService.swift - move to secure config for production
+
+### Performance Considerations
+- POI caching via POICacheService
+- Route generation limited to 10 attempts
+- Geographic distribution prevents clustering
+- Early termination for good solutions
+- Distance caching opportunity not yet implemented
+
+### Related Documentation
+- `RouteOptimization.md`: Technical TSP analysis
+- `testing-instructions-phase-1.md`: Testing procedures
+- `current.md`: MapKit implementation status
+- `CLAUDE.md`: Complete context documentation

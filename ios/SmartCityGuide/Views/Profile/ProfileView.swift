@@ -10,6 +10,7 @@ struct ProfileView: View {
     @State private var showingSettings = false
     @State private var showingRouteHistory = false
     @State private var showingEditProfile = false
+    @State private var showingHelpSupport = false
     
     var body: some View {
         NavigationView {
@@ -167,9 +168,9 @@ struct ProfileView: View {
                         
                         Divider().padding(.horizontal, 16)
                         
-                        // Help & Support (Placeholder)
+                        // Help & Support
                         Button(action: {
-                            // TODO: Implement help section
+                            showingHelpSupport = true
                         }) {
                             ProfileRow(
                                 icon: "questionmark.circle.fill",
@@ -209,6 +210,9 @@ struct ProfileView: View {
         .sheet(isPresented: $showingEditProfile) {
             EditProfileView()
                 .environmentObject(profileManager)
+        }
+        .sheet(isPresented: $showingHelpSupport) {
+            HelpSupportView()
         }
     }
     
