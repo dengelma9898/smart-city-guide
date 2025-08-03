@@ -101,10 +101,23 @@ extension POICacheService {
         count: Int,
         routeLength: RouteLength,
         startCoordinate: CLLocationCoordinate2D,
+        startingCity: String,
         categories: [PlaceCategory]? = nil
     ) -> [POI] {
         
         var filteredPOIs = allPOIs
+        
+        // 🏙️ STADT-FILTERUNG: Nur POIs aus der gleichen Stadt wie der Startpunkt
+        let cityFilteredPOIs = filteredPOIs.filter { poi in
+            let isInCity = poi.isInCity(startingCity)
+            if !isInCity {
+                print("POICacheService: 🚫 Filtering out POI '\(poi.name)' - not in '\(startingCity)' (POI city: '\(poi.address?.city ?? "unknown")')")
+            }
+            return isInCity
+        }
+        
+        print("POICacheService: 🏙️ City filtering: \(allPOIs.count) → \(cityFilteredPOIs.count) POIs for '\(startingCity)'")
+        filteredPOIs = cityFilteredPOIs
         
         // Filter by categories if specified
         if let categories = categories {

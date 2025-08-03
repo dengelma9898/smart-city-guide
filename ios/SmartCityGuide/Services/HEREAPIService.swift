@@ -256,12 +256,11 @@ class HEREAPIService: ObservableObject {
                 return POI(from: item, category: detectedCategory, requestedCity: cityName)
             }
             
-            // Remove duplicates and limit to 10 results
+            // Remove duplicates but keep all POIs for better selection downstream
             let uniquePOIs = Array(Set(allPOIs))
-            let limitedPOIs = Array(uniquePOIs.prefix(10))
             
-            print("HEREAPIService: Single API call found \(allPOIs.count) POIs, returning \(limitedPOIs.count) for '\(cityName)'")
-            return limitedPOIs
+            print("HEREAPIService: Single API call found \(allPOIs.count) POIs, returning \(uniquePOIs.count) unique POIs for '\(cityName)'")
+            return uniquePOIs
             
         } catch HEREError.rateLimitExceeded {
             throw HEREError.rateLimitExceeded
@@ -452,7 +451,7 @@ struct HEREEmail: Codable {
 }
 
 struct HEREContactCategory: Codable {
-    let id: String
+    let id: String?
 }
 
 struct HEREOpeningHours: Codable {
@@ -463,7 +462,7 @@ struct HEREOpeningHours: Codable {
 }
 
 struct HEREOpeningHoursCategory: Codable {
-    let id: String
+    let id: String?
 }
 
 struct HEREStructuredHours: Codable {
@@ -473,18 +472,18 @@ struct HEREStructuredHours: Codable {
 }
 
 struct HERECategory: Codable {
-    let id: String
+    let id: String?
     let name: String?
     let primary: Bool?
 }
 
 struct HEREAccess: Codable {
-    let id: String
+    let id: String?
     let name: String?
 }
 
 struct HEREChain: Codable {
-    let id: String
+    let id: String?
     let name: String?
 }
 

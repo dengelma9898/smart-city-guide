@@ -45,7 +45,8 @@ class RouteService: ObservableObject {
           numberOfPlaces: numberOfPlaces,
           endpointOption: endpointOption,
           customEndpoint: customEndpoint,
-          routeLength: routeLength
+          routeLength: routeLength,
+          startingCity: startingCity
         )
       } else {
         // No POIs available - throw error
@@ -523,7 +524,8 @@ class RouteService: ObservableObject {
     numberOfPlaces: Int,
     endpointOption: EndpointOption,
     customEndpoint: String,
-    routeLength: RouteLength
+    routeLength: RouteLength,
+    startingCity: String
   ) async throws -> [RoutePoint] {
     
     print("RouteService: Generating route with \(availablePOIs.count) available POIs")
@@ -533,7 +535,8 @@ class RouteService: ObservableObject {
       from: availablePOIs,
       count: numberOfPlaces,
       routeLength: routeLength,
-      startCoordinate: startLocation
+      startCoordinate: startLocation,
+      startingCity: startingCity
     )
     
     print("RouteService: Selected \(selectedPOIs.count) POIs for route")

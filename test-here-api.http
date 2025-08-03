@@ -38,6 +38,7 @@ GET {{baseURL}}/browse?at=49.3794,11.2058&categories=300-3000-0000,300-3100-0000
 
 ###
 
+https://discover.search.hereapi.com/v1/browse?at=49.3784125,11.2203086&categories=300-3000-0000,300-3100-0000,300-3100-0023,300-3000-0023&limit=50&apiKey=IJQ_FHors1UT0Bf-Ekex9Sgg41jDWgOWgcW58EedIWo
 ### Test 7: Discover API with specific radius
 GET {{baseURL}}/discover?at=49.3794,11.2058&limit=10&lang=de&q=tourist attraction&radius=5000&apiKey={{apiKey}}
 
