@@ -391,6 +391,14 @@ struct FAQCategory {
                 FAQ(
                     question: "Kann ich meine Daten löschen?",
                     answer: "Ja, du kannst jederzeit alle deine gespeicherten Daten in den Profileinstellungen löschen. Dies umfasst deine Routenhistorie und Profileinstellungen."
+                ),
+                FAQ(
+                    question: "Wo finde ich die rechtlichen Informationen?",
+                    answer: "Im Profil-Bereich findest du alle rechtlichen Dokumente: 'Impressum' mit Unternehmensinformationen, 'AGB' mit den Nutzungsbedingungen und 'Datenschutzerklärung' mit Details zum Umgang mit deinen Daten. Alle Dokumente entsprechen den deutschen Rechtsvorgaben und sind kostenlos einsehbar."
+                ),
+                FAQ(
+                    question: "Was regeln die AGB (Allgemeine Geschäftsbedingungen)?",
+                    answer: "Die AGB legen fest, wie du die Smart City Guide App nutzen darfst und welche Rechte und Pflichten damit verbunden sind. Sie regeln unter anderem: erlaubte Nutzung der App, Haftungsausschlüsse, Urheberrechte und Updates. Da die App kostenlos ist, fallen keine Zahlungsbedingungen an."
                 )
             ]
         )

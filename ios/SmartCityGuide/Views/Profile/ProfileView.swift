@@ -11,6 +11,9 @@ struct ProfileView: View {
     @State private var showingRouteHistory = false
     @State private var showingEditProfile = false
     @State private var showingHelpSupport = false
+    @State private var showingImpressum = false
+    @State private var showingDatenschutz = false
+    @State private var showingAGB = false
     
     var body: some View {
         NavigationView {
@@ -185,6 +188,53 @@ struct ProfileView: View {
                             .fill(Color(.systemGray6))
                     )
                     
+                    // Legal Sektion
+                    VStack(spacing: 0) {
+                        // Impressum
+                        Button(action: {
+                            showingImpressum = true
+                        }) {
+                            ProfileRow(
+                                icon: "doc.text.fill",
+                                title: "Impressum",
+                                subtitle: "Rechtliche Informationen"
+                            )
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                        
+                        Divider().padding(.horizontal, 16)
+                        
+                        // AGB
+                        Button(action: {
+                            showingAGB = true
+                        }) {
+                            ProfileRow(
+                                icon: "doc.plaintext.fill",
+                                title: "AGB",
+                                subtitle: "Nutzungsbedingungen"
+                            )
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                        
+                        Divider().padding(.horizontal, 16)
+                        
+                        // Datenschutzerklärung
+                        Button(action: {
+                            showingDatenschutz = true
+                        }) {
+                            ProfileRow(
+                                icon: "hand.raised.fill",
+                                title: "Datenschutzerklärung",
+                                subtitle: "Deine Daten sind sicher!"
+                            )
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                    }
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color(.systemGray6))
+                    )
+                    
                     Spacer()
                 }
                 .padding(.horizontal, 20)
@@ -213,6 +263,15 @@ struct ProfileView: View {
         }
         .sheet(isPresented: $showingHelpSupport) {
             HelpSupportView()
+        }
+        .sheet(isPresented: $showingImpressum) {
+            ImpressumView()
+        }
+        .sheet(isPresented: $showingAGB) {
+            AGBView()
+        }
+        .sheet(isPresented: $showingDatenschutz) {
+            DatenschutzerklaerungView()
         }
     }
     
