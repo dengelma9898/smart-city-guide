@@ -87,33 +87,92 @@ struct SavedWaypoint: Codable {
     }
 }
 
-// MARK: - Route History Manager
+// MARK: - Route History Manager with Secure Keychain Storage
 @MainActor
 class RouteHistoryManager: ObservableObject {
     @Published var savedRoutes: [SavedRoute] = []
+    @Published var isLoading = false
+    @Published var errorMessage: String?
     
-    private let userDefaultsKey = "route_history"
+    private let secureStorage = SecureStorageService.shared
+    private let secureKey = "route_history_secure"
+    private let legacyUserDefaultsKey = "route_history" // For migration
     private let maxSavedRoutes = 50 // Limit to prevent storage bloat
     
     init() {
-        loadRoutes()
-    }
-    
-    private func loadRoutes() {
-        if let data = UserDefaults.standard.data(forKey: userDefaultsKey),
-           let routes = try? JSONDecoder().decode([SavedRoute].self, from: data) {
-            self.savedRoutes = routes.sorted { $0.createdAt > $1.createdAt }
+        Task {
+            await loadRoutes()
         }
     }
     
-    private func saveRoutes() {
-        // Limit to max saved routes
-        if savedRoutes.count > maxSavedRoutes {
-            savedRoutes = Array(savedRoutes.prefix(maxSavedRoutes))
+    /// Lädt RouteHistory aus sicherem Keychain (mit automatischer Migration)
+    private func loadRoutes() async {
+        isLoading = true
+        errorMessage = nil
+        
+        do {
+            // Versuche Migration von UserDefaults falls nötig
+            if let migratedRoutes = try secureStorage.migrateFromUserDefaults(
+                [SavedRoute].self,
+                userDefaultsKey: legacyUserDefaultsKey,
+                secureKey: secureKey,
+                requireBiometrics: true // GPS-Daten sind hochsensitiv!
+            ) {
+                savedRoutes = migratedRoutes.sorted { $0.createdAt > $1.createdAt }
+                print("🗺️ RouteHistory: Successfully migrated \(migratedRoutes.count) routes from UserDefaults")
+            }
+            // Sonst lade aus Keychain
+            else if let loadedRoutes = try secureStorage.load(
+                [SavedRoute].self,
+                forKey: secureKey,
+                promptMessage: "Authentifiziere dich, um deine gespeicherten Routen zu laden"
+            ) {
+                savedRoutes = loadedRoutes.sorted { $0.createdAt > $1.createdAt }
+                print("🗺️ RouteHistory: Loaded \(loadedRoutes.count) routes from secure storage")
+            }
+            // Falls nichts existiert, leere Liste
+            else {
+                savedRoutes = []
+                print("🗺️ RouteHistory: No saved routes found, starting fresh")
+            }
+            
+        } catch {
+            errorMessage = "Fehler beim Laden der Routen: \(error.localizedDescription)"
+            print("❌ RouteHistory Load Error: \(error)")
+            // Bei Fehler: leere Liste
+            savedRoutes = []
         }
         
-        if let data = try? JSONEncoder().encode(savedRoutes) {
-            UserDefaults.standard.set(data, forKey: userDefaultsKey)
+        isLoading = false
+    }
+    
+    /// Speichert RouteHistory sicher im Keychain
+    private func saveRoutes() async throws {
+        // Limit to max saved routes
+        var routesToSave = savedRoutes
+        if routesToSave.count > maxSavedRoutes {
+            routesToSave = Array(routesToSave.prefix(maxSavedRoutes))
+            savedRoutes = routesToSave // Update the published array
+        }
+        
+        do {
+            try secureStorage.save(
+                routesToSave,
+                forKey: secureKey,
+                requireBiometrics: true // GPS-Daten sind hochsensitiv!
+            )
+            print("🗺️ RouteHistory: Saved \(routesToSave.count) routes securely")
+        } catch {
+            errorMessage = "Fehler beim Speichern der Routen: \(error.localizedDescription)"
+            print("❌ RouteHistory Save Error: \(error)")
+            throw error
+        }
+    }
+    
+    /// Synchrone save-Funktion für Kompatibilität
+    private func saveRoutesSync() {
+        Task {
+            try? await saveRoutes()
         }
     }
     
@@ -131,13 +190,20 @@ class RouteHistoryManager: ObservableObject {
             existingRoute.waypoints.map { $0.name } == savedRoute.waypoints.map { $0.name }
         }) {
             savedRoutes.insert(savedRoute, at: 0)
-            saveRoutes()
+            saveRoutesSync() // Async save with biometric protection
         }
     }
     
     func deleteRoute(_ route: SavedRoute) {
         savedRoutes.removeAll { $0.id == route.id }
-        saveRoutes()
+        saveRoutesSync() // Async save with biometric protection
+    }
+    
+    /// Löscht alle gespeicherten Routen (für App-Reset)
+    func clearAllRoutes() async throws {
+        try secureStorage.delete(forKey: secureKey)
+        savedRoutes = []
+        print("🗺️ RouteHistory: Cleared all routes from secure storage")
     }
     
     func markRouteAsUsed(_ route: SavedRoute) {
@@ -158,13 +224,13 @@ class RouteHistoryManager: ObservableObject {
                 lastUsedAt: Date()
             )
             savedRoutes[index] = updatedRoute
-            saveRoutes()
+            saveRoutesSync() // Async save with biometric protection
         }
     }
     
     func clearHistory() {
         savedRoutes.removeAll()
-        saveRoutes()
+        saveRoutesSync() // Async save with biometric protection
     }
     
     private func generateRouteName(for route: GeneratedRoute) -> String {

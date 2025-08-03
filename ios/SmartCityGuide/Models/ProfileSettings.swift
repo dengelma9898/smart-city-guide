@@ -16,27 +16,85 @@ struct ProfileSettings: Codable {
     }
 }
 
-// MARK: - ProfileSettings Manager with UserDefaults
+// MARK: - ProfileSettings Manager with Secure Keychain Storage
 @MainActor
 class ProfileSettingsManager: ObservableObject {
     @Published var settings: ProfileSettings
+    @Published var isLoading = false
+    @Published var errorMessage: String?
     
-    private let userDefaultsKey = "profile_settings"
+    private let secureStorage = SecureStorageService.shared
+    private let secureKey = "profile_settings_secure"
+    private let legacyUserDefaultsKey = "profile_settings" // For migration
     
     init() {
-        // Load from UserDefaults or create default
-        if let data = UserDefaults.standard.data(forKey: userDefaultsKey),
-           let savedSettings = try? JSONDecoder().decode(ProfileSettings.self, from: data) {
-            self.settings = savedSettings
-        } else {
-            self.settings = ProfileSettings()
-            save()
+        self.settings = ProfileSettings() // Temporary default
+        Task {
+            await loadSettings()
         }
     }
     
+    /// Lädt ProfileSettings aus sicherem Keychain (mit automatischer Migration)
+    private func loadSettings() async {
+        isLoading = true
+        errorMessage = nil
+        
+        do {
+            // Versuche Migration von UserDefaults falls nötig
+            if let migratedSettings = try secureStorage.migrateFromUserDefaults(
+                ProfileSettings.self,
+                userDefaultsKey: legacyUserDefaultsKey,
+                secureKey: secureKey,
+                requireBiometrics: false // Settings sind weniger sensitiv
+            ) {
+                settings = migratedSettings
+                print("⚙️ ProfileSettings: Successfully migrated from UserDefaults")
+            }
+            // Sonst lade aus Keychain
+            else if let savedSettings = try secureStorage.load(
+                ProfileSettings.self,
+                forKey: secureKey
+            ) {
+                settings = savedSettings
+                print("⚙️ ProfileSettings: Loaded from secure storage")
+            }
+            // Falls nichts existiert, behalte default und speichere
+            else {
+                settings = ProfileSettings()
+                try await saveSettings()
+                print("⚙️ ProfileSettings: Created new default settings")
+            }
+            
+        } catch {
+            errorMessage = "Fehler beim Laden der Einstellungen: \(error.localizedDescription)"
+            print("❌ ProfileSettings Load Error: \(error)")
+            // Bei Fehler: behalte default settings
+            settings = ProfileSettings()
+        }
+        
+        isLoading = false
+    }
+    
+    /// Speichert ProfileSettings sicher im Keychain
+    func saveSettings() async throws {
+        do {
+            try secureStorage.save(
+                settings,
+                forKey: secureKey,
+                requireBiometrics: false // Settings sind weniger sensitiv
+            )
+            print("⚙️ ProfileSettings: Saved securely")
+        } catch {
+            errorMessage = "Fehler beim Speichern der Einstellungen: \(error.localizedDescription)"
+            print("❌ ProfileSettings Save Error: \(error)")
+            throw error
+        }
+    }
+    
+    /// Synchrone save-Funktion für Kompatibilität
     func save() {
-        if let data = try? JSONEncoder().encode(settings) {
-            UserDefaults.standard.set(data, forKey: userDefaultsKey)
+        Task {
+            try? await saveSettings()
         }
     }
     

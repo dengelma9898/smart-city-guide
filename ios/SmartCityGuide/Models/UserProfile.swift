@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import os.log
 
 // MARK: - User Profile Model
 struct UserProfile: Codable {
@@ -23,28 +24,93 @@ struct UserProfile: Codable {
     }
 }
 
-// MARK: - UserProfile Manager with UserDefaults
+// MARK: - UserProfile Manager with Secure Keychain Storage
 @MainActor
 class UserProfileManager: ObservableObject {
     @Published var profile: UserProfile
+    @Published var isLoading = false
+    @Published var errorMessage: String?
     
-    private let userDefaultsKey = "user_profile"
+    private let secureStorage = SecureStorageService.shared
+    private let secureKey = "user_profile_secure"
+    private let legacyUserDefaultsKey = "user_profile" // For migration
+    private let logger = Logger(subsystem: "de.dengelma.smartcity-guide", category: "UserProfile")
     
     init() {
-        // Load from UserDefaults or create default
-        if let data = UserDefaults.standard.data(forKey: userDefaultsKey),
-           let savedProfile = try? JSONDecoder().decode(UserProfile.self, from: data) {
-            self.profile = savedProfile
-        } else {
-            self.profile = UserProfile()
-            save() // Save default profile
+        // EXPLICIT DEBUG TEST
+        logger.critical("🔴 CRITICAL DEBUG: UserProfileManager.init() CALLED!")
+        print("🔴 EXPLICIT PRINT: UserProfileManager init called!")
+        
+        self.profile = UserProfile() // Temporary default
+        Task {
+            await loadProfile()
         }
     }
     
-    func save() {
+    /// Lädt UserProfile aus sicherem Keychain (mit automatischer Migration)
+    private func loadProfile() async {
+        isLoading = true
+        errorMessage = nil
+        
+        do {
+            // Versuche Migration von UserDefaults falls nötig
+            if let migratedProfile = try secureStorage.migrateFromUserDefaults(
+                UserProfile.self,
+                userDefaultsKey: legacyUserDefaultsKey,
+                secureKey: secureKey,
+                requireBiometrics: true
+            ) {
+                profile = migratedProfile
+                print("📱 UserProfile: Successfully migrated from UserDefaults")
+            }
+            // Sonst lade aus Keychain
+            else if let savedProfile = try secureStorage.load(
+                UserProfile.self,
+                forKey: secureKey,
+                promptMessage: "Authentifiziere dich, um dein Profil zu laden"
+            ) {
+                profile = savedProfile
+                print("📱 UserProfile: Loaded from secure storage")
+            }
+            // Falls nichts existiert, behalte default und speichere
+            else {
+                profile = UserProfile()
+                try await saveProfile()
+                print("📱 UserProfile: Created new default profile")
+            }
+            
+        } catch {
+            errorMessage = "Fehler beim Laden des Profils: \(error.localizedDescription)"
+            print("❌ UserProfile Load Error: \(error)")
+            // Bei Fehler: behalte default profile
+            profile = UserProfile()
+        }
+        
+        isLoading = false
+    }
+    
+    /// Speichert UserProfile sicher im Keychain
+    func saveProfile() async throws {
         profile.updateLastActive()
-        if let data = try? JSONEncoder().encode(profile) {
-            UserDefaults.standard.set(data, forKey: userDefaultsKey)
+        
+        do {
+            try secureStorage.save(
+                profile,
+                forKey: secureKey,
+                requireBiometrics: true
+            )
+            print("📱 UserProfile: Saved securely")
+        } catch {
+            errorMessage = "Fehler beim Speichern des Profils: \(error.localizedDescription)"
+            print("❌ UserProfile Save Error: \(error)")
+            throw error
+        }
+    }
+    
+    /// Synchrone save-Funktion für Kompatibilität
+    func save() {
+        Task {
+            try? await saveProfile()
         }
     }
     
@@ -52,12 +118,19 @@ class UserProfileManager: ObservableObject {
         if let name = name { profile.name = name }
         if let email = email { profile.email = email }
         if let imagePath = profileImagePath { profile.profileImagePath = imagePath }
-        save()
+        save() // Uses async wrapper
     }
     
     func setProfileImage(path: String?) {
         profile.profileImagePath = path
-        save()
+        save() // Uses async wrapper
+    }
+    
+    /// Löscht UserProfile aus sicherem Storage (für App-Reset)
+    func deleteProfile() async throws {
+        try secureStorage.delete(forKey: secureKey)
+        profile = UserProfile() // Reset to default
+        print("📱 UserProfile: Deleted from secure storage")
     }
 }
 
