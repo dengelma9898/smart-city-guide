@@ -19,7 +19,6 @@ struct RouteBuilderView: View {
   
   @State private var discoveredPOIs: [POI] = []
   @State private var isLoadingPOIs = false
-  @State private var showPOIDetails = false
   
   var body: some View {
     NavigationView {
@@ -54,99 +53,6 @@ struct RouteBuilderView: View {
           } else if let route = routeService.generatedRoute {
             // Success State - Show Generated Route
             VStack(spacing: 20) {
-              
-              // POI Information Summary
-              if !discoveredPOIs.isEmpty {
-                VStack(alignment: .leading, spacing: 12) {
-                  Text("Gefundene POIs")
-                    .font(.headline)
-                    .fontWeight(.semibold)
-                  
-                  let poisWithCity = discoveredPOIs.filter { $0.address?.city != nil }
-                  let cityInfo = poisWithCity.isEmpty ? "keine Stadt-Info verfügbar" : "\(poisWithCity.count)/\(discoveredPOIs.count) mit Stadt-Info"
-                  
-                  Text("Es wurden \(discoveredPOIs.count) interessante Orte in \(startingCity) gefunden (\(cityInfo)):")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-                  
-                  // Info about limited results
-                  if discoveredPOIs.count > 0 {
-                    HStack(spacing: 6) {
-                      Image(systemName: "info.circle.fill")
-                        .foregroundColor(.blue)
-                        .font(.caption)
-                      
-                      Text("10 POIs mit nur 1 API-Call - ultraschnell & effizient")
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
-                    }
-                    .padding(.top, 2)
-                  }
-                  
-                  // POI Categories Summary
-                  let categoryGroups = Dictionary(grouping: discoveredPOIs) { $0.category }
-                  LazyVGrid(columns: [
-                    GridItem(.flexible()),
-                    GridItem(.flexible())
-                  ], spacing: 8) {
-                    ForEach(Array(categoryGroups.keys.sorted(by: { $0.rawValue < $1.rawValue })), id: \.self) { category in
-                      HStack(spacing: 6) {
-                        Image(systemName: category.icon)
-                          .foregroundColor(category.color)
-                          .font(.caption)
-                        
-                        Text("\(categoryGroups[category]?.count ?? 0)x \(category.rawValue)")
-                          .font(.caption)
-                          .foregroundColor(.secondary)
-                      }
-                      .padding(.horizontal, 8)
-                      .padding(.vertical, 4)
-                      .background(Color(.systemGray6))
-                      .cornerRadius(8)
-                    }
-                  }
-                  
-                  // Expandable POI Details Button
-                  Button(action: {
-                    showPOIDetails.toggle()
-                  }) {
-                    HStack {
-                      Text("POI-Details anzeigen")
-                        .font(.caption)
-                        .fontWeight(.medium)
-                      
-                      Spacer()
-                      
-                      Image(systemName: showPOIDetails ? "chevron.up" : "chevron.down")
-                        .font(.caption)
-                    }
-                    .foregroundColor(.blue)
-                  }
-                  .padding(.top, 8)
-                  
-                  // Expandable POI Details
-                  if showPOIDetails {
-                    VStack(spacing: 12) {
-                      ForEach(discoveredPOIs.prefix(5)) { poi in
-                        POIDetailView(poi: poi)
-                      }
-                      
-                      if discoveredPOIs.count > 5 {
-                        Text("... und \(discoveredPOIs.count - 5) weitere POIs")
-                          .font(.caption)
-                          .foregroundColor(.secondary)
-                          .padding(.vertical, 8)
-                      }
-                    }
-                    .padding(.top, 12)
-                  }
-                }
-                .padding(.horizontal, 20)
-                .padding(.vertical, 16)
-                .background(Color(.systemBackground))
-                .cornerRadius(12)
-                .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
-              }
               
               // Waypoints List
               VStack(alignment: .leading, spacing: 12) {
