@@ -277,6 +277,10 @@ extension PlaceCategory {
             return [("natural", "spring")]
         case .waterfall:
             return [("natural", "waterfall")]
+        case .river:
+            return [("natural", "water"), ("water", "river")]
+        case .canal:
+            return [("natural", "water"), ("water", "canal")]
         case .lake:
             return [("natural", "lake")]
         case .nationalPark:
@@ -334,6 +338,16 @@ extension PlaceCategory {
             case "spring": return .spring
             case "waterfall": return .waterfall
             case "lake": return .lake
+            case "water":
+                // Check for specific water types
+                if let water = tags["water"] {
+                    switch water {
+                    case "river": return .river
+                    case "canal": return .canal
+                    default: return .lake  // Default water to lake
+                    }
+                }
+                return .lake  // Default water to lake
             default: break
             }
         }

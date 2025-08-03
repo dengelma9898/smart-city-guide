@@ -519,26 +519,46 @@ enum HEREError: LocalizedError {
 
 extension PlaceCategory {
     // Essential categories to avoid rate limiting - only 4 Level 3 categories
-    static let essentialCategories: [PlaceCategory] = [
-        .attraction,        // Tourist Attraction
-        .monument,          // Historical Monument  
+        static let essentialCategories: [PlaceCategory] = [
+        .attraction,        // Tourist Attraction  
+        .monument,          // Historical Monument
         .castle,            // Castle
-        .landmarkAttraction // Landmark-Attraction
+        .landmarkAttraction,// Landmark-Attraction
+        .museum,            // Museum (Level 2 - all museums)
+        .waterfall,         // Natural: Waterfall
+        .river,             // Natural: River
+        .canal,             // Natural: Canal
+        .lake               // Natural: Lake
     ]
     
-    /// HERE Browse API Level 3 Category IDs (more precise than Discover API)
+    /// HERE Browse API Category IDs - Korrekte IDs aus offizieller HERE Dokumentation
     var hereBrowseCategoryID: String {
         switch self {
+        // 300 Series: Sights and Museums
         case .attraction:
-            return "300-3000-0000"  // Tourist Attraction
+            return "300-3000-0023"  // Tourist Attraction
         case .monument:
-            return "300-3100-0000"  // Historical Monument
+            return "300-3000-0025"  // Historical Monument
         case .castle:
-            return "300-3100-0023"  // Castle
+            return "300-3000-0030"  // Castle
         case .landmarkAttraction:
-            return "300-3000-0023"  // Landmark-Attraction
+            return "300-3000-0000"  // Landmark-Attraction (base-level)
+        case .museum:
+            return "300-3100-0000"  // Museum (base-level)
+        case .gallery:
+            return "300-3000-0024"  // Gallery
+            
+        // 350 Series: Natural and Geographical Features
+        case .waterfall:
+            return "350-3500-0235"  // Waterfall
+        case .river:
+            return "350-3500-0302"  // River
+        case .canal:
+            return "350-3500-0303"  // Canal
+        case .lake:
+            return "350-3500-0304"  // Lake
         default:
-            return "300-3000-0000"  // Default to Tourist Attraction
+            return "300-3000-0023"  // Default to Tourist Attraction
         }
     }
     
@@ -586,6 +606,10 @@ extension PlaceCategory {
             return "natural spring"
         case .waterfall:
             return "waterfall"
+        case .river:
+            return "river stream"
+        case .canal:
+            return "canal channel waterway"
         case .lake:
             return "lake"
         case .nationalPark:

@@ -624,7 +624,7 @@ class RouteService: ObservableObject {
       return 25 * 60 // 25 minutes
     case .placeOfWorship, .chapel, .monastery:
       return 20 * 60 // 20 minutes
-    case .spring, .waterfall, .lake:
+    case .spring, .waterfall, .lake, .river, .canal:
       return 25 * 60 // 25 minutes
     case .nationalPark:
       return 90 * 60 // 1.5 hours

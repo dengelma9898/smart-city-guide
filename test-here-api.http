@@ -32,9 +32,9 @@ GET https://geocoder.ls.hereapi.com/6.2/geocode.json?searchtext=Feucht,Germany&a
 
 ###
 
-### Test 6: Browse API with Level 3 Categories (NEW APPROACH)
-# Our 4 essential categories: Tourist Attraction, Historical Monument, Castle, Landmark-Attraction
-GET {{baseURL}}/browse?at=49.3794,11.2058&categories=300-3000-0000,300-3100-0000,300-3100-0023,300-3000-0023&limit=50&apiKey={{apiKey}}
+### Test 6: Browse API with CORRECT Categories from HERE Documentation
+# Sights & Museums: Tourist Attraction, Museum, Castle, Historical Monument
+GET {{baseURL}}/browse?at=49.3794,11.2058&categories=300-3000-0023,300-3100-0000,300-3000-0030,300-3000-0025&limit=50&apiKey={{apiKey}}
 
 ###
 
@@ -78,3 +78,39 @@ GET {{baseURL}}/browse?at=49.3794,11.2058&categories=300-3000-0023&limit=10&apiK
 
 ### Test 14: Check if API key is valid
 GET {{baseURL}}/discover?at=52.5200,13.4050&limit=1&q=test&apiKey={{apiKey}}
+
+###
+
+### Test 15: Browse API - Natural Water Features (CORRECTED)
+# Testing 350 Series: Natural and Geographical Features
+GET {{baseURL}}/browse?at=49.3794,11.2058&categories=350-3500-0235,350-3500-0302,350-3500-0303,350-3500-0304&limit=50&apiKey={{apiKey}}
+
+###
+
+### Test 16: Browse API - Individual Natural Features
+# Testing Waterfall specifically
+GET {{baseURL}}/browse?at=49.3794,11.2058&categories=350-3500-0235&limit=10&apiKey={{apiKey}}
+
+###
+
+### Test 17: Browse API - Rivers and Canals
+# Testing Rivers and Canals
+GET {{baseURL}}/browse?at=49.3794,11.2058&categories=350-3500-0302,350-3500-0303&limit=10&apiKey={{apiKey}}
+
+###
+
+### Test 18: Browse API - All Water Bodies
+# Testing broader water category
+GET {{baseURL}}/browse?at=49.3794,11.2058&categories=350-3500-0233&limit=20&apiKey={{apiKey}}
+
+###
+
+### Test 19: Browse API - Museum Subcategories
+# Testing specific museum types
+GET {{baseURL}}/browse?at=49.3794,11.2058&categories=300-3100-0026,300-3100-0028,300-3100-0029&limit=10&apiKey={{apiKey}}
+
+###
+
+### Test 20: Browse API - Combined Cultural and Natural POIs
+# Testing our complete essential categories with correct IDs
+GET {{baseURL}}/browse?at=49.3794,11.2058&categories=300-3000-0023,300-3100-0000,300-3000-0030,350-3500-0235,350-3500-0302,350-3500-0304&limit=50&apiKey={{apiKey}}

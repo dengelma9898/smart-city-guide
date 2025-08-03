@@ -24,6 +24,8 @@ enum PlaceCategory: String, CaseIterable, Codable {
   case shrine = "Schrein"
   case spring = "Quelle"
   case waterfall = "Wasserfall"
+  case river = "Fluss"
+  case canal = "Kanal"
   case lake = "See"
   case nationalPark = "Nationalpark"
   case landmarkAttraction = "Wahrzeichen"
@@ -51,6 +53,8 @@ enum PlaceCategory: String, CaseIterable, Codable {
     case .shrine: return "flame"
     case .spring: return "drop.fill"
     case .waterfall: return "water.waves"
+    case .river: return "river"
+    case .canal: return "water.waves.slash"
     case .lake: return "lake"
     case .nationalPark: return "mountain.2.fill"
     case .landmarkAttraction: return "location.circle.fill"
@@ -80,6 +84,8 @@ enum PlaceCategory: String, CaseIterable, Codable {
     case .shrine: return .orange
     case .spring: return .cyan
     case .waterfall: return .blue
+    case .river: return .blue
+    case .canal: return .teal
     case .lake: return .teal
     case .nationalPark: return .green
     case .landmarkAttraction: return .orange
@@ -130,6 +136,10 @@ enum PlaceCategory: String, CaseIterable, Codable {
       return ["quelle", "spring", "natural spring", "water source", "mineral spring"]
     case .waterfall:
       return ["wasserfall", "waterfall", "falls", "cascade", "natural waterfall"]
+    case .river:
+      return ["fluss", "river", "stream", "creek", "waterway"]
+    case .canal:
+      return ["kanal", "canal", "channel", "waterway", "artificial waterway"]
     case .lake:
       return ["see", "lake", "natural lake", "water body", "reservoir"]
     case .nationalPark:

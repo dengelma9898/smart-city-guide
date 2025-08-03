@@ -192,7 +192,7 @@ extension POICacheService {
             return 0.6
         case .artwork, .chapel, .monastery, .shrine:
             return 0.5
-        case .waterfall, .spring, .lake:
+        case .waterfall, .spring, .lake, .river, .canal:
             return 0.4
         case .nationalPark:
             return 0.9
