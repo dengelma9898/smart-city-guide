@@ -11,37 +11,102 @@ struct RouteHistoryView: View {
         NavigationView {
             Group {
                 if historyManager.savedRoutes.isEmpty {
-                    // Empty State
+                    // Enhanced Empty State
                     VStack(spacing: 24) {
-                        Image(systemName: "clock.arrow.circlepath")
-                            .font(.system(size: 60))
-                            .foregroundColor(.secondary)
+                        VStack(spacing: 16) {
+                            Image(systemName: "map.circle.fill")
+                                .font(.system(size: 80))
+                                .foregroundColor(.blue)
+                                .symbolRenderingMode(.hierarchical)
+                            
+                            VStack(spacing: 8) {
+                                Text("Noch kein Abenteuer erlebt!")
+                                    .font(.title2)
+                                    .fontWeight(.semibold)
+                                
+                                Text("Deine Touren werden hier automatisch gespeichert - leg einfach los!")
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                                    .multilineTextAlignment(.center)
+                                    .padding(.horizontal)
+                            }
+                        }
+                        .padding()
+                        .background(
+                            RoundedRectangle(cornerRadius: 16)
+                                .fill(Color(.systemGray6))
+                        )
                         
-                        VStack(spacing: 8) {
-                            Text("Noch kein Abenteuer erlebt!")
-                                .font(.title2)
+                        VStack(spacing: 12) {
+                            Text("💡 Tipp:")
+                                .font(.headline)
                                 .fontWeight(.semibold)
                             
-                            Text("Deine Touren werden hier automatisch gespeichert - leg einfach los!")
-                                .font(.subheadline)
+                            Text("Plane deine erste Tour und erkunde deine Stadt wie nie zuvor!")
+                                .font(.body)
                                 .foregroundColor(.secondary)
                                 .multilineTextAlignment(.center)
                         }
+                        .padding()
                         
                         Spacer()
                     }
                     .padding()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
-                    // Route List
+                    // Enhanced Route List
                     List {
-                        ForEach(historyManager.savedRoutes) { route in
-                            NavigationLink(destination: RouteHistoryDetailView(route: route)) {
-                                RouteHistoryRowView(route: route)
+                        // Summary Header
+                        Section {
+                            VStack(spacing: 12) {
+                                HStack(spacing: 20) {
+                                    VStack(spacing: 4) {
+                                        Text("\(historyManager.savedRoutes.count)")
+                                            .font(.title2)
+                                            .fontWeight(.bold)
+                                            .foregroundColor(.blue)
+                                        Text("Abenteuer")
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                    }
+                                    
+                                    VStack(spacing: 4) {
+                                        Text("\(totalDistanceAll)")
+                                            .font(.title2)
+                                            .fontWeight(.bold)
+                                            .foregroundColor(.green)
+                                        Text("km gelaufen")
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                    }
+                                    
+                                    Spacer()
+                                    
+                                    Image(systemName: "trophy.fill")
+                                        .font(.system(size: 24))
+                                        .foregroundColor(.orange)
+                                }
                             }
+                            .padding()
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(Color(.systemGray6))
+                            )
                         }
-                        .onDelete(perform: deleteRoutes)
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
+                        
+                        // Routes List
+                        Section("Deine Touren") {
+                            ForEach(historyManager.savedRoutes) { route in
+                                NavigationLink(destination: RouteHistoryDetailView(route: route)) {
+                                    RouteHistoryRowView(route: route)
+                                }
+                            }
+                            .onDelete(perform: deleteRoutes)
+                        }
                     }
+                    .listStyle(.grouped)
                 }
             }
             .navigationTitle("Deine Abenteuer")
@@ -80,6 +145,11 @@ struct RouteHistoryView: View {
         for index in offsets {
             historyManager.deleteRoute(historyManager.savedRoutes[index])
         }
+    }
+    
+    private var totalDistanceAll: String {
+        let total = historyManager.savedRoutes.reduce(0) { $0 + $1.totalDistance }
+        return String(format: "%.1f", total / 1000)
     }
 }
 

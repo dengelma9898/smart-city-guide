@@ -38,36 +38,83 @@ struct ProfileView: View {
                     }
                     .padding(.top, 20)
                     
-                    // Quick Stats
-                    HStack(spacing: 20) {
-                        VStack(spacing: 4) {
-                            Text("\(historyManager.savedRoutes.count)")
-                                .font(.title2)
-                                .fontWeight(.bold)
-                                .foregroundColor(.blue)
-                            Text("Touren")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
+                    // Quick Stats with Achievement Badges
+                    VStack(spacing: 16) {
+                        HStack(spacing: 20) {
+                            VStack(spacing: 4) {
+                                HStack(spacing: 4) {
+                                    Text("\(historyManager.savedRoutes.count)")
+                                        .font(.title2)
+                                        .fontWeight(.bold)
+                                        .foregroundColor(.blue)
+                                    if historyManager.savedRoutes.count >= 10 {
+                                        Text("🏆")
+                                            .font(.caption)
+                                    } else if historyManager.savedRoutes.count >= 5 {
+                                        Text("🌟")
+                                            .font(.caption)
+                                    }
+                                }
+                                Text("Touren")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            
+                            VStack(spacing: 4) {
+                                HStack(spacing: 4) {
+                                    Text("\(totalDistance)")
+                                        .font(.title2)
+                                        .fontWeight(.bold)
+                                        .foregroundColor(.green)
+                                    if totalDistanceValue >= 50 {
+                                        Text("🚶‍♂️")
+                                            .font(.caption)
+                                    } else if totalDistanceValue >= 20 {
+                                        Text("👟")
+                                            .font(.caption)
+                                    }
+                                }
+                                Text("Kilometer")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            
+                            VStack(spacing: 4) {
+                                HStack(spacing: 4) {
+                                    Text("\(daysSinceJoined)")
+                                        .font(.title2)
+                                        .fontWeight(.bold)
+                                        .foregroundColor(.orange)
+                                    if daysSinceJoined >= 30 {
+                                        Text("🎯")
+                                            .font(.caption)
+                                    } else if daysSinceJoined >= 7 {
+                                        Text("📅")
+                                            .font(.caption)
+                                    }
+                                }
+                                Text("Tage mit uns")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
                         }
                         
-                        VStack(spacing: 4) {
-                            Text("\(totalDistance)")
-                                .font(.title2)
-                                .fontWeight(.bold)
-                                .foregroundColor(.green)
-                            Text("Kilometer")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                        
-                        VStack(spacing: 4) {
-                            Text("\(daysSinceJoined)")
-                                .font(.title2)
-                                .fontWeight(.bold)
-                                .foregroundColor(.orange)
-                            Text("Tage mit uns")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
+                        // Achievement Level
+                        if let achievement = currentAchievement {
+                            HStack(spacing: 8) {
+                                Text(achievement.emoji)
+                                    .font(.title3)
+                                Text(achievement.title)
+                                    .font(.subheadline)
+                                    .fontWeight(.medium)
+                                    .foregroundColor(.blue)
+                            }
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(
+                                Capsule()
+                                    .fill(Color.blue.opacity(0.1))
+                            )
                         }
                     }
                     .padding()
@@ -174,11 +221,38 @@ struct ProfileView: View {
         }
     }
     
+    private var totalDistanceValue: Double {
+        return historyManager.savedRoutes.reduce(0) { $0 + $1.totalDistance } / 1000
+    }
+    
     private var daysSinceJoined: Int {
         let calendar = Calendar.current
         let days = calendar.dateComponents([.day], from: profileManager.profile.createdAt, to: Date()).day ?? 0
         return max(1, days) // At least 1 day
     }
+    
+    private var currentAchievement: Achievement? {
+        let routes = historyManager.savedRoutes.count
+        let distance = totalDistanceValue
+        let days = daysSinceJoined
+        
+        if routes >= 20 && distance >= 100 {
+            return Achievement(emoji: "🏅", title: "Abenteuer-Legende!")
+        } else if routes >= 10 && distance >= 50 {
+            return Achievement(emoji: "🌟", title: "City Explorer!")
+        } else if routes >= 5 || distance >= 20 {
+            return Achievement(emoji: "🚀", title: "Auf gutem Weg!")
+        } else if routes >= 1 {
+            return Achievement(emoji: "🌱", title: "Entdecker-Neuling")
+        }
+        return nil
+    }
+}
+
+// MARK: - Achievement Model
+private struct Achievement {
+    let emoji: String
+    let title: String
 }
 
 // MARK: - Edit Profile View

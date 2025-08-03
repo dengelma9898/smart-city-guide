@@ -84,7 +84,7 @@ struct RouteHistoryDetailView: View {
                 
                 // Waypoints List
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("Route-Details")
+                    Text("Deine Tour im Detail")
                         .font(.headline)
                         .fontWeight(.semibold)
                     
@@ -137,7 +137,7 @@ struct RouteHistoryDetailView: View {
                                         .foregroundColor(.secondary)
                                         .lineLimit(2)
                                     
-                                    // TODO: Kontakt-Informationen hinzufügen (temporär entfernt für Build-Fix)
+                                    // Contact information will be added in future version
                                 }
                                 
                                 Spacer()
@@ -179,7 +179,7 @@ struct RouteHistoryDetailView: View {
                                 .font(.title2)
                                 .fontWeight(.bold)
                                 .foregroundColor(.blue)
-                            Text("Zwischenstopps")
+                            Text("Coole Stopps")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }
@@ -189,7 +189,7 @@ struct RouteHistoryDetailView: View {
                                 .font(.title2)
                                 .fontWeight(.bold)
                                 .foregroundColor(.green)
-                            Text("Gesamtstrecke")
+                            Text("Deine Strecke")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }
@@ -199,7 +199,7 @@ struct RouteHistoryDetailView: View {
                                 .font(.title2)
                                 .fontWeight(.bold)
                                 .foregroundColor(.orange)
-                            Text("Gesamtzeit")
+                            Text("Deine Zeit")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }
@@ -254,7 +254,7 @@ struct RouteHistoryDetailView: View {
                                 .font(.system(size: 16))
                                 .foregroundColor(.orange)
                             
-                            Text("Zuletzt verwendet")
+                            Text("Zuletzt erlebt")
                                 .font(.subheadline)
                                 .fontWeight(.medium)
                         }
@@ -277,7 +277,7 @@ struct RouteHistoryDetailView: View {
                     HStack(spacing: 8) {
                         Image(systemName: "arrow.clockwise")
                             .font(.system(size: 16, weight: .medium))
-                        Text("Route wiederverwenden")
+                        Text("Nochmal erleben!")
                             .font(.headline)
                             .fontWeight(.medium)
                     }
@@ -293,17 +293,17 @@ struct RouteHistoryDetailView: View {
             }
             .padding()
         }
-        .navigationTitle("Route Details")
+        .navigationTitle("Dein Abenteuer")
         .navigationBarTitleDisplayMode(.inline)
         .actionSheet(isPresented: $showingReuseOptions) {
             ActionSheet(
-                title: Text("Route wiederverwenden"),
-                message: Text("Wie möchten Sie diese Route wiederverwenden?"),
+                title: Text("Route nochmal machen?"),
+                message: Text("Wie willst du diese Route nochmal erleben?"),
                 buttons: [
-                    .default(Text("Mit gleichen Einstellungen")) {
+                    .default(Text("Genauso nochmal!")) {
                         reuseRoute(withSameSettings: true)
                     },
-                    .default(Text("Mit neuen Einstellungen")) {
+                    .default(Text("Mit Änderungen")) {
                         reuseRoute(withSameSettings: false)
                     },
                     .cancel()
