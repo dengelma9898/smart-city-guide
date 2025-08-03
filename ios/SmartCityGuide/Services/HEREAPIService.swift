@@ -6,7 +6,16 @@ import CoreLocation
 class HEREAPIService: ObservableObject {
     static let shared = HEREAPIService()
     
-    private let apiKey = "IJQ_FHors1UT0Bf-Ekex9Sgg41jDWgOWgcW58EedIWo"
+    // Secure API Key loading from APIKeys.plist
+    private var apiKey: String {
+        guard let path = Bundle.main.path(forResource: "APIKeys", ofType: "plist"),
+              let dict = NSDictionary(contentsOfFile: path),
+              let key = dict["HERE_API_KEY"] as? String,
+              !key.isEmpty else {
+            fatalError("HERE_API_KEY not found in APIKeys.plist. Please add the APIKeys.plist file to your Xcode project with your HERE API Key.")
+        }
+        return key
+    }
     private let baseURL = "https://discover.search.hereapi.com/v1"
     private let geocodeURL = "https://geocoder.ls.hereapi.com/6.2"
     private let urlSession: URLSession

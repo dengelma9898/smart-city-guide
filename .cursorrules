@@ -93,7 +93,8 @@ ios/SmartCityGuide/
 📋 **Planned**: Advanced TSP algorithms, cycling routes, offline storage
 
 ### Security Notes
-⚠️ HERE API key currently hardcoded in HEREAPIService.swift - move to secure config for production
+✅ HERE API key now securely configured via Info.plist - no longer hardcoded
+⚠️ Continue following security best practices for sensitive data
 
 ### Performance Considerations
 - POI caching via POICacheService
