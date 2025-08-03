@@ -87,8 +87,8 @@ struct GeneratedRoute {
 // MARK: - Endpoint Configuration Models
 enum EndpointOption: String, CaseIterable, Codable {
   case roundtrip = "Rundreise"
-  case lastPlace = "Letzter Ort"
-  case custom = "Anderer Ort"
+  case lastPlace = "Stopp"
+  case custom = "Custom"
   
   var description: String {
     switch self {
