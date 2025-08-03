@@ -136,6 +136,8 @@ struct RouteHistoryDetailView: View {
                                         .font(.caption)
                                         .foregroundColor(.secondary)
                                         .lineLimit(2)
+                                    
+                                    // TODO: Kontakt-Informationen hinzufügen (temporär entfernt für Build-Fix)
                                 }
                                 
                                 Spacer()
@@ -318,6 +320,80 @@ struct RouteHistoryDetailView: View {
         // with pre-filled values from this saved route
         
         dismiss()
+    }
+    
+    // MARK: - Kontakt-Informationen View
+    
+    @ViewBuilder
+    private func contactInfoView(for waypoint: RoutePoint) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            // Telefonnummer
+            if let phoneNumber = waypoint.phoneNumber {
+                Button(action: {
+                    if let phoneURL = URL(string: "tel:\(phoneNumber.replacingOccurrences(of: " ", with: ""))") {
+                        UIApplication.shared.open(phoneURL)
+                    }
+                }) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "phone.fill")
+                            .font(.system(size: 10))
+                            .foregroundColor(.blue)
+                        Text(phoneNumber)
+                            .font(.caption)
+                            .foregroundColor(.blue)
+                    }
+                }
+            }
+            
+            // Website
+            if let url = waypoint.url {
+                Button(action: {
+                    UIApplication.shared.open(url)
+                }) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "link")
+                            .font(.system(size: 10))
+                            .foregroundColor(.blue)
+                        Text(url.host ?? url.absoluteString)
+                            .font(.caption)
+                            .foregroundColor(.blue)
+                            .lineLimit(1)
+                    }
+                }
+            }
+            
+            // E-Mail-Adresse
+            if let email = waypoint.emailAddress {
+                Button(action: {
+                    if let emailURL = URL(string: "mailto:\(email)") {
+                        UIApplication.shared.open(emailURL)
+                    }
+                }) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "envelope.fill")
+                            .font(.system(size: 10))
+                            .foregroundColor(.blue)
+                        Text(email)
+                            .font(.caption)
+                            .foregroundColor(.blue)
+                            .lineLimit(1)
+                    }
+                }
+            }
+            
+            // Öffnungszeiten
+            if let hours = waypoint.operatingHours, !hours.isEmpty {
+                HStack(spacing: 4) {
+                    Image(systemName: "clock.fill")
+                        .font(.system(size: 10))
+                        .foregroundColor(.orange)
+                    Text(hours)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .lineLimit(2)
+                }
+            }
+        }
     }
 }
 

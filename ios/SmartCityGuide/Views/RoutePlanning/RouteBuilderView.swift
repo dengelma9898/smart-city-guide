@@ -145,6 +145,38 @@ struct RouteBuilderView: View {
                             }
                           }
                         }
+                        
+                        // E-Mail-Adresse
+                        if let email = waypoint.emailAddress {
+                          Button(action: {
+                            if let emailURL = URL(string: "mailto:\(email)") {
+                              UIApplication.shared.open(emailURL)
+                            }
+                          }) {
+                            HStack(spacing: 4) {
+                              Image(systemName: "envelope.fill")
+                                .font(.system(size: 10))
+                                .foregroundColor(.blue)
+                              Text(email)
+                                .font(.caption)
+                                .foregroundColor(.blue)
+                                .lineLimit(1)
+                            }
+                          }
+                        }
+                        
+                        // Öffnungszeiten
+                        if let hours = waypoint.operatingHours, !hours.isEmpty {
+                          HStack(spacing: 4) {
+                            Image(systemName: "clock.fill")
+                              .font(.system(size: 10))
+                              .foregroundColor(.orange)
+                            Text(hours)
+                              .font(.caption)
+                              .foregroundColor(.secondary)
+                              .lineLimit(2)
+                          }
+                        }
                       }
                       
                       Spacer()

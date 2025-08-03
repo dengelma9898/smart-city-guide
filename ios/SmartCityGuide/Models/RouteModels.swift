@@ -11,6 +11,8 @@ struct RoutePoint {
   let phoneNumber: String?
   let url: URL?
   let pointOfInterestCategory: MKPointOfInterestCategory?
+  let operatingHours: String?
+  let emailAddress: String?
   
   init(from mapItem: MKMapItem) {
     self.name = mapItem.name ?? "Unbekannter Ort"
@@ -20,15 +22,42 @@ struct RoutePoint {
     self.phoneNumber = mapItem.phoneNumber
     self.url = mapItem.url
     self.pointOfInterestCategory = mapItem.pointOfInterestCategory
+    self.operatingHours = nil // MKMapItem doesn't provide this
+    self.emailAddress = nil    // MKMapItem doesn't provide this
   }
   
-  init(name: String, coordinate: CLLocationCoordinate2D, address: String, category: PlaceCategory = .attraction, phoneNumber: String? = nil, url: URL? = nil) {
+  init(name: String, coordinate: CLLocationCoordinate2D, address: String, category: PlaceCategory = .attraction, phoneNumber: String? = nil, url: URL? = nil, operatingHours: String? = nil, emailAddress: String? = nil) {
     self.name = name
     self.coordinate = coordinate
     self.address = address
     self.category = category
     self.phoneNumber = phoneNumber
     self.url = url
+    self.pointOfInterestCategory = nil
+    self.operatingHours = operatingHours
+    self.emailAddress = emailAddress
+  }
+  
+  /// Erstelle RoutePoint aus POI mit Kontakt- und Öffnungszeiten-Informationen
+  init(from poi: POI) {
+    self.name = poi.name
+    self.coordinate = poi.coordinate
+    self.address = poi.fullAddress
+    self.category = poi.category
+    
+    // Kontakt-Informationen aus POI extrahieren
+    self.phoneNumber = poi.contact?.phone
+    self.emailAddress = poi.contact?.email
+    
+    if let websiteString = poi.contact?.website ?? poi.website {
+      self.url = URL(string: websiteString)
+    } else {
+      self.url = nil
+    }
+    
+    // Öffnungszeiten aus POI extrahieren
+    self.operatingHours = poi.operatingHours
+    
     self.pointOfInterestCategory = nil
   }
 }

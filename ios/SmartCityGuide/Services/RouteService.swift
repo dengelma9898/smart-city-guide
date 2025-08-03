@@ -553,14 +553,9 @@ class RouteService: ObservableObject {
     )
     waypoints.append(startPoint)
     
-    // Add POI waypoints
+    // Add POI waypoints with full contact information
     for poi in selectedPOIs {
-      let routePoint = RoutePoint(
-        name: poi.name,
-        coordinate: poi.coordinate,
-        address: poi.fullAddress.isEmpty ? poi.displayDescription : poi.fullAddress,
-        category: poi.category
-      )
+      let routePoint = RoutePoint(from: poi) // ✨ Verwende POI-Initializer für Kontakt-/Öffnungszeiten-Daten
       waypoints.append(routePoint)
     }
     
