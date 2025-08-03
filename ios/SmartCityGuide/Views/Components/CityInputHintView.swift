@@ -11,12 +11,12 @@ struct CityInputHintView: View {
                     .font(.caption)
                 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Tipp: Stadt-Extraktion")
+                    Text("Hey, nur so als Tipp!")
                         .font(.caption)
                         .fontWeight(.medium)
                         .foregroundColor(.orange)
                     
-                    Text("Aus '\(inputText)' wird '\(extractedCity)' für die POI-Suche verwendet.")
+                    Text("Aus '\(inputText)' nehmen wir '\(extractedCity)' für deine Suche!")
                         .font(.caption2)
                         .foregroundColor(.secondary)
                         .lineLimit(2)

@@ -29,7 +29,7 @@ struct ProfileView: View {
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
                             
-                            Button("Profil bearbeiten") {
+                            Button("Los, ändere dein Profil!") {
                                 showingEditProfile = true
                             }
                             .font(.caption)
@@ -45,7 +45,7 @@ struct ProfileView: View {
                                 .font(.title2)
                                 .fontWeight(.bold)
                                 .foregroundColor(.blue)
-                            Text("Routen")
+                            Text("Touren")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }
@@ -65,7 +65,7 @@ struct ProfileView: View {
                                 .font(.title2)
                                 .fontWeight(.bold)
                                 .foregroundColor(.orange)
-                            Text("Tage dabei")
+                            Text("Tage mit uns")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }
@@ -84,8 +84,8 @@ struct ProfileView: View {
                         }) {
                             ProfileRow(
                                 icon: "clock.fill",
-                                title: "Route-Verlauf",
-                                subtitle: "\(historyManager.savedRoutes.count) gespeicherte Routen"
+                                title: "Deine Abenteuer",
+                                subtitle: "\(historyManager.savedRoutes.count) coole Touren erlebt"
                             )
                         }
                         .buttonStyle(PlainButtonStyle())
@@ -98,8 +98,8 @@ struct ProfileView: View {
                         }) {
                             ProfileRow(
                                 icon: "gearshape.fill",
-                                title: "Standard-Einstellungen",
-                                subtitle: "Route-Präferenzen anpassen"
+                                title: "Deine Präferenzen",
+                                subtitle: "So wie du's magst!"
                             )
                         }
                         .buttonStyle(PlainButtonStyle())
@@ -112,8 +112,8 @@ struct ProfileView: View {
                         }) {
                             ProfileRow(
                                 icon: "location.fill",
-                                title: "Gespeicherte Orte",
-                                subtitle: "Favoriten verwalten"
+                                title: "Deine Lieblingsorte",
+                                subtitle: "Die coolsten Spots!"
                             )
                         }
                         .buttonStyle(PlainButtonStyle())
@@ -126,8 +126,8 @@ struct ProfileView: View {
                         }) {
                             ProfileRow(
                                 icon: "questionmark.circle.fill",
-                                title: "Hilfe & Support",
-                                subtitle: "Häufige Fragen"
+                                title: "Brauchst du Hilfe?",
+                                subtitle: "Wir helfen gerne!"
                             )
                         }
                         .buttonStyle(PlainButtonStyle())
@@ -141,7 +141,7 @@ struct ProfileView: View {
                 }
                 .padding(.horizontal, 20)
             }
-            .navigationTitle("Profil")
+            .navigationTitle("Dein Profil")
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -192,19 +192,19 @@ struct EditProfileView: View {
     var body: some View {
         NavigationView {
             Form {
-                Section("Persönliche Informationen") {
+                Section("Erzähl uns von dir!") {
                     TextField("Name", text: $name)
                     TextField("E-Mail", text: $email)
                         .keyboardType(.emailAddress)
                         .autocapitalization(.none)
                 }
                 
-                Section("Profilbild") {
+                Section("Dein Foto") {
                     ProfileImageView()
                         .environmentObject(profileManager)
                 }
             }
-            .navigationTitle("Profil bearbeiten")
+            .navigationTitle("Profil anpassen")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
@@ -214,7 +214,7 @@ struct EditProfileView: View {
                 }
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Speichern") {
+                    Button("Fertig!") {
                         saveProfile()
                         dismiss()
                     }

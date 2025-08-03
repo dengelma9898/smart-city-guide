@@ -74,7 +74,7 @@ struct ContentView: View {
             // Route info card
             HStack(spacing: 12) {
               VStack(alignment: .leading, spacing: 4) {
-                Text("Aktive Route")
+                Text("Deine Tour läuft!")
                   .font(.caption)
                   .foregroundColor(.secondary)
                 
@@ -85,7 +85,7 @@ struct ContentView: View {
               
               Spacer()
               
-              Text("\(route.numberOfStops) Stopps")
+              Text("\(route.numberOfStops) coole Stopps")
                 .font(.caption)
                 .foregroundColor(.secondary)
             }
@@ -108,7 +108,7 @@ struct ContentView: View {
                 HStack(spacing: 6) {
                   Image(systemName: "stop.fill")
                     .font(.system(size: 16, weight: .medium))
-                  Text("Route stoppen")
+                  Text("Tour beenden")
                     .font(.body)
                     .fontWeight(.medium)
                 }
@@ -129,7 +129,7 @@ struct ContentView: View {
                 HStack(spacing: 6) {
                   Image(systemName: "pencil")
                     .font(.system(size: 16, weight: .medium))
-                  Text("Ändern")
+                  Text("Anpassen")
                     .font(.body)
                     .fontWeight(.medium)
                 }
@@ -156,7 +156,7 @@ struct ContentView: View {
               HStack(spacing: 8) {
                 Image(systemName: "location.north.line.fill")
                   .font(.system(size: 18, weight: .medium))
-                Text("Route planen")
+                Text("Los, planen wir!")
                   .font(.headline)
                   .fontWeight(.medium)
               }

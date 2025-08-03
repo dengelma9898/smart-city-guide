@@ -34,7 +34,7 @@ struct RoutePlanningView: View {
                   .foregroundColor(.blue)
                   .font(.system(size: 20))
                 
-                Text("Startpunkt")
+                Text("Wo startest du?")
                   .font(.headline)
                   .fontWeight(.semibold)
                 
@@ -49,12 +49,12 @@ struct RoutePlanningView: View {
                     .frame(minWidth: 44, minHeight: 44)
                     .contentShape(Rectangle())
                 }
-                .accessibilityLabel("Startpunkt Information")
-                .accessibilityHint("Zeigt Details zum Startpunkt an")
+                .accessibilityLabel("Startort Info")
+                .accessibilityHint("Mehr Infos zum Startort")
               }
               
               LocationSearchField(
-                placeholder: "z.B. Berlin, München, Hamburg",
+                placeholder: "Berlin, München, Hamburg... worauf hast du Lust?",
                 text: $startingCity,
                 onLocationSelected: { coordinates, address in
                   startingCoordinates = coordinates
@@ -75,7 +75,7 @@ struct RoutePlanningView: View {
                   .foregroundColor(.blue)
                   .font(.system(size: 20))
                 
-                Text("Anzahl Orte")
+                Text("Wie viele Stopps?")
                   .font(.headline)
                   .fontWeight(.semibold)
                 
@@ -90,8 +90,8 @@ struct RoutePlanningView: View {
                     .frame(minWidth: 44, minHeight: 44)
                     .contentShape(Rectangle())
                 }
-                .accessibilityLabel("Anzahl Orte Information")
-                .accessibilityHint("Zeigt Details zur Anzahl der Zwischenstopps an")
+                .accessibilityLabel("Stopp-Anzahl Info")
+                .accessibilityHint("Mehr Infos zu den Stopps")
               }
               
               HStack(spacing: 12) {
@@ -109,14 +109,14 @@ struct RoutePlanningView: View {
                           .fill(numberOfPlaces == number ? .blue : Color(.systemGray6))
                       )
                   }
-                  .accessibilityLabel("\(number) Zwischenstopps")
+                  .accessibilityLabel("\(number) Stopps")
                   .accessibilityAddTraits(numberOfPlaces == number ? .isSelected : [])
                 }
                 
                 Spacer()
               }
               .accessibilityElement(children: .contain)
-              .accessibilityLabel("Anzahl Zwischenstopps Auswahl")
+              .accessibilityLabel("Stopp-Anzahl wählen")
             }
             
             // Route Length Section
@@ -126,7 +126,7 @@ struct RoutePlanningView: View {
                   .foregroundColor(.blue)
                   .font(.system(size: 20))
                 
-                Text("Routenlänge")
+                Text("Wie weit gehst du?")
                   .font(.headline)
                   .fontWeight(.semibold)
                 
@@ -141,8 +141,8 @@ struct RoutePlanningView: View {
                     .frame(minWidth: 44, minHeight: 44)
                     .contentShape(Rectangle())
                 }
-                .accessibilityLabel("Routenlänge Information")
-                .accessibilityHint("Zeigt Details zu den Routenlängen-Optionen an")
+                .accessibilityLabel("Distanz Info")
+                .accessibilityHint("Mehr Infos zur Distanz")
               }
               
               HStack(spacing: 12) {
@@ -162,12 +162,12 @@ struct RoutePlanningView: View {
                           .fill(routeLength == length ? .blue : Color(.systemGray6))
                       )
                   }
-                  .accessibilityLabel("\(length.rawValue) Route")
+                  .accessibilityLabel("\(length.rawValue) Tour")
                   .accessibilityAddTraits(routeLength == length ? .isSelected : [])
                 }
               }
               .accessibilityElement(children: .contain)
-              .accessibilityLabel("Routenlänge Auswahl")
+              .accessibilityLabel("Distanz wählen")
             }
             
             // Endpoint Section
@@ -177,7 +177,7 @@ struct RoutePlanningView: View {
                   .foregroundColor(.blue)
                   .font(.system(size: 20))
                 
-                Text("Endpunkt")
+                Text("Wo willst du hin?")
                   .font(.headline)
                   .fontWeight(.semibold)
                 
@@ -192,8 +192,8 @@ struct RoutePlanningView: View {
                     .frame(minWidth: 44, minHeight: 44)
                     .contentShape(Rectangle())
                 }
-                .accessibilityLabel("Endpunkt Information")
-                .accessibilityHint("Zeigt Details zu den Endpunkt-Optionen an")
+                .accessibilityLabel("Ziel Info")
+                .accessibilityHint("Mehr Infos zum Ziel")
               }
               
               HStack(spacing: 8) {
@@ -213,16 +213,16 @@ struct RoutePlanningView: View {
                           .fill(endpointOption == option ? .blue : Color(.systemGray6))
                       )
                   }
-                  .accessibilityLabel("\(option.rawValue) Endpunkt")
+                  .accessibilityLabel("\(option.rawValue) Ziel")
                   .accessibilityAddTraits(endpointOption == option ? .isSelected : [])
                 }
               }
               .accessibilityElement(children: .contain)
-              .accessibilityLabel("Endpunkt Auswahl")
+              .accessibilityLabel("Ziel wählen")
               
               if endpointOption == .custom {
                 LocationSearchField(
-                  placeholder: "Custom Endpunkt",
+                  placeholder: "Wo soll's enden?",
                   text: $customEndpoint
                 )
                 .padding(.top, 8)
@@ -246,7 +246,7 @@ struct RoutePlanningView: View {
           showingRouteBuilder = true
         }) {
           HStack(spacing: 8) {
-            Text("Route erstellen")
+            Text("Los geht's!")
               .font(.headline)
               .fontWeight(.medium)
             
@@ -265,10 +265,10 @@ struct RoutePlanningView: View {
         .padding(.horizontal, 20)
         .padding(.bottom, 34)
         .background(.regularMaterial.opacity(0.8))
-        .accessibilityLabel("Route erstellen")
-        .accessibilityHint("Erstellt eine neue Route mit den gewählten Einstellungen")
+        .accessibilityLabel("Los geht's!")
+        .accessibilityHint("Startet deine Abenteuer-Tour!")
       }
-      .navigationTitle("Route planen")
+      .navigationTitle("Lass uns loslegen!")
       .navigationBarTitleDisplayMode(.large)
       .toolbar {
         ToolbarItem(placement: .navigationBarTrailing) {
@@ -292,25 +292,25 @@ struct RoutePlanningView: View {
       .onAppear {
         loadDefaultSettings()
       }
-      .alert("Startpunkt Info", isPresented: $showingStartPointInfo) {
-        Button("OK") { }
+      .alert("Startort Info", isPresented: $showingStartPointInfo) {
+        Button("Alles klar!") { }
       } message: {
-        Text("Wählen Sie die Stadt, in der Ihre Route beginnt. Das System findet automatisch interessante Orte in der Umgebung.")
+        Text("Sag mir einfach, wo wir starten sollen! Ich finde dann automatisch coole Orte in der Nähe.")
       }
-      .alert("Anzahl Orte Info", isPresented: $showingPlacesInfo) {
-        Button("OK") { }
+      .alert("Stopp-Anzahl Info", isPresented: $showingPlacesInfo) {
+        Button("Verstanden!") { }
       } message: {
-        Text("Wie viele Zwischenstopps möchten Sie zwischen Start und Ziel? Mehr Orte bedeuten eine längere, abwechslungsreichere Route.")
+        Text("Wie viele Stopps sollen wir einbauen? Mehr Stopps = mehr zu entdecken, aber auch längere Tour!")
       }
-      .alert("Routenlänge Info", isPresented: $showingLengthInfo) {
-        Button("OK") { }
+      .alert("Distanz Info", isPresented: $showingLengthInfo) {
+        Button("Passt!") { }
       } message: {
-        Text("Kurz (≤5km): Kompakte Stadtbesichtigung\nMittel (≤15km): Ausgedehnte Erkundung\nLang (≤50km): Ganztagesausflug")
+        Text("Kurz (≤5km): Gemütlich durch die City\nMittel (≤15km): Richtig was sehen\nLang (≤50km): Abenteuer-Modus an!")
       }
-      .alert("Endpunkt Info", isPresented: $showingEndpointInfo) {
-        Button("OK") { }
+      .alert("Ziel Info", isPresented: $showingEndpointInfo) {
+        Button("Macht Sinn!") { }
       } message: {
-        Text("Wählen Sie, wo Ihre Route enden soll:\n• Rundreise: Zurück zum Startpunkt\n• Stopp: Route endet am letzten Stopp\n• Custom: Bestimmen Sie selbst den Endpunkt")
+        Text("Wo soll's am Ende hingehen?\n• Rundreise: Zurück zum Start\n• Stopp: Einfach am letzten Ort bleiben\n• Custom: Du bestimmst das Ziel!")
       }
     }
   }

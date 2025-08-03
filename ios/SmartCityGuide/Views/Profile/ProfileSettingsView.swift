@@ -15,11 +15,11 @@ struct ProfileSettingsView: View {
                             .font(.system(size: 40))
                             .foregroundColor(.blue)
                         
-                        Text("Standard-Einstellungen")
+                        Text("Deine Einstellungen")
                             .font(.headline)
                             .fontWeight(.semibold)
                         
-                        Text("Diese Werte werden beim Erstellen neuer Routen vorausgewählt")
+                        Text("So stellst du deine Touren standardmäßig ein!")
                             .font(.caption)
                             .foregroundColor(.secondary)
                             .multilineTextAlignment(.center)
@@ -36,7 +36,7 @@ struct ProfileSettingsView: View {
                             Image(systemName: "map.fill")
                                 .foregroundColor(.blue)
                                 .frame(width: 20)
-                            Text("Anzahl Zwischenstopps")
+                            Text("Wie viele Stopps?")
                                 .font(.subheadline)
                                 .fontWeight(.medium)
                         }
@@ -60,14 +60,14 @@ struct ProfileSettingsView: View {
                             
                             Spacer()
                             
-                            Text("\(settingsManager.settings.defaultNumberOfPlaces) Standard")
+                            Text("\(settingsManager.settings.defaultNumberOfPlaces) ist dein Standard")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }
                     }
                     .padding(.vertical, 4)
                 } header: {
-                    Text("Route-Konfiguration")
+                    Text("So magst du's")
                 }
                 
                 // Route Length Section
@@ -77,7 +77,7 @@ struct ProfileSettingsView: View {
                             Image(systemName: "ruler.fill")
                                 .foregroundColor(.blue)
                                 .frame(width: 20)
-                            Text("Standard-Routenlänge")
+                            Text("Wie weit gehst du gerne?")
                                 .font(.subheadline)
                                 .fontWeight(.medium)
                         }
@@ -126,7 +126,7 @@ struct ProfileSettingsView: View {
                             Image(systemName: "mappin.circle.fill")
                                 .foregroundColor(.blue)
                                 .frame(width: 20)
-                            Text("Standard-Endpunkt")
+                            Text("Wo willst du normalerweise hin?")
                                 .font(.subheadline)
                                 .fontWeight(.medium)
                         }
@@ -168,11 +168,11 @@ struct ProfileSettingsView: View {
                         // Custom Endpoint Default
                         if settingsManager.settings.defaultEndpointOption == .custom {
                             VStack(alignment: .leading, spacing: 8) {
-                                Text("Standard-Endpunkt")
+                                Text("Dein liebstes Ziel")
                                     .font(.caption)
                                     .foregroundColor(.secondary)
                                 
-                                TextField("z.B. Hauptbahnhof, Zentrum", text: Binding(
+                                TextField("Hauptbahnhof, Zentrum... was magst du?", text: Binding(
                                     get: { settingsManager.settings.customEndpointDefault },
                                     set: { newValue in
                                         settingsManager.updateDefaults(customEndpoint: newValue)
@@ -194,17 +194,17 @@ struct ProfileSettingsView: View {
                         HStack {
                             Image(systemName: "arrow.clockwise")
                                 .foregroundColor(.orange)
-                            Text("Auf Werkseinstellungen zurücksetzen")
+                            Text("Alles zurücksetzen")
                                 .foregroundColor(.orange)
                         }
                     }
                 } footer: {
-                    Text("Diese Einstellungen können jederzeit beim Erstellen einer Route geändert werden.")
+                    Text("Du kannst das später jederzeit bei jeder Tour ändern!")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
             }
-            .navigationTitle("Einstellungen")
+            .navigationTitle("Deine Präferenzen")
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {

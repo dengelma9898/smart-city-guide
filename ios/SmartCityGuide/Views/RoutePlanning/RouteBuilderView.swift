@@ -27,11 +27,11 @@ struct RouteBuilderView: View {
           if isLoadingPOIs || routeService.isGenerating {
             // Header - only show during generation
             VStack(spacing: 12) {
-              Text("Route wird erstellt...")
+              Text("Wir basteln deine Route!")
                 .font(.title2)
                 .fontWeight(.semibold)
               
-              Text("Wir suchen die besten \(numberOfPlaces) Zwischenstopps in \(startingCity)")
+              Text("Suchen die coolsten \(numberOfPlaces) Stopps in \(startingCity) für dich!")
                 .font(.subheadline)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
@@ -44,7 +44,7 @@ struct RouteBuilderView: View {
               ProgressView()
                 .scaleEffect(1.2)
               
-                          Text(isLoadingPOIs ? "Suche nach POIs mit HERE API..." : "Route wird berechnet...")
+                          Text(isLoadingPOIs ? "Entdecke coole Orte..." : "Optimiere deine Route...")
               .font(.body)
               .foregroundColor(.secondary)
             }
@@ -56,7 +56,7 @@ struct RouteBuilderView: View {
               
               // Waypoints List
               VStack(alignment: .leading, spacing: 12) {
-                Text("Route Details")
+                Text("Deine Tour im Detail")
                   .font(.headline)
                   .fontWeight(.semibold)
                 
@@ -236,7 +236,7 @@ struct RouteBuilderView: View {
                     Text("\(Int(route.totalDistance / 1000)) km")
                       .font(.title3)
                       .fontWeight(.semibold)
-                    Text("Gesamtstrecke")
+                    Text("Deine Strecke")
                       .font(.caption)
                       .foregroundColor(.secondary)
                   }
@@ -245,7 +245,7 @@ struct RouteBuilderView: View {
                     Text(formatExperienceTime(route.totalExperienceTime))
                       .font(.title3)
                       .fontWeight(.semibold)
-                    Text("Gesamtzeit")
+                    Text("Deine Zeit")
                       .font(.caption)
                       .foregroundColor(.secondary)
                   }
@@ -254,7 +254,7 @@ struct RouteBuilderView: View {
                     Text("\(route.numberOfStops)")
                       .font(.title3)
                       .fontWeight(.semibold)
-                    Text("Stopps")
+                    Text("Coole Stopps")
                       .font(.caption)
                       .foregroundColor(.secondary)
                   }
@@ -268,13 +268,13 @@ struct RouteBuilderView: View {
               
               // Time Breakdown
               VStack(alignment: .leading, spacing: 12) {
-                Text("Zeitaufteilung")
+                Text("So sieht's aus")
                   .font(.headline)
                   .fontWeight(.semibold)
                 
                 HStack {
                   VStack(alignment: .leading, spacing: 4) {
-                    Text("🚶‍♂️ Gehzeit")
+                    Text("🚶‍♂️ Laufen")
                       .font(.subheadline)
                       .fontWeight(.medium)
                     Text(formatExperienceTime(route.totalTravelTime))
@@ -286,7 +286,7 @@ struct RouteBuilderView: View {
                   Spacer()
                   
                   VStack(alignment: .leading, spacing: 4) {
-                    Text("📍 Besichtigungszeit")
+                    Text("📍 Entdecken")
                       .font(.subheadline)
                       .fontWeight(.medium)
                     Text(formatExperienceTime(route.totalVisitTime))
@@ -297,7 +297,7 @@ struct RouteBuilderView: View {
                 }
                 
                 HStack {
-                  Text("⏱️ Gesamte Erlebniszeit:")
+                  Text("⏱️ Dein ganzes Abenteuer:")
                     .font(.subheadline)
                     .fontWeight(.medium)
                   Spacer()
@@ -314,7 +314,7 @@ struct RouteBuilderView: View {
                     .fill(Color.green.opacity(0.1))
                 )
                 
-                Text("💡 Basiert auf 30-60 Minuten pro Stopp (ohne Start- und Endpunkt)")
+                Text("💡 Rechnen mit 30-60 Min pro Stopp - ohne Start und Ziel")
                   .font(.caption)
                   .foregroundColor(.secondary)
                   .padding(.top, 4)
@@ -333,7 +333,7 @@ struct RouteBuilderView: View {
                 HStack(spacing: 8) {
                   Image(systemName: "map")
                     .font(.system(size: 18, weight: .medium))
-                  Text("Route auf Karte anzeigen")
+                  Text("Zeig mir die Tour!")
                     .font(.headline)
                     .fontWeight(.medium)
                 }
@@ -354,7 +354,7 @@ struct RouteBuilderView: View {
                 .font(.system(size: 40))
                 .foregroundColor(.orange)
               
-              Text("Fehler beim Erstellen der Route")
+              Text("Ups, da lief was schief!")
                 .font(.headline)
                 .fontWeight(.semibold)
               
@@ -364,7 +364,7 @@ struct RouteBuilderView: View {
                 .multilineTextAlignment(.center)
                 .padding(.horizontal)
               
-              Button("Erneut versuchen") {
+              Button("Nochmal probieren!") {
                 Task {
                   await routeService.generateRoute(
                     startingCity: startingCity,
@@ -384,7 +384,7 @@ struct RouteBuilderView: View {
         }
         .padding(.horizontal, 20)
       }
-      .navigationTitle("Route erstellen")
+      .navigationTitle("Deine Tour entsteht!")
       .navigationBarTitleDisplayMode(.large)
       .toolbar {
         ToolbarItem(placement: .navigationBarTrailing) {
@@ -443,7 +443,7 @@ struct RouteBuilderView: View {
     } catch {
       isLoadingPOIs = false
       print("RouteBuilderView Error: Failed to load POIs from HERE API - \(error.localizedDescription)")
-      routeService.errorMessage = "Fehler beim Laden der POIs von HERE API: \(error.localizedDescription)"
+      routeService.errorMessage = "Konnte keine coolen Orte finden: \(error.localizedDescription)"
     }
   }
 }

@@ -18,11 +18,11 @@ struct RouteHistoryView: View {
                             .foregroundColor(.secondary)
                         
                         VStack(spacing: 8) {
-                            Text("Noch keine Routen")
+                            Text("Noch kein Abenteuer erlebt!")
                                 .font(.title2)
                                 .fontWeight(.semibold)
                             
-                            Text("Geplante Routen werden hier automatisch gespeichert")
+                            Text("Deine Touren werden hier automatisch gespeichert - leg einfach los!")
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
                                 .multilineTextAlignment(.center)
@@ -44,7 +44,7 @@ struct RouteHistoryView: View {
                     }
                 }
             }
-            .navigationTitle("Route-Verlauf")
+            .navigationTitle("Deine Abenteuer")
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -56,7 +56,7 @@ struct RouteHistoryView: View {
                 if !historyManager.savedRoutes.isEmpty {
                     ToolbarItem(placement: .navigationBarLeading) {
                         Menu {
-                            Button("Verlauf löschen", role: .destructive) {
+                            Button("Alles löschen", role: .destructive) {
                                 showingDeleteAlert = true
                             }
                         } label: {
@@ -65,13 +65,13 @@ struct RouteHistoryView: View {
                     }
                 }
             }
-            .alert("Verlauf löschen", isPresented: $showingDeleteAlert) {
+            .alert("Alles weg?", isPresented: $showingDeleteAlert) {
                 Button("Abbrechen", role: .cancel) { }
                 Button("Löschen", role: .destructive) {
                     historyManager.clearHistory()
                 }
             } message: {
-                Text("Möchten Sie den gesamten Route-Verlauf löschen? Diese Aktion kann nicht rückgängig gemacht werden.")
+                Text("Willst du wirklich alle deine Abenteuer löschen? Das kann nicht rückgängig gemacht werden!")
             }
         }
     }
@@ -178,7 +178,7 @@ struct RouteHistoryRowView: View {
                     
                     Spacer()
                     
-                    Text("\(route.numberOfStops) Stopps")
+                    Text("\(route.numberOfStops) coole Stopps")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
@@ -191,7 +191,7 @@ struct RouteHistoryRowView: View {
                         .font(.system(size: 10))
                         .foregroundColor(.orange)
                     
-                    Text("Zuletzt verwendet: \(lastUsed, style: .relative)")
+                    Text("Zuletzt: \(lastUsed, style: .relative)")
                         .font(.caption)
                         .foregroundColor(.orange)
                     
