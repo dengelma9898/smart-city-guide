@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import os.log
 
 // MARK: - Profile Settings Model
 struct ProfileSettings: Codable {
@@ -26,6 +27,7 @@ class ProfileSettingsManager: ObservableObject {
     private let secureStorage = SecureStorageService.shared
     private let secureKey = "profile_settings_secure"
     private let legacyUserDefaultsKey = "profile_settings" // For migration
+    private let logger = Logger(subsystem: "de.dengelma.smartcity-guide", category: "ProfileSettings")
     
     init() {
         self.settings = ProfileSettings() // Temporary default
@@ -48,7 +50,7 @@ class ProfileSettingsManager: ObservableObject {
                 requireBiometrics: false // Settings sind weniger sensitiv
             ) {
                 settings = migratedSettings
-                print("⚙️ ProfileSettings: Successfully migrated from UserDefaults")
+                logger.info("⚙️ ProfileSettings: Successfully migrated from UserDefaults")
             }
             // Sonst lade aus Keychain
             else if let savedSettings = try secureStorage.load(
@@ -56,18 +58,18 @@ class ProfileSettingsManager: ObservableObject {
                 forKey: secureKey
             ) {
                 settings = savedSettings
-                print("⚙️ ProfileSettings: Loaded from secure storage")
+                logger.info("⚙️ ProfileSettings: Loaded from secure storage")
             }
             // Falls nichts existiert, behalte default und speichere
             else {
                 settings = ProfileSettings()
                 try await saveSettings()
-                print("⚙️ ProfileSettings: Created new default settings")
+                logger.info("⚙️ ProfileSettings: Created new default settings")
             }
             
         } catch {
             errorMessage = "Fehler beim Laden der Einstellungen: \(error.localizedDescription)"
-            print("❌ ProfileSettings Load Error: \(error)")
+            logger.error("❌ ProfileSettings Load Error: \(error)")
             // Bei Fehler: behalte default settings
             settings = ProfileSettings()
         }
@@ -83,10 +85,10 @@ class ProfileSettingsManager: ObservableObject {
                 forKey: secureKey,
                 requireBiometrics: false // Settings sind weniger sensitiv
             )
-            print("⚙️ ProfileSettings: Saved securely")
+            logger.info("⚙️ ProfileSettings: Saved securely")
         } catch {
             errorMessage = "Fehler beim Speichern der Einstellungen: \(error.localizedDescription)"
-            print("❌ ProfileSettings Save Error: \(error)")
+            logger.error("❌ ProfileSettings Save Error: \(error)")
             throw error
         }
     }

@@ -1,5 +1,6 @@
 import Foundation
 import CoreLocation
+import os.log
 
 // MARK: - Route History Models
 struct SavedRoute: Codable, Identifiable, Equatable {
@@ -97,6 +98,7 @@ class RouteHistoryManager: ObservableObject {
     private let secureStorage = SecureStorageService.shared
     private let secureKey = "route_history_secure"
     private let legacyUserDefaultsKey = "route_history" // For migration
+    private let logger = Logger(subsystem: "de.dengelma.smartcity-guide", category: "RouteHistory")
     private let maxSavedRoutes = 50 // Limit to prevent storage bloat
     
     init() {
@@ -119,7 +121,7 @@ class RouteHistoryManager: ObservableObject {
                 requireBiometrics: true // GPS-Daten sind hochsensitiv!
             ) {
                 savedRoutes = migratedRoutes.sorted { $0.createdAt > $1.createdAt }
-                print("🗺️ RouteHistory: Successfully migrated \(migratedRoutes.count) routes from UserDefaults")
+                logger.info("🗺️ RouteHistory: Successfully migrated \(migratedRoutes.count) routes from UserDefaults")
             }
             // Sonst lade aus Keychain
             else if let loadedRoutes = try secureStorage.load(
@@ -128,17 +130,17 @@ class RouteHistoryManager: ObservableObject {
                 promptMessage: "Authentifiziere dich, um deine gespeicherten Routen zu laden"
             ) {
                 savedRoutes = loadedRoutes.sorted { $0.createdAt > $1.createdAt }
-                print("🗺️ RouteHistory: Loaded \(loadedRoutes.count) routes from secure storage")
+                logger.info("🗺️ RouteHistory: Loaded \(loadedRoutes.count) routes from secure storage")
             }
             // Falls nichts existiert, leere Liste
             else {
                 savedRoutes = []
-                print("🗺️ RouteHistory: No saved routes found, starting fresh")
+                logger.info("🗺️ RouteHistory: No saved routes found, starting fresh")
             }
             
         } catch {
             errorMessage = "Fehler beim Laden der Routen: \(error.localizedDescription)"
-            print("❌ RouteHistory Load Error: \(error)")
+            logger.error("❌ RouteHistory Load Error: \(error)")
             // Bei Fehler: leere Liste
             savedRoutes = []
         }
@@ -161,10 +163,10 @@ class RouteHistoryManager: ObservableObject {
                 forKey: secureKey,
                 requireBiometrics: true // GPS-Daten sind hochsensitiv!
             )
-            print("🗺️ RouteHistory: Saved \(routesToSave.count) routes securely")
+            logger.info("🗺️ RouteHistory: Saved \(routesToSave.count) routes securely")
         } catch {
             errorMessage = "Fehler beim Speichern der Routen: \(error.localizedDescription)"
-            print("❌ RouteHistory Save Error: \(error)")
+            logger.error("❌ RouteHistory Save Error: \(error)")
             throw error
         }
     }
@@ -203,7 +205,7 @@ class RouteHistoryManager: ObservableObject {
     func clearAllRoutes() async throws {
         try secureStorage.delete(forKey: secureKey)
         savedRoutes = []
-        print("🗺️ RouteHistory: Cleared all routes from secure storage")
+        logger.info("🗺️ RouteHistory: Cleared all routes from secure storage")
     }
     
     func markRouteAsUsed(_ route: SavedRoute) {

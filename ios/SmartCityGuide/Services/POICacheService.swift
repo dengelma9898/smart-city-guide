@@ -1,9 +1,11 @@
 import Foundation
 import CoreLocation
+import os.log
 
 @MainActor
 class POICacheService: ObservableObject {
     static let shared = POICacheService()
+    private let logger = Logger(subsystem: "de.dengelma.smartcity-guide", category: "Cache")
     
     private var cache: [String: CachedPOIData] = [:]
     private let cacheExpirationTime: TimeInterval = 24 * 60 * 60 // 24 hours
@@ -16,18 +18,18 @@ class POICacheService: ObservableObject {
         let cacheKey = cityName.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
         
         guard let cachedData = cache[cacheKey] else {
-            print("POICacheService: No cached data for '\(cityName)'")
+            logger.info("💾 ❌ Cache miss for '\(cityName)'")
             return nil
         }
         
         // Check if cache is still valid
         if Date().timeIntervalSince(cachedData.timestamp) > cacheExpirationTime {
-            print("POICacheService: Cache expired for '\(cityName)'")
+            logger.info("💾 ⏰ Cache expired for '\(cityName)'")
             cache.removeValue(forKey: cacheKey)
             return nil
         }
         
-        print("POICacheService: Returning \(cachedData.pois.count) cached POIs for '\(cityName)'")
+        logger.info("💾 ✅ Cache hit for '\(cityName)': \(cachedData.pois.count) POIs")
         return cachedData.pois
     }
     
@@ -41,12 +43,12 @@ class POICacheService: ObservableObject {
         )
         
         cache[cacheKey] = cachedData
-        print("POICacheService: Cached \(pois.count) POIs for '\(cityName)'")
+        logger.info("💾 💾 Cache store: \(pois.count) POIs for '\(cityName)'")
     }
     
     func clearCache() {
         cache.removeAll()
-        print("POICacheService: Cache cleared")
+        logger.info("💾 🗑️ Cache cleared")
     }
     
     func clearExpiredEntries() {
@@ -60,7 +62,7 @@ class POICacheService: ObservableObject {
         }
         
         if !keysToRemove.isEmpty {
-            print("POICacheService: Removed \(keysToRemove.count) expired cache entries")
+            logger.info("💾 ⏰ Removed \(keysToRemove.count) expired cache entries")
         }
     }
     
@@ -111,12 +113,12 @@ extension POICacheService {
         let cityFilteredPOIs = filteredPOIs.filter { poi in
             let isInCity = poi.isInCity(startingCity)
             if !isInCity {
-                print("POICacheService: 🚫 Filtering out POI '\(poi.name)' - not in '\(startingCity)' (POI city: '\(poi.address?.city ?? "unknown")')")
+                // Filtered POI - no sensitive logging needed
             }
             return isInCity
         }
         
-        print("POICacheService: 🏙️ City filtering: \(allPOIs.count) → \(cityFilteredPOIs.count) POIs for '\(startingCity)'")
+        logger.info("🏙️ City filtering: \(allPOIs.count) → \(cityFilteredPOIs.count) POIs for '\(startingCity)'")
         filteredPOIs = cityFilteredPOIs
         
         // Filter by categories if specified
@@ -149,7 +151,7 @@ extension POICacheService {
             startCoordinate: startCoordinate
         )
         
-        print("POICacheService: Selected \(selectedPOIs.count) POIs from \(allPOIs.count) total")
+        logger.info("📍 Selected \(selectedPOIs.count) POIs from \(allPOIs.count) total")
         return selectedPOIs
     }
     

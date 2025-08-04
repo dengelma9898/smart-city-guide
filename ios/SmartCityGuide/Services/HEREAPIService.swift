@@ -6,6 +6,9 @@ import CoreLocation
 class HEREAPIService: ObservableObject {
     static let shared = HEREAPIService()
     
+    // Secure Logging - lazy init to avoid main actor issues
+    private lazy var secureLogger = SecureLogger.shared
+    
     // Secure API Key loading from APIKeys.plist
     private var apiKey: String {
         guard let path = Bundle.main.path(forResource: "APIKeys", ofType: "plist"),
@@ -33,12 +36,12 @@ class HEREAPIService: ObservableObject {
     func fetchPOIs(for cityName: String, categories: [PlaceCategory] = PlaceCategory.essentialCategories, retryCount: Int = 0) async throws -> [POI] {
         // Check cache first
         if let cachedPOIs = await POICacheService.shared.getCachedPOIs(for: cityName) {
-            print("HEREAPIService: Using cached POIs for '\(cityName)'")
+            // Cache hit - no logging needed
             return cachedPOIs
         }
         
         // Cache miss - fetch from API
-        print("HEREAPIService: Fetching POIs from HERE API for '\(cityName)' (attempt \(retryCount + 1))")
+        secureLogger.logInfo("🌐 Fetching POIs for '\(cityName)' (attempt \(retryCount + 1))", category: .data)
         
         do {
             // Step 1: Geocode the city to get coordinates
@@ -54,7 +57,7 @@ class HEREAPIService: ObservableObject {
             
         } catch HEREError.rateLimitExceeded {
             if retryCount < 1 { // Allow 1 retry for the main method
-                print("HEREAPIService: Rate limit exceeded, retrying after 5 seconds...")
+                secureLogger.logWarning("🌐 HERE API rate limit exceeded, retrying...", category: .general)
                 try await Task.sleep(nanoseconds: 5_000_000_000) // 5 second delay
                 return try await fetchPOIs(for: cityName, categories: categories, retryCount: retryCount + 1)
             } else {
@@ -65,11 +68,11 @@ class HEREAPIService: ObservableObject {
     
     /// NEW: Direct POI search with coordinates (eliminates geocoding entirely!)
     func fetchPOIs(at coordinates: CLLocationCoordinate2D, cityName: String, categories: [PlaceCategory] = PlaceCategory.essentialCategories) async throws -> [POI] {
-        print("HEREAPIService: 🚀 Direct POI search at \(coordinates.latitude), \(coordinates.longitude) for '\(cityName)' - NO GEOCODING!")
+        secureLogger.logCoordinates(coordinates, context: "Direct POI search for '\(cityName)'")
         
         // Check cache first
         if let cachedPOIs = await POICacheService.shared.getCachedPOIs(for: cityName) {
-            print("HEREAPIService: Using cached POIs for '\(cityName)'")
+            // Cache hit - no logging needed
             return cachedPOIs
         }
         
@@ -86,11 +89,11 @@ class HEREAPIService: ObservableObject {
         
         // 🚀 CHECK CACHE FIRST - eliminates geocoding API call for known cities!
         if let cachedCoordinates = CityCoordinatesCache.getCoordinates(for: cleanCityName) {
-            print("HEREAPIService: ✅ Using cached coordinates for '\(cleanCityName)': \(cachedCoordinates.latitude), \(cachedCoordinates.longitude)")
+            secureLogger.logCoordinates(cachedCoordinates, context: "Cached coordinates for '\(cleanCityName)'")
             return cachedCoordinates
         }
         
-        print("HEREAPIService: ⚠️ City '\(cleanCityName)' not in cache, falling back to HERE Geocoding API...")
+        secureLogger.logInfo("🗺️ City not in cache, using Geocoding API", category: .data)
         
         let encodedCity = cleanCityName.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? cleanCityName
         let urlString = "\(geocodeURL)/geocode.json?searchtext=\(encodedCity)&apiKey=\(apiKey)"
@@ -113,9 +116,9 @@ class HEREAPIService: ObservableObject {
             if httpResponse.statusCode == 429 {
                 // Extract more details from rate limiting response  
                 if let responseString = String(data: data, encoding: .utf8) {
-                    print("HEREAPIService: Geocoding rate limit details: \(responseString)")
+                    // Rate limit details logged via SecureLogger
                 }
-                print("HEREAPIService: Rate limit hit during geocoding, waiting 2 seconds...")
+                secureLogger.logWarning("🌐 Geocoding rate limit hit, retrying...", category: .general)
                 try await Task.sleep(nanoseconds: 2_000_000_000) // 2 second delay
                 throw HEREError.rateLimitExceeded
             }
@@ -123,7 +126,7 @@ class HEREAPIService: ObservableObject {
             guard httpResponse.statusCode == 200 else {
                 // Extract error details from geocoding API response
                 if let responseString = String(data: data, encoding: .utf8) {
-                    print("HEREAPIService: Geocoding API Error \(httpResponse.statusCode): \(responseString)")
+                    secureLogger.logError("🌐 Geocoding API Error \(httpResponse.statusCode)", category: .general)
                 }
                 throw HEREError.invalidResponse(statusCode: httpResponse.statusCode)
             }
@@ -134,7 +137,8 @@ class HEREAPIService: ObservableObject {
                 throw HEREError.cityNotFound(cleanCityName)
             }
             
-            print("HEREAPIService: Successfully geocoded '\(cleanCityName)' to \(result.Latitude), \(result.Longitude)")
+            let coordinates = CLLocationCoordinate2D(latitude: result.Latitude, longitude: result.Longitude)
+        secureLogger.logCoordinates(coordinates, context: "Geocoded '\(cleanCityName)'")
             return CLLocationCoordinate2D(latitude: result.Latitude, longitude: result.Longitude)
             
         } catch let error as HEREError {
@@ -158,7 +162,7 @@ class HEREAPIService: ObservableObject {
             let afterPostalCode = String(trimmedInput[matchRange.upperBound...]).trimmingCharacters(in: .whitespacesAndNewlines)
             
             if !afterPostalCode.isEmpty {
-                print("HEREAPIService: Extracted city '\(afterPostalCode)' from address '\(trimmedInput)'")
+                // City extracted successfully
                 return afterPostalCode
             }
         }
@@ -170,7 +174,7 @@ class HEREAPIService: ObservableObject {
             for component in components.reversed() {
                 let cleanComponent = component.trimmingCharacters(in: .whitespacesAndNewlines)
                 if !cleanComponent.isEmpty && !cleanComponent.allSatisfy({ $0.isNumber || $0.isWhitespace }) {
-                    print("HEREAPIService: Extracted city '\(cleanComponent)' from address '\(trimmedInput)'")
+                    // City extracted successfully
                     return cleanComponent
                 }
             }
@@ -182,7 +186,7 @@ class HEREAPIService: ObservableObject {
             // If the last word is a number, assume first word is the city
             if let lastWord = words.last, lastWord.allSatisfy(\.isNumber) {
                 let cityName = words.first!
-                print("HEREAPIService: Detected 'City Street Number' format, extracted city '\(cityName)' from '\(trimmedInput)'")
+                // City name extracted from address
                 return cityName
             }
             
@@ -193,7 +197,7 @@ class HEREAPIService: ObservableObject {
                lastTwoWords.lowercased().contains("weg") ||
                lastTwoWords.lowercased().contains("platz") {
                 let cityName = words.first!
-                print("HEREAPIService: Detected street address pattern, extracted city '\(cityName)' from '\(trimmedInput)'")
+                // Street address pattern detected
                 return cityName
             }
         }
@@ -220,7 +224,7 @@ class HEREAPIService: ObservableObject {
         // GET /browse?at=lat,lng&categories=300-3000-0000,300-3100-0000&limit=50&apiKey=key
         let urlString = "\(baseURL)/browse?at=\(location.latitude),\(location.longitude)&categories=\(categoriesParam)&limit=50&apiKey=\(apiKey)"
         
-        print("HEREAPIService: 🌐 Using HERE Browse API: \(urlString)")
+        secureLogger.logAPIRequest(url: urlString, category: .here)
         
         guard let url = URL(string: urlString) else {
             throw HEREError.invalidURL
@@ -239,7 +243,7 @@ class HEREAPIService: ObservableObject {
             if httpResponse.statusCode == 429 {
                 // Extract more details from rate limiting response
                 if let responseString = String(data: data, encoding: .utf8) {
-                    print("HEREAPIService: Rate limit details: \(responseString)")
+                    secureLogger.logWarning("🌐 HERE API rate limit hit", category: .general)
                 }
                 throw HEREError.rateLimitExceeded
             }
@@ -247,14 +251,14 @@ class HEREAPIService: ObservableObject {
             guard httpResponse.statusCode == 200 else {
                 // Extract error details from API response
                 if let responseString = String(data: data, encoding: .utf8) {
-                    print("HEREAPIService: API Error \(httpResponse.statusCode): \(responseString)")
+                    secureLogger.logError("🌐 HERE API Error \(httpResponse.statusCode)", category: .general)
                 }
                 throw HEREError.invalidResponse(statusCode: httpResponse.statusCode)
             }
             
             // Debug: Print actual API response to understand format
             if let responseString = String(data: data, encoding: .utf8) {
-                print("HEREAPIService: Raw API Response: \(String(responseString.prefix(500)))...")
+                secureLogger.logAPIResponseData(String(responseString.prefix(500)), category: .here)
             }
             
             let searchResponse = try JSONDecoder().decode(HERESearchResponse.self, from: data)
@@ -268,13 +272,13 @@ class HEREAPIService: ObservableObject {
             // Remove duplicates but keep all POIs for better selection downstream
             let uniquePOIs = Array(Set(allPOIs))
             
-            print("HEREAPIService: Single API call found \(allPOIs.count) POIs, returning \(uniquePOIs.count) unique POIs for '\(cityName)'")
+            secureLogger.logPOISearch(cityName: cityName, poiCount: uniquePOIs.count)
             return uniquePOIs
             
         } catch HEREError.rateLimitExceeded {
             throw HEREError.rateLimitExceeded
         } catch {
-            print("HEREAPIService: Search failed for '\(cityName)': \(error)")
+            secureLogger.logAPIError(error, category: .here)
             throw HEREError.searchFailed("Failed to search POIs: \(error.localizedDescription)")
         }
     }

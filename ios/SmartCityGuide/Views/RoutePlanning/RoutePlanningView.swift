@@ -5,6 +5,7 @@ import MapKit
 struct RoutePlanningView: View {
   @Environment(\.dismiss) private var dismiss
   @StateObject private var settingsManager = ProfileSettingsManager()
+
   
   @State private var startingCity = ""
   @State private var startingCoordinates: CLLocationCoordinate2D? = nil // NEW: Store coordinates
@@ -58,7 +59,7 @@ struct RoutePlanningView: View {
                 text: $startingCity,
                 onLocationSelected: { coordinates, address in
                   startingCoordinates = coordinates
-                  print("RoutePlanningView: Starting location coordinates saved: \(coordinates)")
+                  SecureLogger.shared.logCoordinates(coordinates, context: "Starting location saved")
                 }
               )
               

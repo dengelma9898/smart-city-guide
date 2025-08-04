@@ -1,10 +1,12 @@
 import Foundation
 import CoreLocation
+import os.log
 
 @MainActor
 class OverpassAPIService: ObservableObject {
     private let baseURL = "https://overpass-api.de/api/interpreter"
     private let urlSession: URLSession
+    private let logger = Logger(subsystem: "de.dengelma.smartcity-guide", category: "OverpassAPI")
     
     @Published var isLoading = false
     @Published var errorMessage: String?
@@ -19,12 +21,12 @@ class OverpassAPIService: ObservableObject {
     func fetchPOIs(for cityName: String, categories: [PlaceCategory] = PlaceCategory.defaultCategories) async throws -> [POI] {
         // Check cache first
         if let cachedPOIs = POICacheService.shared.getCachedPOIs(for: cityName) {
-            print("OverpassAPIService: Using cached POIs for '\(cityName)'")
+            // Cache hit - no logging needed
             return cachedPOIs
         }
         
         // Cache miss - fetch from API
-        print("OverpassAPIService: Fetching POIs from API for '\(cityName)'")
+        logger.info("🌐 Fetching POIs from Overpass API")
         
         // First, get bounding box for the city
         let boundingBox = try await getBoundingBox(for: cityName)
@@ -52,12 +54,12 @@ class OverpassAPIService: ObservableObject {
             let response = try await executeQuery(query)
             let pois = parseResponse(response, cityName: cityName)
             
-            print("OverpassAPIService: Found \(pois.count) POIs in bounding box")
+            logger.info("📍 Found \(pois.count) POIs in bounding box")
             return pois
         } catch {
             let errorMsg = "Failed to fetch POIs: \(error.localizedDescription)"
             errorMessage = errorMsg
-            print("OverpassAPIService Error: \(errorMsg)")
+            logger.error("❌ Overpass API Error: \(errorMsg)")
             throw error
         }
     }
@@ -135,7 +137,7 @@ class OverpassAPIService: ObservableObject {
         
         query += "out center meta;"
         
-        print("OverpassAPIService Query: \(query)")
+        // Query constructed - no logging needed
         return query
     }
     
@@ -159,16 +161,13 @@ class OverpassAPIService: ObservableObject {
             throw OverpassError.httpError(httpResponse.statusCode)
         }
         
-        // Print raw response for debugging
-        if let responseString = String(data: data, encoding: .utf8) {
-            print("OverpassAPIService Raw Response: \(responseString.prefix(500))...")
-        }
+        // Response received - no sensitive data logging
         
         do {
             let overpassResponse = try JSONDecoder().decode(OverpassResponse.self, from: data)
             return overpassResponse
         } catch {
-            print("OverpassAPIService JSON Decode Error: \(error)")
+            logger.error("❌ JSON Decode Error: \(error.localizedDescription)")
             throw OverpassError.decodingFailed(error.localizedDescription)
         }
     }
@@ -199,7 +198,7 @@ class OverpassAPIService: ObservableObject {
             pois.append(poi)
         }
         
-        print("OverpassAPIService: Parsed \(pois.count) valid POIs from \(response.elements.count) elements (city-filtered by Overpass API)")
+        logger.info("📍 Parsed \(pois.count) valid POIs from \(response.elements.count) elements")
         return pois
     }
 }

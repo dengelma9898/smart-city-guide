@@ -411,7 +411,7 @@ struct RouteBuilderView: View {
       
       // 🚀 USE DIRECT COORDINATES if available (eliminates geocoding!)
       if let coordinates = startingCoordinates {
-        print("RouteBuilderView: 🎯 Using direct coordinates \(coordinates.latitude), \(coordinates.longitude) for '\(startingCity)' - NO GEOCODING!")
+                    // Direct coordinates available - skip geocoding
         
         discoveredPOIs = try await hereService.fetchPOIs(
           at: coordinates,
@@ -419,7 +419,7 @@ struct RouteBuilderView: View {
           categories: PlaceCategory.essentialCategories
         )
       } else {
-        print("RouteBuilderView: ⚠️ No coordinates available, falling back to geocoding for '\(startingCity)'")
+                    // No coordinates available - will use geocoding
         
         discoveredPOIs = try await hereService.fetchPOIs(
           for: startingCity,
@@ -427,7 +427,7 @@ struct RouteBuilderView: View {
         )
       }
       
-      print("RouteBuilderView: Loaded \(discoveredPOIs.count) POIs from HERE API")
+                // POIs loaded successfully
       isLoadingPOIs = false
       
       // Step 2: Generate route using discovered POIs
@@ -442,7 +442,7 @@ struct RouteBuilderView: View {
       
     } catch {
       isLoadingPOIs = false
-      print("RouteBuilderView Error: Failed to load POIs from HERE API - \(error.localizedDescription)")
+                // Error will be displayed via errorMessage
       routeService.errorMessage = "Konnte keine coolen Orte finden: \(error.localizedDescription)"
     }
   }

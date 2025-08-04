@@ -21,13 +21,7 @@ class SecureStorageService: ObservableObject {
     private let logger = Logger(subsystem: "de.dengelma.smartcity-guide", category: "SecureStorage")
     
     private init() {
-        // EXPLICIT DEBUG TEST - Dies sollte IMMER erscheinen
-        logger.critical("🔴 CRITICAL DEBUG: SecureStorageService.init() CALLED!")
-        print("🔴 EXPLICIT PRINT: SecureStorageService init called!")
-        
         checkAvailability()
-        
-        // Test Keychain Zugriff direkt
         testKeychainAccess()
     }
     
@@ -184,7 +178,7 @@ class SecureStorageService: ObservableObject {
             throw SecureStorageError.deleteFailed(status: status)
         }
         
-        print("🔐 SecureStorage: Cleared all data successfully")
+        logger.info("🔐 SecureStorage: Cleared all data successfully")
     }
     
     // MARK: - Access Control Creation

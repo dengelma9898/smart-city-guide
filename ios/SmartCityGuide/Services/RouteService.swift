@@ -1,9 +1,12 @@
 import Foundation
 import MapKit
 import CoreLocation
+import os.log
 
 @MainActor
 class RouteService: ObservableObject {
+  private let logger = Logger(subsystem: "de.dengelma.smartcity-guide", category: "Route")
+  
   @Published var isGenerating = false
   @Published var generatedRoute: GeneratedRoute?
   @Published var errorMessage: String?
@@ -196,17 +199,10 @@ class RouteService: ObservableObject {
       let testRoutes = try await generateRoutesBetweenWaypoints(testRoute)
       let actualDistance = testRoutes.reduce(0) { $0 + $1.distance }
       
-      print("🔍 Teste Route: \(testRoute.count) Waypoints")
-      print("   Luftlinie: \(Int(calculateTotalRouteDistance(testRoute)/1000))km")
-      print("   Tatsächlich: \(Int(actualDistance/1000))km (Limit: \(Int(maxTotalDistance/1000))km)")
-      
       // Check if this is better and within limits using ACTUAL distance
       if actualDistance <= maxTotalDistance && actualDistance < bestDistance {
         bestRoute = testRoute
         bestDistance = actualDistance
-        print("   ✅ NEUE BESTE ROUTE: \(Int(actualDistance/1000))km")
-      } else {
-        print("   ❌ ZU LANG: \(Int(actualDistance/1000))km > \(Int(maxTotalDistance/1000))km")
       }
       
       // If we found a good short route, stop early
@@ -217,8 +213,6 @@ class RouteService: ObservableObject {
     
     // If no route found within distance limit, try with fewer stops
     if bestRoute.isEmpty && numberOfPlaces > 1 {
-      print("⚠️ Keine Route mit \(numberOfPlaces) Stopps innerhalb \(Int(maxTotalDistance/1000))km gefunden")
-      print("🔄 Versuche mit \(numberOfPlaces-1) Stopps...")
       
       // Retry with one fewer place
       return try await findBestRouteCombination(
@@ -528,7 +522,7 @@ class RouteService: ObservableObject {
     startingCity: String
   ) async throws -> [RoutePoint] {
     
-    print("RouteService: Generating route with \(availablePOIs.count) available POIs")
+            logger.info("🗺️ Generating route with \(availablePOIs.count) available POIs")
     
     // Step 1: Select best POIs for the route
     let selectedPOIs = POICacheService.shared.selectBestPOIs(
@@ -539,7 +533,7 @@ class RouteService: ObservableObject {
       startingCity: startingCity
     )
     
-    print("RouteService: Selected \(selectedPOIs.count) POIs for route")
+            logger.info("🗺️ Selected \(selectedPOIs.count) POIs for route")
     
     // Step 2: Convert POIs to RoutePoints
     var waypoints: [RoutePoint] = []
@@ -587,7 +581,7 @@ class RouteService: ObservableObject {
           )
           waypoints.append(endPoint)
         } catch {
-          print("RouteService: Failed to find custom endpoint, falling back to open end")
+          logger.warning("🗺️ Failed to find custom endpoint, falling back to open end")
         }
       }
     }
@@ -597,7 +591,7 @@ class RouteService: ObservableObject {
       waypoints = optimizeWaypointOrder(waypoints)
     }
     
-    print("RouteService: Generated route with \(waypoints.count) waypoints")
+            logger.info("🗺️ Generated route with \(waypoints.count) waypoints")
     return waypoints
   }
   

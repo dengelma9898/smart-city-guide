@@ -99,7 +99,7 @@ struct LocationSearchField: View {
     let coordinates = item.placemark.coordinate
     onLocationSelected?(coordinates, formattedAddress)
     
-    print("LocationSearchField: Selected location '\(formattedAddress)' at \(coordinates.latitude), \(coordinates.longitude)")
+                    // Location selected successfully
   }
   
   private func formatFullAddress(_ placemark: MKPlacemark) -> String {

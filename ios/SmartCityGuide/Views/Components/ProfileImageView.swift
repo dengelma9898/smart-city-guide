@@ -93,7 +93,7 @@ struct ProfileImageView: View {
                 }
             }
         } catch {
-            print("Failed to load selected image: \(error)")
+            // Image loading error will be handled by UI
         }
         
         isLoading = false

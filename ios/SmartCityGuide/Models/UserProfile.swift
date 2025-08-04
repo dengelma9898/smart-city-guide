@@ -37,10 +37,6 @@ class UserProfileManager: ObservableObject {
     private let logger = Logger(subsystem: "de.dengelma.smartcity-guide", category: "UserProfile")
     
     init() {
-        // EXPLICIT DEBUG TEST
-        logger.critical("🔴 CRITICAL DEBUG: UserProfileManager.init() CALLED!")
-        print("🔴 EXPLICIT PRINT: UserProfileManager init called!")
-        
         self.profile = UserProfile() // Temporary default
         Task {
             await loadProfile()
@@ -61,7 +57,7 @@ class UserProfileManager: ObservableObject {
                 requireBiometrics: true
             ) {
                 profile = migratedProfile
-                print("📱 UserProfile: Successfully migrated from UserDefaults")
+                logger.info("📱 UserProfile: Successfully migrated from UserDefaults")
             }
             // Sonst lade aus Keychain
             else if let savedProfile = try secureStorage.load(
@@ -70,18 +66,18 @@ class UserProfileManager: ObservableObject {
                 promptMessage: "Authentifiziere dich, um dein Profil zu laden"
             ) {
                 profile = savedProfile
-                print("📱 UserProfile: Loaded from secure storage")
+                logger.info("📱 UserProfile: Loaded from secure storage")
             }
             // Falls nichts existiert, behalte default und speichere
             else {
                 profile = UserProfile()
                 try await saveProfile()
-                print("📱 UserProfile: Created new default profile")
+                logger.info("📱 UserProfile: Created new default profile")
             }
             
         } catch {
             errorMessage = "Fehler beim Laden des Profils: \(error.localizedDescription)"
-            print("❌ UserProfile Load Error: \(error)")
+            logger.error("❌ UserProfile Load Error: \(error)")
             // Bei Fehler: behalte default profile
             profile = UserProfile()
         }
@@ -99,10 +95,10 @@ class UserProfileManager: ObservableObject {
                 forKey: secureKey,
                 requireBiometrics: true
             )
-            print("📱 UserProfile: Saved securely")
+            logger.info("📱 UserProfile: Saved securely")
         } catch {
             errorMessage = "Fehler beim Speichern des Profils: \(error.localizedDescription)"
-            print("❌ UserProfile Save Error: \(error)")
+            logger.error("❌ UserProfile Save Error: \(error)")
             throw error
         }
     }
@@ -130,12 +126,13 @@ class UserProfileManager: ObservableObject {
     func deleteProfile() async throws {
         try secureStorage.delete(forKey: secureKey)
         profile = UserProfile() // Reset to default
-        print("📱 UserProfile: Deleted from secure storage")
+                    logger.info("📱 UserProfile: Deleted from secure storage")
     }
 }
 
 // MARK: - Profile Image Helper
 struct ProfileImageHelper {
+    private static let logger = Logger(subsystem: "de.dengelma.smartcity-guide", category: "ProfileImage")
     static let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
     
     static func saveImage(_ imageData: Data) -> String? {
@@ -146,7 +143,7 @@ struct ProfileImageHelper {
             try imageData.write(to: url)
             return filename
         } catch {
-            print("Failed to save profile image: \(error)")
+            Self.logger.error("Failed to save profile image: \(error)")
             return nil
         }
     }
