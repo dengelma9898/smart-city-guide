@@ -48,23 +48,6 @@ struct InputValidator {
         .union(.punctuationCharacters)
         .union(.decimalDigits)
     
-    private static let overpassInjectionPatterns = [
-        "}}",           // Overpass query termination
-        "//",           // Comment injection
-        "/*",           // Block comment start
-        "*/",           // Block comment end
-        "[out:",        // Output format injection
-        "timeout:",     // Timeout manipulation
-        "maxsize:",     // Memory manipulation
-        "rel(",         // Relation query injection
-        "way(",         // Way query injection
-        "node(",        // Node query injection
-        ">;",           // Query termination
-        "\\u007b",      // URL-encoded {
-        "\\u007d",      // URL-encoded }
-        "%7B",          // URL-encoded {
-        "%7D"           // URL-encoded }
-    ]
     
     // MARK: - City Name Validation
     static func validateCityName(_ input: String) throws -> String {
@@ -102,27 +85,6 @@ struct InputValidator {
         return validated
     }
     
-    // MARK: - Overpass Query Validation
-    static func validateOverpassQueryComponent(_ input: String) throws -> String {
-        logger.info("🔍 Validating Overpass query component")
-        
-        let trimmed = input.trimmingCharacters(in: .whitespacesAndNewlines)
-        
-        // Length check
-        guard trimmed.count <= maxQueryLength else {
-            logger.error("🚨 Overpass query component too long: \(trimmed.count)")
-            throw ValidationError.inputTooLong(max: maxQueryLength)
-        }
-        
-        // Injection detection - CRITICAL for Overpass security
-        try detectOverpassInjection(in: trimmed)
-        
-        // Escape special characters for Overpass
-        let escaped = escapeOverpassString(trimmed)
-        
-        logger.info("✅ Overpass query component validated")
-        return escaped
-    }
     
     // MARK: - HTTP Body Validation
     static func validateHTTPBody(_ input: String) throws -> String {
@@ -214,26 +176,7 @@ struct InputValidator {
         }
     }
     
-    private static func detectOverpassInjection(in input: String) throws {
-        let lowercased = input.lowercased()
-        
-        for pattern in overpassInjectionPatterns {
-            if lowercased.contains(pattern.lowercased()) {
-                logger.error("🚨 Overpass injection pattern detected: \(pattern)")
-                throw ValidationError.injectionAttempt(detected: pattern)
-            }
-        }
-    }
     
-    private static func escapeOverpassString(_ input: String) -> String {
-        // Overpass-specific escaping
-        return input
-            .replacingOccurrences(of: "\\", with: "\\\\")  // Escape backslashes
-            .replacingOccurrences(of: "\"", with: "\\\"")   // Escape quotes
-            .replacingOccurrences(of: "\n", with: "\\n")    // Escape newlines
-            .replacingOccurrences(of: "\r", with: "\\r")    // Escape carriage returns
-            .replacingOccurrences(of: "\t", with: "\\t")    // Escape tabs
-    }
 }
 
 // MARK: - Validation Extensions
