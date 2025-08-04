@@ -284,33 +284,25 @@ struct POIDetailView: View {
 // MARK: - Preview
 struct POIDetailView_Previews: PreviewProvider {
     static var previews: some View {
-        let mockElement = OverpassElement(
-            type: "node",
-            id: 12345,
-            lat: 52.5163,
-            lon: 13.3777,
-            tags: [
-                "name": "Brandenburger Tor",
-                "description": "Das berühmte Brandenburger Tor ist ein Symbol der deutschen Geschichte.",
-                "addr:street": "Pariser Platz",
-                "addr:city": "Berlin",
-                "addr:postcode": "10117",
-                "addr:country": "Deutschland",
-                "phone": "+49 30 12345678",
-                "email": "info@brandenburger-tor.de",
-                "website": "https://www.berlin.de/sehenswuerdigkeiten/brandenburger-tor",
-                "wheelchair": "yes",
-                "wheelchair:description": "Vollständig barrierefrei zugänglich",
-                "fee": "no",
-                "fee:description": "Besichtigung kostenlos",
-                "opening_hours": "24/7"
-            ],
-            center: nil,
-            nodes: nil,
-            members: nil
+        let mockPOI = POI(
+            id: "sample",
+            name: "Brandenburger Tor",
+            latitude: 52.5163,
+            longitude: 13.3777,
+            category: .monument,
+            description: "Das berühmte Brandenburger Tor ist ein Symbol der deutschen Geschichte.",
+            tags: [:],
+            sourceType: "mock",
+            sourceId: 12345,
+            address: nil,
+            contact: nil,
+            accessibility: nil,
+            pricing: nil,
+            operatingHours: "24/7",
+            website: "https://www.berlin.de/sehenswuerdigkeiten/brandenburger-tor"
         )
         
-        POIDetailView(poi: POI(from: mockElement, category: .monument))
+        POIDetailView(poi: mockPOI)
             .padding()
     }
 }

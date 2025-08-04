@@ -225,14 +225,12 @@ class SecureLogger {
 
 enum APICategory: CaseIterable {
     case here
-    case overpass
     case geocoding
     case general
     
     var description: String {
         switch self {
         case .here: return "HERE API"
-        case .overpass: return "Overpass API"
         case .geocoding: return "Geocoding API"
         case .general: return "API"
         }

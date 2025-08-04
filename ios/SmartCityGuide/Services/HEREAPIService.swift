@@ -662,8 +662,8 @@ extension POI {
         self.latitude = item.position.lat
         self.longitude = item.position.lng
         self.category = category
-        self.overpassType = "here_poi"
-        self.overpassId = Int64(item.id.hashValue)
+        self.sourceType = "here_poi"
+        self.sourceId = Int64(item.id.hashValue)
         
         // Extract description from categories
         if let categories = item.categories, !categories.isEmpty {
