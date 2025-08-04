@@ -9,6 +9,9 @@ class HEREAPIService: ObservableObject {
     // Secure Logging - lazy init to avoid main actor issues
     private lazy var secureLogger = SecureLogger.shared
     
+    // Network Security with Certificate Pinning
+    private let networkSecurity = NetworkSecurityManager.shared
+    
     // Secure API Key loading from APIKeys.plist
     private var apiKey: String {
         guard let path = Bundle.main.path(forResource: "APIKeys", ofType: "plist"),
@@ -26,8 +29,10 @@ class HEREAPIService: ObservableObject {
     @Published var isLoading = false
     @Published var errorMessage: String?
     
-    init(urlSession: URLSession = .shared) {
-        self.urlSession = urlSession
+    init(urlSession: URLSession? = nil) {
+        // Use secure session with certificate pinning by default
+        self.urlSession = urlSession ?? NetworkSecurityManager.shared.secureSession
+        secureLogger.logInfo("🔐 HEREAPIService initialized with certificate pinning", category: .security)
     }
     
     // MARK: - Public API
