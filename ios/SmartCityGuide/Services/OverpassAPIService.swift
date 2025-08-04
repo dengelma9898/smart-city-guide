@@ -105,7 +105,28 @@ class OverpassAPIService: ObservableObject {
         
         // Use area-based filtering if city name is provided (more accurate!)
         if let cityName = cityName {
-            query += "{{geocodeArea:\(cityName)}}->.searchArea;\n"
+            // 🔒 SECURITY: Validate and escape city name to prevent Overpass injection
+            do {
+                let validatedCityName = try InputValidator.validateOverpassQueryComponent(cityName)
+                query += "{{geocodeArea:\(validatedCityName)}}->.searchArea;\n"
+            } catch {
+                logger.error("🚨 SECURITY: Overpass injection attempt blocked: \(error.localizedDescription)")
+                // Fallback to bounding box search without city name
+                let bbox = "\(boundingBox.south),\(boundingBox.west),\(boundingBox.north),\(boundingBox.east)"
+                
+                for category in categories {
+                    for (key, value) in category.overpassTags {
+                        queryParts.append("  node[\"\(key)\"=\"\(value)\"](\(bbox));")
+                        queryParts.append("  way[\"\(key)\"=\"\(value)\"](\(bbox));")
+                    }
+                }
+                
+                query += "(\n"
+                query += queryParts.joined(separator: "\n")
+                query += "\n);\n"
+                query += "out center meta;"
+                return query
+            }
             
             // Add queries for each category using area constraint
             for category in categories {
@@ -149,7 +170,14 @@ class OverpassAPIService: ObservableObject {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
-        request.httpBody = "data=\(query)".data(using: .utf8)
+        // 🔒 SECURITY: Validate and properly encode HTTP body to prevent injection
+        do {
+            let validatedQuery = try InputValidator.validateHTTPBody(query)
+            request.httpBody = "data=\(validatedQuery)".data(using: .utf8)
+        } catch {
+            logger.error("🚨 SECURITY: HTTP body validation failed: \(error.localizedDescription)")
+            throw OverpassError.invalidQuery
+        }
         
         let (data, response) = try await urlSession.data(for: request)
         
@@ -219,6 +247,7 @@ enum OverpassError: LocalizedError {
     case decodingFailed(String)
     case geocodingFailed(String)
     case cityNotFound(String)
+    case invalidQuery  // 🔒 SECURITY: Added for input validation failures
     
     var errorDescription: String? {
         switch self {
@@ -234,6 +263,8 @@ enum OverpassError: LocalizedError {
             return "Failed to geocode city: \(reason)"
         case .cityNotFound(let cityName):
             return "City '\(cityName)' not found"
+        case .invalidQuery:
+            return "Query blocked for security reasons"
         }
     }
 }

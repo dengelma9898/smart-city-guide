@@ -154,6 +154,21 @@ class HEREAPIService: ObservableObject {
     }
     
     private func extractCityFromInput(_ input: String) -> String {
+        // 🔒 SECURITY: Validate and sanitize input to prevent injection attacks
+        do {
+            let validatedInput = try InputValidator.validateCityName(input)
+            return extractCityFromValidatedInput(validatedInput)
+        } catch {
+            secureLogger.logError("🚨 SECURITY: Invalid city input rejected: \(error.localizedDescription)", category: .security)
+            // Return sanitized fallback - just the basic trimmed input without special chars
+            let fallback = input.trimmingCharacters(in: .whitespacesAndNewlines)
+                .components(separatedBy: .punctuationCharacters).joined(separator: " ")
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            return String(fallback.prefix(50)) // Limit to 50 chars as fallback
+        }
+    }
+    
+    private func extractCityFromValidatedInput(_ input: String) -> String {
         // If input looks like a full address, try to extract city name
         let trimmedInput = input.trimmingCharacters(in: .whitespacesAndNewlines)
         

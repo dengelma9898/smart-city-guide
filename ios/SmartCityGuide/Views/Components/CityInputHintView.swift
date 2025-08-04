@@ -38,10 +38,16 @@ struct CityInputHintView: View {
     }
     
     private var extractedCity: String {
-        extractCityFromInput(inputText)
+        // 🔒 SECURITY: Use validated input extraction
+        do {
+            return try InputValidator.validateCityName(inputText)
+        } catch {
+            // Fallback to safe extraction for UI display
+            return extractCityFromInputSafe(inputText)
+        }
     }
     
-    private func extractCityFromInput(_ input: String) -> String {
+    private func extractCityFromInputSafe(_ input: String) -> String {
         let trimmedInput = input.trimmingCharacters(in: .whitespacesAndNewlines)
         
         // Check for postal code pattern (5 digits)
