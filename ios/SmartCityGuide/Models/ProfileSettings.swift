@@ -22,35 +22,47 @@ struct ProfileSettings: Codable {
         self.defaultRouteLength = .medium
         self.customEndpointDefault = ""
         
-        // Neue Default-Werte
-        self.defaultMaximumStops = .five
-        self.defaultMaximumWalkingTime = .sixtyMin
-        self.defaultMinimumPOIDistance = .twoFifty
+        // Neue Default-Werte (bessere Defaults für neue User)
+        self.defaultMaximumStops = .five      // 5 Stopps ist ein guter Default
+        self.defaultMaximumWalkingTime = .sixtyMin  // 60min ist vernünftig
+        self.defaultMinimumPOIDistance = .twoFifty  // 250m verhindert zu nah gelegene POIs
     }
     
-    // Migration von alten zu neuen Settings
+    // Migration von alten zu neuen Settings (nur für bestehende User die upgrades)
     mutating func migrateToNewSettings() {
-        // Migration: numberOfPlaces -> maximumStops
-        if defaultNumberOfPlaces <= 3 {
-            defaultMaximumStops = .three
-        } else if defaultNumberOfPlaces <= 5 {
-            defaultMaximumStops = .five
-        } else {
-            defaultMaximumStops = .ten
-        }
+        // Diese Migration sollte nur einmal ausgeführt werden für bestehende User
+        // Neue User bekommen bereits die korrekten Defaults im init()
         
-        // Migration: routeLength -> maximumWalkingTime
-        switch defaultRouteLength {
-        case .short:
-            defaultMaximumWalkingTime = .thirtyMin
-        case .medium:
-            defaultMaximumWalkingTime = .sixtyMin
-        case .long:
-            defaultMaximumWalkingTime = .twoHours
-        }
+        // Migration: numberOfPlaces -> maximumStops (nur wenn noch nicht konvertiert)
+        // Überprüfe ob es sich um Legacy-Daten handelt (alle defaults sind noch original)
+        let isLegacyData = (defaultMaximumStops == .five && 
+                           defaultMaximumWalkingTime == .sixtyMin && 
+                           defaultMinimumPOIDistance == .twoFifty)
         
-        // Standard-Wert für neuen Filter
-        defaultMinimumPOIDistance = .twoFifty
+        if isLegacyData {
+            // Migration: numberOfPlaces -> maximumStops
+            if defaultNumberOfPlaces <= 3 {
+                defaultMaximumStops = .three
+            } else if defaultNumberOfPlaces <= 5 {
+                defaultMaximumStops = .five
+            } else {
+                defaultMaximumStops = .ten
+            }
+            
+            // Migration: routeLength -> maximumWalkingTime
+            switch defaultRouteLength {
+            case .short:
+                defaultMaximumWalkingTime = .thirtyMin
+            case .medium:
+                defaultMaximumWalkingTime = .sixtyMin
+            case .long:
+                defaultMaximumWalkingTime = .twoHours
+            }
+            
+            // Standard-Wert für neuen Filter (bleibt .twoFifty)
+            defaultMinimumPOIDistance = .twoFifty
+        }
+        // Wenn bereits migriert oder customized, nichts tun
     }
 }
 

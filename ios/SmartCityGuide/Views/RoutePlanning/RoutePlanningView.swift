@@ -256,13 +256,14 @@ struct RoutePlanningView: View {
   }
   
   private func loadDefaultSettings() {
-    // Migration durchführen falls nötig
-    settingsManager.settings.migrateToNewSettings()
+    // Load default values from profile settings ONLY if still at initial defaults
+    // Do NOT run migration here - it should only happen in ProfileSettingsManager initialization
     
-    // Load default values from profile settings
     let newDefaults = settingsManager.settings.getNewDefaultsForRoutePlanning()
     
-    // Load new settings if still at default values
+    // Only load defaults if user hasn't changed from initial values
+    // This preserves user's active selections while providing intelligent defaults for new users
+    
     if endpointOption == .roundtrip {
       endpointOption = newDefaults.1
     }
@@ -271,16 +272,19 @@ struct RoutePlanningView: View {
       customEndpoint = newDefaults.4
     }
     
-    if maximumStops == .five {
-      maximumStops = newDefaults.0
-    }
+    // REMOVED: Do not override user's active filter selections
+    // These defaults are only for new users, not for overriding active selections
     
-    if maximumWalkingTime == .sixtyMin {
-      maximumWalkingTime = newDefaults.2
-    }
+    // if maximumStops == .five {
+    //   maximumStops = newDefaults.0
+    // }
     
-    if minimumPOIDistance == .twoFifty {
-      minimumPOIDistance = newDefaults.3
-    }
+    // if maximumWalkingTime == .sixtyMin {
+    //   maximumWalkingTime = newDefaults.2
+    // }
+    
+    // if minimumPOIDistance == .twoFifty {
+    //   minimumPOIDistance = newDefaults.3
+    // }
   }
 }
