@@ -49,7 +49,10 @@ GET {{baseURL}}/discover?at=49.3794,11.2058&limit=10&lang=de&q=tourist attractio
 GET {{baseURL}}/discover?at=49.3784125,11.2203086&limit=10&lang=de&q=tourist attraction museum park&apiKey={{apiKey}}
 
 ###
+GET https://de.wikipedia.org/w/api.php?action=opensearch&search=Schöner_brunnen_nürnberg
 
+###
+GET https://de.wikipedia.org/api/rest_v1/page/summary/Sch\u00f6ner Brunnen (N\u00fcrnberg)
 ### Test 9: Minimal test without lang parameter
 GET {{baseURL}}/discover?at=49.3794,11.2058&limit=5&q=attraction&apiKey={{apiKey}}
 

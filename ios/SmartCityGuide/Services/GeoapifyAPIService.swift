@@ -102,7 +102,7 @@ class GeoapifyAPIService: ObservableObject {
         secureLogger.logInfo("🗺️ City not in cache, using Geoapify Geocoding API", category: .data)
         
         let encodedCity = cleanCityName.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? cleanCityName
-        let urlString = "\(geocodeURL)/search?text=\(encodedCity)&apiKey=\(apiKey)"
+        let urlString = "\(geocodeURL)/search?text=\(encodedCity)&lang=de&apiKey=\(apiKey)"
         
         guard let url = URL(string: urlString) else {
             throw GeoapifyError.invalidURL
@@ -241,9 +241,9 @@ class GeoapifyAPIService: ObservableObject {
         secureLogger.logInfo("🌍 Geoapify Categories: \(allCategories)", category: .geoapify)
         secureLogger.logInfo("🗺️ Search Location: \(location.latitude), \(location.longitude) with radius \(radius)m", category: .geoapify)
         
-        // Geoapify Places API with categories filter:
-        // GET /places?categories=tourism.attraction&filter=circle:lng,lat,5000&limit=50&apiKey=key
-        let urlString = "\(baseURL)/places?categories=\(categoryParams)&filter=circle:\(location.longitude),\(location.latitude),\(Int(radius))&limit=50&apiKey=\(apiKey)"
+        // Geoapify Places API with categories filter and German language:
+        // GET /places?categories=tourism.attraction&filter=circle:lng,lat,5000&limit=50&lang=de&apiKey=key
+        let urlString = "\(baseURL)/places?categories=\(categoryParams)&filter=circle:\(location.longitude),\(location.latitude),\(Int(radius))&limit=50&lang=de&apiKey=\(apiKey)"
         
         secureLogger.logAPIRequest(url: urlString, category: .geoapify)
         
