@@ -29,76 +29,78 @@ struct ProfileSettingsView: View {
                 }
                 .listRowBackground(Color.clear)
                 
-                // Number of Places Section
+                // Maximum Stops Section
                 Section {
                     VStack(alignment: .leading, spacing: 12) {
                         HStack {
                             Image(systemName: "map.fill")
                                 .foregroundColor(.blue)
                                 .frame(width: 20)
-                            Text("Wie viele Stopps?")
+                            Text("Maximale Stopps")
                                 .font(.subheadline)
                                 .fontWeight(.medium)
                         }
                         
-                        HStack(spacing: 12) {
-                            ForEach(2...5, id: \.self) { number in
-                                Button(action: {
-                                    settingsManager.updateDefaults(numberOfPlaces: number)
-                                }) {
-                                    Text("\(number)")
-                                        .font(.body)
-                                        .fontWeight(.medium)
-                                        .foregroundColor(settingsManager.settings.defaultNumberOfPlaces == number ? .white : .blue)
-                                        .frame(width: 44, height: 44)
-                                        .background(
-                                            Circle()
-                                                .fill(settingsManager.settings.defaultNumberOfPlaces == number ? .blue : Color(.systemGray6))
-                                        )
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 8) {
+                                ForEach(MaximumStops.allCases, id: \.self) { stops in
+                                    Button(action: {
+                                        settingsManager.updateDefaults(maximumStops: stops)
+                                    }) {
+                                        Text(stops.rawValue)
+                                            .font(.caption)
+                                            .fontWeight(.medium)
+                                            .foregroundColor(settingsManager.settings.defaultMaximumStops == stops ? .white : .blue)
+                                            .padding(.horizontal, 12)
+                                            .padding(.vertical, 6)
+                                            .background(
+                                                RoundedRectangle(cornerRadius: 12)
+                                                    .fill(settingsManager.settings.defaultMaximumStops == stops ? .blue : Color(.systemGray6))
+                                            )
+                                    }
                                 }
                             }
-                            
-                            Spacer()
-                            
-                            Text("\(settingsManager.settings.defaultNumberOfPlaces) ist dein Standard")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
+                            .padding(.horizontal, 4)
                         }
+                        
+                        Text("Standard: \(settingsManager.settings.defaultMaximumStops.rawValue)")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
                     }
                     .padding(.vertical, 4)
                 } header: {
-                    Text("So magst du's")
+                    Text("Stopp-Präferenzen")
                 }
                 
-                // Route Length Section
+                // Maximum Walking Time Section
                 Section {
                     VStack(alignment: .leading, spacing: 12) {
                         HStack {
-                            Image(systemName: "ruler.fill")
+                            Image(systemName: "clock.fill")
                                 .foregroundColor(.blue)
                                 .frame(width: 20)
-                            Text("Wie weit gehst du gerne?")
+                            Text("Maximale Gehzeit")
                                 .font(.subheadline)
                                 .fontWeight(.medium)
                         }
                         
                         VStack(spacing: 8) {
-                            ForEach(RouteLength.allCases, id: \.self) { length in
+                            ForEach(MaximumWalkingTime.allCases, id: \.self) { time in
                                 Button(action: {
-                                    settingsManager.updateDefaults(routeLength: length)
+                                    settingsManager.updateDefaults(maximumWalkingTime: time)
                                 }) {
                                     HStack {
-                                        Image(systemName: settingsManager.settings.defaultRouteLength == length ? "checkmark.circle.fill" : "circle")
-                                            .foregroundColor(settingsManager.settings.defaultRouteLength == length ? .blue : .secondary)
+                                        Image(systemName: settingsManager.settings.defaultMaximumWalkingTime == time ? "checkmark.circle.fill" : "circle")
+                                            .foregroundColor(settingsManager.settings.defaultMaximumWalkingTime == time ? .blue : .secondary)
                                             .font(.system(size: 20))
                                         
                                         VStack(alignment: .leading, spacing: 2) {
-                                            Text(length.rawValue)
+                                            Text(time.rawValue)
                                                 .font(.body)
                                                 .fontWeight(.medium)
                                                 .foregroundColor(.primary)
                                             
-                                            Text(length.description)
+                                            Text(time.description)
                                                 .font(.caption)
                                                 .foregroundColor(.secondary)
                                         }
@@ -109,7 +111,7 @@ struct ProfileSettingsView: View {
                                     .padding(.vertical, 8)
                                     .background(
                                         RoundedRectangle(cornerRadius: 8)
-                                            .fill(settingsManager.settings.defaultRouteLength == length ? Color(.systemBlue).opacity(0.1) : Color.clear)
+                                            .fill(settingsManager.settings.defaultMaximumWalkingTime == time ? Color(.systemBlue).opacity(0.1) : Color.clear)
                                     )
                                 }
                                 .buttonStyle(PlainButtonStyle())
@@ -117,6 +119,55 @@ struct ProfileSettingsView: View {
                         }
                     }
                     .padding(.vertical, 4)
+                } header: {
+                    Text("Zeit-Präferenzen")
+                }
+                
+                // Minimum POI Distance Section
+                Section {
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            Image(systemName: "point.3.filled.connected.trianglepath.dotted")
+                                .foregroundColor(.blue)
+                                .frame(width: 20)
+                            Text("Mindestabstand zwischen Stopps")
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                        }
+                        
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 8) {
+                                ForEach(MinimumPOIDistance.allCases, id: \.self) { distance in
+                                    Button(action: {
+                                        settingsManager.updateDefaults(minimumPOIDistance: distance)
+                                    }) {
+                                        Text(distance.rawValue)
+                                            .font(.caption)
+                                            .fontWeight(.medium)
+                                            .foregroundColor(settingsManager.settings.defaultMinimumPOIDistance == distance ? .white : .blue)
+                                            .padding(.horizontal, 12)
+                                            .padding(.vertical, 6)
+                                            .background(
+                                                RoundedRectangle(cornerRadius: 12)
+                                                    .fill(settingsManager.settings.defaultMinimumPOIDistance == distance ? .blue : Color(.systemGray6))
+                                            )
+                                    }
+                                }
+                            }
+                            .padding(.horizontal, 4)
+                        }
+                        
+                        Text("Standard: \(settingsManager.settings.defaultMinimumPOIDistance.rawValue)")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(.vertical, 4)
+                } header: {
+                    Text("Abstand-Präferenzen")
+                } footer: {
+                    Text("Größere Abstände = weniger Stopps, aber mehr Abwechslung in der Route")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
                 }
                 
                 // Endpoint Options Section
