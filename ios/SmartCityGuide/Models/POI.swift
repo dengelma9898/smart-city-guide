@@ -89,3 +89,79 @@ struct POI: Identifiable, Codable {
         return true
     }
 }
+
+// MARK: - POI Extension for Geoapify
+
+extension POI {
+    init?(from feature: GeoapifyFeature, category: PlaceCategory, requestedCity: String) {
+        let props = feature.properties
+        let coords = feature.geometry.coordinates
+        
+        // Basic Properties
+        self.id = "geoapify_\(feature.hashValue)"
+        self.name = props.name ?? "Unbekannter Ort"
+        
+        // Geoapify returns [longitude, latitude]
+        guard coords.count >= 2 else { return nil }
+        self.longitude = coords[0]
+        self.latitude = coords[1]
+        
+        self.category = category
+        self.sourceType = "geoapify_poi"
+        self.sourceId = Int64(feature.hashValue)
+        
+        // Address Information
+        self.address = POIAddress(
+            street: props.address_line1,
+            houseNumber: nil, // Geoapify doesn't separate house number
+            city: props.city,
+            postcode: props.postcode,
+            country: props.country
+        )
+        
+        // Contact Information - Geoapify doesn't provide contact details directly
+        self.contact = nil
+        
+        // Description from categories/details or fallback
+        if let details = props.details, !details.isEmpty {
+            self.description = details.joined(separator: ", ")
+        } else if let categories = props.categories, !categories.isEmpty {
+            self.description = categories.joined(separator: ", ")
+        } else {
+            self.description = category.rawValue
+        }
+        
+        // Tags from Geoapify data
+        var tags: [String: String] = [:]
+        if let categories = props.categories {
+            tags["geoapify:categories"] = categories.joined(separator: ",")
+        }
+        if let datasource = props.datasource?.sourcename {
+            tags["source"] = datasource
+        }
+        if let placeId = props.place_id {
+            tags["geoapify:place_id"] = placeId
+        }
+        self.tags = tags
+        
+        // Initialize other fields (Geoapify doesn't provide these directly)
+        self.accessibility = nil
+        self.pricing = nil
+        self.operatingHours = nil
+        self.website = nil
+    }
+}
+
+// MARK: - Geoapify Feature Protocol Conformances
+
+extension GeoapifyFeature: Hashable {
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(properties.place_id ?? properties.name ?? "")
+        hasher.combine(geometry.coordinates)
+    }
+    
+    static func == (lhs: GeoapifyFeature, rhs: GeoapifyFeature) -> Bool {
+        return lhs.properties.place_id == rhs.properties.place_id &&
+               lhs.geometry.coordinates == rhs.geometry.coordinates
+    }
+}

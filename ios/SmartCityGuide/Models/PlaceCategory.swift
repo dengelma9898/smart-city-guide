@@ -231,3 +231,81 @@ struct CategoryStat {
   let category: PlaceCategory
   let count: Int
 }
+
+// MARK: - PlaceCategory Geoapify Integration
+
+extension PlaceCategory {
+    /// Geoapify Places API Category IDs - Korrigiert basierend auf offizieller Dokumentation
+    var geoapifyCategories: [String] {
+        switch self {
+        // Tourism & Attractions (MVP: tourism.attraction)
+        case .attraction:
+            return ["tourism.attraction"]
+        case .landmarkAttraction:
+            return ["tourism.sights", "heritage"]
+        case .viewpoint:
+            return ["tourism.sights.viewpoint", "tourism"]
+            
+        // Heritage & History
+        case .monument:
+            return ["heritage", "tourism.sights.monument"]
+        case .memorial:
+            return ["tourism.sights.memorial", "heritage"]
+        case .castle:
+            return ["heritage", "tourism.sights.castle"]
+        case .ruins:
+            return ["heritage", "tourism.sights.ruins"]
+        case .archaeologicalSite:
+            return ["heritage", "tourism.sights"]
+            
+        // Culture & Arts
+        case .museum:
+            return ["entertainment.museum", "tourism"]
+        case .gallery:
+            return ["entertainment.museum", "tourism"]
+        case .artwork:
+            return ["tourism.sights", "heritage"]
+        case .artsCenter:
+            return ["entertainment.culture", "tourism"]
+            
+        // Parks & Nature
+        case .park:
+            return ["leisure.park", "natural"]
+        case .garden:
+            return ["leisure.park", "natural"]
+        case .nationalPark:
+            return ["natural", "leisure.park"]
+        case .spring:
+            return ["natural", "tourism.sights"]
+        case .waterfall:
+            return ["natural", "tourism.sights"]
+        case .river:
+            return ["natural", "tourism.sights"]
+        case .canal:
+            return ["natural", "tourism.sights"]
+        case .lake:
+            return ["natural", "tourism.sights"]
+            
+        // Religious Sites
+        case .placeOfWorship:
+            return ["religion", "tourism"]
+        case .cathedral:
+            return ["religion", "tourism.sights"]
+        case .chapel:
+            return ["religion", "tourism"]
+        case .monastery:
+            return ["religion", "tourism"]
+        case .shrine:
+            return ["religion", "tourism"]
+            
+        // Civic & Government
+        case .townhall:
+            return ["office.government", "tourism"]
+        }
+    }
+    
+    /// Essential categories for migration testing - MVP with only tourism
+    static let geoapifyEssentialCategories: [PlaceCategory] = [
+        .attraction
+    ]
+}

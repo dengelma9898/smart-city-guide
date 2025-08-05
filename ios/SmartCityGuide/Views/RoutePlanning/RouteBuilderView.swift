@@ -15,7 +15,7 @@ struct RouteBuilderView: View {
   
   @StateObject private var routeService = RouteService()
   @StateObject private var historyManager = RouteHistoryManager()
-  @StateObject private var hereService = HEREAPIService.shared
+  @StateObject private var geoapifyService = GeoapifyAPIService.shared
   
   @State private var discoveredPOIs: [POI] = []
   @State private var isLoadingPOIs = false
@@ -406,24 +406,24 @@ struct RouteBuilderView: View {
   
   private func loadPOIsAndGenerateRoute() async {
     do {
-      // Step 1: Load POIs from HERE API
+      // Step 1: Load POIs from Geoapify API (MIGRATION TESTING: Distance filtering disabled)
       isLoadingPOIs = true
       
       // 🚀 USE DIRECT COORDINATES if available (eliminates geocoding!)
       if let coordinates = startingCoordinates {
                     // Direct coordinates available - skip geocoding
         
-        discoveredPOIs = try await hereService.fetchPOIs(
+        discoveredPOIs = try await geoapifyService.fetchPOIs(
           at: coordinates,
           cityName: startingCity,
-          categories: PlaceCategory.essentialCategories
+          categories: PlaceCategory.geoapifyEssentialCategories
         )
       } else {
                     // No coordinates available - will use geocoding
         
-        discoveredPOIs = try await hereService.fetchPOIs(
+        discoveredPOIs = try await geoapifyService.fetchPOIs(
           for: startingCity,
-          categories: PlaceCategory.essentialCategories
+          categories: PlaceCategory.geoapifyEssentialCategories
         )
       }
       
