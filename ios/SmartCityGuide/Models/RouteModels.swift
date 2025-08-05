@@ -102,6 +102,7 @@ enum EndpointOption: String, CaseIterable, Codable {
   }
 }
 
+// MARK: - Legacy Route Length (for backwards compatibility)
 enum RouteLength: String, CaseIterable, Codable {
   case short = "Kurz"
   case medium = "Mittel"  
@@ -139,4 +140,77 @@ enum RouteLength: String, CaseIterable, Codable {
       return 15000  // Search within 15km for long routes
     }
   }
+}
+
+// MARK: - New Filter Models
+
+enum MaximumStops: String, CaseIterable, Codable {
+    case three = "3"
+    case five = "5" 
+    case eight = "8"
+    case ten = "10"
+    case fifteen = "15"
+    case twenty = "20"
+    case unlimited = "Unbegrenzt"
+    
+    var intValue: Int? {
+        switch self {
+        case .unlimited: return nil
+        default: return Int(rawValue)
+        }
+    }
+}
+
+enum MaximumWalkingTime: String, CaseIterable, Codable {
+    case thirtyMin = "30min"
+    case fortyFiveMin = "45min"
+    case sixtyMin = "60min"
+    case ninetyMin = "90min"
+    case twoHours = "2h"
+    case threeHours = "3h"
+    case openEnd = "Open End"
+    
+    var minutes: Int? {
+        switch self {
+        case .thirtyMin: return 30
+        case .fortyFiveMin: return 45
+        case .sixtyMin: return 60
+        case .ninetyMin: return 90
+        case .twoHours: return 120
+        case .threeHours: return 180
+        case .openEnd: return nil
+        }
+    }
+    
+    var description: String {
+        switch self {
+        case .thirtyMin: return "Kurze Spaziergänge"
+        case .fortyFiveMin: return "Entspannte Touren"
+        case .sixtyMin: return "Solide Entdeckungstouren"
+        case .ninetyMin: return "Ausgiebige Erkundungen"
+        case .twoHours: return "Intensive City-Touren"
+        case .threeHours: return "Ganztages-Abenteuer"
+        case .openEnd: return "Ohne Zeitlimit"
+        }
+    }
+}
+
+enum MinimumPOIDistance: String, CaseIterable, Codable {
+    case oneHundred = "100m"
+    case twoFifty = "250m"
+    case fiveHundred = "500m"
+    case sevenFifty = "750m"
+    case oneKm = "1km"
+    case noMinimum = "Kein Minimum"
+    
+    var meters: Double? {
+        switch self {
+        case .oneHundred: return 100
+        case .twoFifty: return 250
+        case .fiveHundred: return 500
+        case .sevenFifty: return 750
+        case .oneKm: return 1000
+        case .noMinimum: return nil
+        }
+    }
 }

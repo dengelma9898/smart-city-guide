@@ -4,16 +4,53 @@ import os.log
 
 // MARK: - Profile Settings Model
 struct ProfileSettings: Codable {
+    // Legacy fields (für Backwards Compatibility)
     var defaultNumberOfPlaces: Int
     var defaultEndpointOption: EndpointOption
     var defaultRouteLength: RouteLength
     var customEndpointDefault: String
     
+    // Neue Filter-Einstellungen
+    var defaultMaximumStops: MaximumStops
+    var defaultMaximumWalkingTime: MaximumWalkingTime
+    var defaultMinimumPOIDistance: MinimumPOIDistance
+    
     init() {
+        // Legacy Werte für Backwards Compatibility
         self.defaultNumberOfPlaces = 3
         self.defaultEndpointOption = .roundtrip
         self.defaultRouteLength = .medium
         self.customEndpointDefault = ""
+        
+        // Neue Default-Werte
+        self.defaultMaximumStops = .five
+        self.defaultMaximumWalkingTime = .sixtyMin
+        self.defaultMinimumPOIDistance = .twoFifty
+    }
+    
+    // Migration von alten zu neuen Settings
+    mutating func migrateToNewSettings() {
+        // Migration: numberOfPlaces -> maximumStops
+        if defaultNumberOfPlaces <= 3 {
+            defaultMaximumStops = .three
+        } else if defaultNumberOfPlaces <= 5 {
+            defaultMaximumStops = .five
+        } else {
+            defaultMaximumStops = .ten
+        }
+        
+        // Migration: routeLength -> maximumWalkingTime
+        switch defaultRouteLength {
+        case .short:
+            defaultMaximumWalkingTime = .thirtyMin
+        case .medium:
+            defaultMaximumWalkingTime = .sixtyMin
+        case .long:
+            defaultMaximumWalkingTime = .twoHours
+        }
+        
+        // Standard-Wert für neuen Filter
+        defaultMinimumPOIDistance = .twoFifty
     }
 }
 
@@ -104,8 +141,12 @@ class ProfileSettingsManager: ObservableObject {
         numberOfPlaces: Int? = nil,
         endpointOption: EndpointOption? = nil,
         routeLength: RouteLength? = nil,
-        customEndpoint: String? = nil
+        customEndpoint: String? = nil,
+        maximumStops: MaximumStops? = nil,
+        maximumWalkingTime: MaximumWalkingTime? = nil,
+        minimumPOIDistance: MinimumPOIDistance? = nil
     ) {
+        // Legacy parameters
         if let numberOfPlaces = numberOfPlaces {
             settings.defaultNumberOfPlaces = numberOfPlaces
         }
@@ -117,6 +158,17 @@ class ProfileSettingsManager: ObservableObject {
         }
         if let customEndpoint = customEndpoint {
             settings.customEndpointDefault = customEndpoint
+        }
+        
+        // Neue Parameter
+        if let maximumStops = maximumStops {
+            settings.defaultMaximumStops = maximumStops
+        }
+        if let maximumWalkingTime = maximumWalkingTime {
+            settings.defaultMaximumWalkingTime = maximumWalkingTime
+        }
+        if let minimumPOIDistance = minimumPOIDistance {
+            settings.defaultMinimumPOIDistance = minimumPOIDistance
         }
         save()
     }
@@ -142,6 +194,17 @@ extension ProfileSettings {
             defaultNumberOfPlaces,
             defaultEndpointOption,
             defaultRouteLength,
+            customEndpointDefault
+        )
+    }
+    
+    // Neue Helper-Funktion für die neuen Filter
+    func getNewDefaultsForRoutePlanning() -> (MaximumStops, EndpointOption, MaximumWalkingTime, MinimumPOIDistance, String) {
+        return (
+            defaultMaximumStops,
+            defaultEndpointOption,
+            defaultMaximumWalkingTime,
+            defaultMinimumPOIDistance,
             customEndpointDefault
         )
     }

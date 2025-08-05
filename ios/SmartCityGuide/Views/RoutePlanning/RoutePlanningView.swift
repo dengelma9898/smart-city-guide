@@ -9,16 +9,22 @@ struct RoutePlanningView: View {
   
   @State private var startingCity = ""
   @State private var startingCoordinates: CLLocationCoordinate2D? = nil // NEW: Store coordinates
-  @State private var numberOfPlaces = 3
+  @State private var maximumStops: MaximumStops = .five
   @State private var endpointOption: EndpointOption = .roundtrip
   @State private var customEndpoint = ""
   @State private var customEndpointCoordinates: CLLocationCoordinate2D? = nil // NEW: Store endpoint coordinates
-  @State private var routeLength: RouteLength = .medium
+  @State private var maximumWalkingTime: MaximumWalkingTime = .sixtyMin
+  @State private var minimumPOIDistance: MinimumPOIDistance = .twoFifty
   @State private var showingRouteBuilder = false
   @State private var showingStartPointInfo = false
-  @State private var showingPlacesInfo = false
-  @State private var showingLengthInfo = false
+  @State private var showingStopsInfo = false
+  @State private var showingWalkingTimeInfo = false
+  @State private var showingPOIDistanceInfo = false
   @State private var showingEndpointInfo = false
+  
+  // Legacy support - entfernen nach Migration
+  @State private var numberOfPlaces = 3
+  @State private var routeLength: RouteLength = .medium
   
   let onRouteGenerated: (GeneratedRoute) -> Void
   
@@ -69,107 +75,38 @@ struct RoutePlanningView: View {
               }
             }
             
-            // Number of Places Section
-            VStack(alignment: .leading, spacing: 8) {
-              HStack {
-                Image(systemName: "map.fill")
-                  .foregroundColor(.blue)
-                  .font(.system(size: 20))
-                
-                Text("Wie viele Stopps?")
-                  .font(.headline)
-                  .fontWeight(.semibold)
-                
-                Spacer()
-                
-                Button(action: {
-                  showingPlacesInfo = true
-                }) {
-                  Image(systemName: "info.circle")
-                    .foregroundColor(.blue)
-                    .font(.system(size: 18))
-                    .frame(minWidth: 44, minHeight: 44)
-                    .contentShape(Rectangle())
-                }
-                .accessibilityLabel("Stopp-Anzahl Info")
-                .accessibilityHint("Mehr Infos zu den Stopps")
+            // Maximum Stops Section
+            HorizontalFilterChips(
+              title: "Maximale Stopps",
+              icon: "map.fill",
+              options: MaximumStops.allCases,
+              selection: $maximumStops,
+              infoAction: {
+                showingStopsInfo = true
               }
-              
-              HStack(spacing: 12) {
-                ForEach(2...5, id: \.self) { number in
-                  Button(action: {
-                    numberOfPlaces = number
-                  }) {
-                    Text("\(number)")
-                      .font(.headline)
-                      .fontWeight(.medium)
-                      .foregroundColor(numberOfPlaces == number ? .white : .blue)
-                      .frame(width: 50, height: 50)
-                      .background(
-                        Circle()
-                          .fill(numberOfPlaces == number ? .blue : Color(.systemGray6))
-                      )
-                  }
-                  .accessibilityLabel("\(number) Stopps")
-                  .accessibilityAddTraits(numberOfPlaces == number ? .isSelected : [])
-                }
-                
-                Spacer()
-              }
-              .accessibilityElement(children: .contain)
-              .accessibilityLabel("Stopp-Anzahl wählen")
-            }
+            )
             
-            // Route Length Section
-            VStack(alignment: .leading, spacing: 8) {
-              HStack {
-                Image(systemName: "ruler.fill")
-                  .foregroundColor(.blue)
-                  .font(.system(size: 20))
-                
-                Text("Wie weit gehst du?")
-                  .font(.headline)
-                  .fontWeight(.semibold)
-                
-                Spacer()
-                
-                Button(action: {
-                  showingLengthInfo = true
-                }) {
-                  Image(systemName: "info.circle")
-                    .foregroundColor(.blue)
-                    .font(.system(size: 18))
-                    .frame(minWidth: 44, minHeight: 44)
-                    .contentShape(Rectangle())
-                }
-                .accessibilityLabel("Distanz Info")
-                .accessibilityHint("Mehr Infos zur Distanz")
+            // Maximum Walking Time Section
+            HorizontalFilterChips(
+              title: "Maximale Gehzeit",
+              icon: "clock.fill",
+              options: MaximumWalkingTime.allCases,
+              selection: $maximumWalkingTime,
+              infoAction: {
+                showingWalkingTimeInfo = true
               }
-              
-              HStack(spacing: 12) {
-                ForEach(RouteLength.allCases, id: \.self) { length in
-                  Button(action: {
-                    routeLength = length
-                  }) {
-                    Text(length.rawValue)
-                      .font(.body)
-                      .fontWeight(.medium)
-                      .foregroundColor(routeLength == length ? .white : .blue)
-                      .padding(.horizontal, 16)
-                      .padding(.vertical, 12)
-                      .frame(maxWidth: .infinity)
-                      .background(
-                        RoundedRectangle(cornerRadius: 12)
-                          .fill(routeLength == length ? .blue : Color(.systemGray6))
-                      )
-                  }
-                  .accessibilityLabel("\(length.rawValue) Tour")
-                  .accessibilityAddTraits(routeLength == length ? .isSelected : [])
-                }
+            )
+            
+            // Minimum POI Distance Section
+            HorizontalFilterChips(
+              title: "Mindestabstand",
+              icon: "point.3.filled.connected.trianglepath.dotted",
+              options: MinimumPOIDistance.allCases,
+              selection: $minimumPOIDistance,
+              infoAction: {
+                showingPOIDistanceInfo = true
               }
-              .accessibilityElement(children: .contain)
-              .accessibilityLabel("Distanz wählen")
-            }
+            )
             
             // Endpoint Section
             VStack(alignment: .leading, spacing: 8) {
@@ -279,14 +216,15 @@ struct RoutePlanningView: View {
         }
       }
       .sheet(isPresented: $showingRouteBuilder) {
+        // TODO: Update RouteBuilderView to use new parameters in Phase 4
         RouteBuilderView(
           startingCity: startingCity,
-          startingCoordinates: startingCoordinates, // NEW: Pass coordinates
-          numberOfPlaces: numberOfPlaces,
+          startingCoordinates: startingCoordinates,
+          numberOfPlaces: numberOfPlaces, // Legacy - bis RouteBuilderView aktualisiert ist
           endpointOption: endpointOption,
           customEndpoint: customEndpoint,
-          customEndpointCoordinates: customEndpointCoordinates, // NEW: Pass endpoint coordinates
-          routeLength: routeLength,
+          customEndpointCoordinates: customEndpointCoordinates,
+          routeLength: routeLength, // Legacy - bis RouteBuilderView aktualisiert ist
           onRouteGenerated: onRouteGenerated
         )
       }
@@ -298,15 +236,20 @@ struct RoutePlanningView: View {
       } message: {
         Text("Sag mir einfach, wo wir starten sollen! Ich finde dann automatisch coole Orte in der Nähe.")
       }
-      .alert("Stopp-Anzahl Info", isPresented: $showingPlacesInfo) {
+      .alert("Maximum Stopps Info", isPresented: $showingStopsInfo) {
         Button("Verstanden!") { }
       } message: {
-        Text("Wie viele Stopps sollen wir einbauen? Mehr Stopps = mehr zu entdecken, aber auch längere Tour!")
+        Text("Wie viele Stopps sollen maximal in deiner Route sein? Ich finde die besten Orte, aber es können auch weniger werden!")
       }
-      .alert("Distanz Info", isPresented: $showingLengthInfo) {
+      .alert("Gehzeit Info", isPresented: $showingWalkingTimeInfo) {
         Button("Passt!") { }
       } message: {
-        Text("Kurz (≤5km): Gemütlich durch die City\nMittel (≤15km): Richtig was sehen\nLang (≤50km): Abenteuer-Modus an!")
+        Text("Wie lange möchtest du maximal laufen? Wenn die Route länger wird, entferne ich automatisch Stopps bis die Zeit stimmt!")
+      }
+      .alert("Mindestabstand Info", isPresented: $showingPOIDistanceInfo) {
+        Button("Macht Sinn!") { }
+      } message: {
+        Text("Wie weit sollen die Orte mindestens voneinander entfernt sein? Größere Abstände = weniger Stopps, aber mehr Abwechslung!")
       }
       .alert("Ziel Info", isPresented: $showingEndpointInfo) {
         Button("Macht Sinn!") { }
@@ -317,23 +260,39 @@ struct RoutePlanningView: View {
   }
   
   private func loadDefaultSettings() {
-    // Load default values from profile settings, but only if not already set
-    let defaults = settingsManager.settings.getDefaultsForRoutePlanning()
+    // Migration durchführen falls nötig
+    settingsManager.settings.migrateToNewSettings()
     
-    if numberOfPlaces == 3 { // Only update if still at default value
-      numberOfPlaces = defaults.0
+    // Load default values from profile settings, but only if not already set
+    let legacyDefaults = settingsManager.settings.getDefaultsForRoutePlanning()
+    let newDefaults = settingsManager.settings.getNewDefaultsForRoutePlanning()
+    
+    // Legacy migration für bestehende Einstellungen
+    if numberOfPlaces == 3 { // Legacy support
+      numberOfPlaces = legacyDefaults.0
     }
     
     if endpointOption == .roundtrip { // Only update if still at default value
-      endpointOption = defaults.1
+      endpointOption = newDefaults.1
     }
     
-    if routeLength == .medium { // Only update if still at default value
-      routeLength = defaults.2
+    if routeLength == .medium { // Legacy support
+      routeLength = legacyDefaults.2
     }
     
     if customEndpoint.isEmpty { // Only update if empty
-      customEndpoint = defaults.3
+      customEndpoint = newDefaults.4
+    }
+    
+    // Neue Settings laden
+    if maximumStops == .five {
+      maximumStops = newDefaults.0
+    }
+    if maximumWalkingTime == .sixtyMin {
+      maximumWalkingTime = newDefaults.2
+    }
+    if minimumPOIDistance == .twoFifty {
+      minimumPOIDistance = newDefaults.3
     }
   }
 }
