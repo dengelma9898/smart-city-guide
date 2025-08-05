@@ -21,6 +21,99 @@ class RouteService: ObservableObject {
     self.historyManager = manager
   }
   
+  // MARK: - New Route Generation (with enhanced filters)
+  func generateRoute(
+    startingCity: String,
+    maximumStops: MaximumStops,
+    endpointOption: EndpointOption,
+    customEndpoint: String,
+    maximumWalkingTime: MaximumWalkingTime,
+    minimumPOIDistance: MinimumPOIDistance,
+    availablePOIs: [POI]? = nil
+  ) async {
+    isGenerating = true
+    errorMessage = nil
+    generatedRoute = nil
+    
+    do {
+      // Step 1: Find starting location
+      let startLocationPoint = try await findLocation(query: startingCity)
+      let startLocation = startLocationPoint.coordinate
+      
+      // Step 2: Generate route using POIs with new filters
+      let waypoints: [RoutePoint]
+      if let pois = availablePOIs, !pois.isEmpty {
+        waypoints = try await findOptimalRouteWithNewFilters(
+          startLocation: startLocation,
+          availablePOIs: pois,
+          maximumStops: maximumStops,
+          endpointOption: endpointOption,
+          customEndpoint: customEndpoint,
+          maximumWalkingTime: maximumWalkingTime,
+          minimumPOIDistance: minimumPOIDistance,
+          startingCity: startingCity
+        )
+      } else {
+        throw NSError(
+          domain: "RouteService",
+          code: 404,
+          userInfo: [NSLocalizedDescriptionKey: "Keine POIs für diese Stadt verfügbar. Bitte versuchen Sie eine andere Stadt."]
+        )
+      }
+      
+      // Step 3: Generate routes between waypoints
+      let routes = try await generateRoutesBetweenWaypoints(waypoints)
+      
+      // Step 4: Validate walking time and reduce stops if necessary
+      let validatedWaypoints = try await validateAndReduceStopsForWalkingTime(
+        waypoints: waypoints,
+        routes: routes,
+        maximumWalkingTime: maximumWalkingTime,
+        endpointOption: endpointOption,
+        customEndpoint: customEndpoint
+      )
+      
+      // Step 5: Generate final routes for validated waypoints
+      let finalRoutes = try await generateRoutesBetweenWaypoints(validatedWaypoints)
+      
+      // Step 6: Calculate totals
+      let totalDistance = finalRoutes.reduce(0) { $0 + $1.distance }
+      let totalWalkingTime = finalRoutes.reduce(0) { $0 + $1.expectedTravelTime }
+      
+      // Calculate visit time (30min to 1hr per stop, excluding start/end points)
+      let numberOfStops = max(0, validatedWaypoints.count - 2)
+      let minVisitTime = TimeInterval(numberOfStops * 30 * 60) // 30 min per stop
+      let maxVisitTime = TimeInterval(numberOfStops * 60 * 60) // 60 min per stop
+      let averageVisitTime = (minVisitTime + maxVisitTime) / 2
+      
+      let totalExperienceTime = totalWalkingTime + averageVisitTime
+      
+      let route = GeneratedRoute(
+        waypoints: validatedWaypoints,
+        routes: finalRoutes,
+        totalDistance: totalDistance,
+        totalTravelTime: totalWalkingTime,
+        totalVisitTime: averageVisitTime,
+        totalExperienceTime: totalExperienceTime
+      )
+      
+      generatedRoute = route
+      
+      // Auto-save route to history (convert to legacy parameters for storage)
+      historyManager?.saveRoute(
+        route,
+        routeLength: convertToLegacyRouteLength(maximumWalkingTime),
+        endpointOption: endpointOption
+      )
+      
+    } catch {
+      errorMessage = "Fehler beim Erstellen der Route: \(error.localizedDescription)"
+    }
+    
+    isGenerating = false
+  }
+  
+  // MARK: - Legacy Route Generation (for backwards compatibility)
   func generateRoute(
     startingCity: String,
     numberOfPlaces: Int,
@@ -512,6 +605,109 @@ class RouteService: ObservableObject {
   
   // MARK: - POI-based Route Generation
   
+  // MARK: - New Enhanced Route Generation with Filters
+  private func findOptimalRouteWithNewFilters(
+    startLocation: CLLocationCoordinate2D,
+    availablePOIs: [POI],
+    maximumStops: MaximumStops,
+    endpointOption: EndpointOption,
+    customEndpoint: String,
+    maximumWalkingTime: MaximumWalkingTime,
+    minimumPOIDistance: MinimumPOIDistance,
+    startingCity: String
+  ) async throws -> [RoutePoint] {
+    
+    logger.info("🗺️ Generating route with \(availablePOIs.count) available POIs, max stops: \(maximumStops.rawValue), min distance: \(minimumPOIDistance.rawValue)")
+    
+    // Step 1: Determine effective maximum stops
+    let effectiveMaxStops: Int
+    if let maxStopsInt = maximumStops.intValue {
+      effectiveMaxStops = maxStopsInt
+    } else {
+      // "Unbegrenzt" - use a reasonable upper limit
+      effectiveMaxStops = min(20, availablePOIs.count)
+    }
+    
+    // Step 2: Select best POIs for the route (using legacy logic for now)
+    let selectedPOIs = POICacheService.shared.selectBestPOIs(
+      from: availablePOIs,
+      count: effectiveMaxStops,
+      routeLength: convertToLegacyRouteLength(maximumWalkingTime),
+      startCoordinate: startLocation,
+      startingCity: startingCity
+    )
+    
+    logger.info("🗺️ Selected \(selectedPOIs.count) POIs before distance filtering")
+    
+    // Step 3: Apply minimum POI distance filter
+    let filteredPOIs = applyMinimumDistanceFilter(
+      pois: selectedPOIs,
+      startLocation: startLocation,
+      minimumDistance: minimumPOIDistance
+    )
+    
+    logger.info("🗺️ \(filteredPOIs.count) POIs remain after distance filtering")
+    
+    // Step 4: Convert POIs to RoutePoints
+    var waypoints: [RoutePoint] = []
+    
+    // Add starting point
+    let startPoint = RoutePoint(
+      name: "Start",
+      coordinate: startLocation,
+      address: "Startpunkt",
+      category: .attraction
+    )
+    waypoints.append(startPoint)
+    
+    // Add POI waypoints with full contact information
+    for poi in filteredPOIs {
+      let routePoint = RoutePoint(from: poi)
+      waypoints.append(routePoint)
+    }
+    
+    // Step 5: Handle endpoint option
+    switch endpointOption {
+    case .roundtrip:
+      let endPoint = RoutePoint(
+        name: "Zurück zum Start",
+        coordinate: startLocation,
+        address: "Startpunkt",
+        category: .attraction
+      )
+      waypoints.append(endPoint)
+      
+    case .lastPlace:
+      // Route ends at last POI - no additional endpoint needed
+      break
+      
+    case .custom:
+      if !customEndpoint.isEmpty {
+        do {
+          let endLocationPoint = try await findLocation(query: customEndpoint)
+          let endPoint = RoutePoint(
+            name: customEndpoint,
+            coordinate: endLocationPoint.coordinate,
+            address: customEndpoint,
+            category: .attraction
+          )
+          waypoints.append(endPoint)
+        } catch {
+          logger.warning("🗺️ Failed to find custom endpoint, falling back to open end")
+        }
+      }
+    }
+    
+    // Step 6: Optimize the order of waypoints for shortest route
+    if waypoints.count > 3 { // Only optimize if we have multiple intermediate points
+      waypoints = optimizeWaypointOrder(waypoints)
+    }
+    
+    logger.info("🗺️ Generated route with \(waypoints.count) waypoints")
+    return waypoints
+  }
+  
+  // MARK: - Legacy POI Route Generation (for backwards compatibility)
   private func findOptimalRouteWithPOIs(
     startLocation: CLLocationCoordinate2D,
     availablePOIs: [POI],
@@ -653,5 +849,138 @@ class RouteService: ObservableObject {
     }
     
     return [startPoint] + optimizedPOIs + [endPoint]
+  }
+  
+  // MARK: - New Filter Helper Functions
+  
+  /// Applies minimum distance filter between consecutive POIs
+  private func applyMinimumDistanceFilter(
+    pois: [POI],
+    startLocation: CLLocationCoordinate2D,
+    minimumDistance: MinimumPOIDistance
+  ) -> [POI] {
+    
+    // If no minimum distance is specified, return all POIs
+    guard let minDistanceMeters = minimumDistance.meters else {
+      logger.info("🗺️ No minimum distance filter - returning all \(pois.count) POIs")
+      return pois
+    }
+    
+    logger.info("🗺️ Applying minimum distance filter: \(minimumDistance.rawValue)")
+    
+    var filteredPOIs: [POI] = []
+    var previousLocation = startLocation
+    
+    // Sort POIs by distance from start to process in order
+    let sortedPOIs = pois.sorted { poi1, poi2 in
+      let distance1 = CLLocation(latitude: startLocation.latitude, longitude: startLocation.longitude)
+        .distance(from: CLLocation(latitude: poi1.coordinate.latitude, longitude: poi1.coordinate.longitude))
+      let distance2 = CLLocation(latitude: startLocation.latitude, longitude: startLocation.longitude)
+        .distance(from: CLLocation(latitude: poi2.coordinate.latitude, longitude: poi2.coordinate.longitude))
+      return distance1 < distance2
+    }
+    
+    for poi in sortedPOIs {
+      let distance = CLLocation(latitude: previousLocation.latitude, longitude: previousLocation.longitude)
+        .distance(from: CLLocation(latitude: poi.coordinate.latitude, longitude: poi.coordinate.longitude))
+      
+      if distance >= minDistanceMeters {
+        filteredPOIs.append(poi)
+        previousLocation = poi.coordinate
+        logger.debug("🗺️ Added POI: \(poi.name) (distance: \(Int(distance))m)")
+      } else {
+        logger.debug("🗺️ Skipped POI: \(poi.name) (distance: \(Int(distance))m < \(Int(minDistanceMeters))m)")
+      }
+    }
+    
+    logger.info("🗺️ Distance filtering result: \(filteredPOIs.count)/\(pois.count) POIs")
+    return filteredPOIs
+  }
+  
+  /// Validates walking time and reduces stops if necessary
+  private func validateAndReduceStopsForWalkingTime(
+    waypoints: [RoutePoint],
+    routes: [MKRoute],
+    maximumWalkingTime: MaximumWalkingTime,
+    endpointOption: EndpointOption,
+    customEndpoint: String
+  ) async throws -> [RoutePoint] {
+    
+    // If no maximum walking time is specified, return all waypoints
+    guard let maxTimeMinutes = maximumWalkingTime.minutes else {
+      logger.info("🗺️ No maximum walking time limit - returning all \(waypoints.count) waypoints")
+      return waypoints
+    }
+    
+    let maxTimeSeconds = TimeInterval(maxTimeMinutes * 60)
+    let currentWalkingTime = routes.reduce(0) { $0 + $1.expectedTravelTime }
+    
+    logger.info("🗺️ Walking time validation: \(Int(currentWalkingTime/60))min / \(maxTimeMinutes)min limit")
+    
+    // If within limits, return as is
+    if currentWalkingTime <= maxTimeSeconds {
+      logger.info("🗺️ Walking time within limits - no reduction needed")
+      return waypoints
+    }
+    
+    // Need to reduce stops - remove intermediate waypoints until under limit
+    logger.info("🗺️ Walking time exceeds limit - reducing stops")
+    
+    var reducedWaypoints = waypoints
+    
+    // Keep start and end points, reduce intermediate points
+    let startPoint = waypoints.first!
+    let endPoint = waypoints.last!
+    var intermediatePOIs = Array(waypoints[1..<waypoints.count-1])
+    
+    // Remove intermediate points one by one until under time limit
+    while intermediatePOIs.count > 0 {
+      // Remove the POI that's furthest from the optimal route
+      let indexToRemove = intermediatePOIs.count / 2 // Remove from middle first
+      intermediatePOIs.remove(at: indexToRemove)
+      
+      // Rebuild waypoints
+      reducedWaypoints = [startPoint] + intermediatePOIs
+      
+      // Add endpoint based on option
+      switch endpointOption {
+      case .roundtrip:
+        reducedWaypoints.append(startPoint)
+      case .lastPlace:
+        // No additional endpoint
+        break
+      case .custom:
+        if !customEndpoint.isEmpty {
+          reducedWaypoints.append(endPoint)
+        }
+      }
+      
+      // Check new walking time
+      let testRoutes = try await generateRoutesBetweenWaypoints(reducedWaypoints)
+      let newWalkingTime = testRoutes.reduce(0) { $0 + $1.expectedTravelTime }
+      
+      logger.info("🗺️ Reduced to \(intermediatePOIs.count) stops - walking time: \(Int(newWalkingTime/60))min")
+      
+      if newWalkingTime <= maxTimeSeconds {
+        logger.info("🗺️ Walking time now within limits")
+        return reducedWaypoints
+      }
+    }
+    
+    // If we get here, even minimal route exceeds time limit
+    logger.warning("🗺️ Cannot create route within time limit - returning minimal route")
+    return [startPoint, endPoint]
+  }
+  
+  /// Converts new MaximumWalkingTime to legacy RouteLength for backwards compatibility
+  private func convertToLegacyRouteLength(_ maximumWalkingTime: MaximumWalkingTime) -> RouteLength {
+    switch maximumWalkingTime {
+    case .thirtyMin, .fortyFiveMin:
+      return .short
+    case .sixtyMin, .ninetyMin:
+      return .medium
+    case .twoHours, .threeHours, .openEnd:
+      return .long
+    }
   }
 }

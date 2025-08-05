@@ -5,13 +5,118 @@ import MapKit
 struct RouteBuilderView: View {
   @Environment(\.dismiss) private var dismiss
   let startingCity: String
-  let startingCoordinates: CLLocationCoordinate2D? // NEW: Optional coordinates
-  let numberOfPlaces: Int
+  let startingCoordinates: CLLocationCoordinate2D?
   let endpointOption: EndpointOption
   let customEndpoint: String
-  let customEndpointCoordinates: CLLocationCoordinate2D? // NEW: Optional endpoint coordinates
-  let routeLength: RouteLength
+  let customEndpointCoordinates: CLLocationCoordinate2D?
   let onRouteGenerated: (GeneratedRoute) -> Void
+  
+  // New enhanced parameters
+  let maximumStops: MaximumStops?
+  let maximumWalkingTime: MaximumWalkingTime?
+  let minimumPOIDistance: MinimumPOIDistance?
+  
+  // Legacy parameters (for backwards compatibility)
+  let numberOfPlaces: Int?
+  let routeLength: RouteLength?
+  
+  // MARK: - Enhanced Initializer
+  init(
+    startingCity: String,
+    startingCoordinates: CLLocationCoordinate2D?,
+    maximumStops: MaximumStops,
+    endpointOption: EndpointOption,
+    customEndpoint: String,
+    customEndpointCoordinates: CLLocationCoordinate2D?,
+    maximumWalkingTime: MaximumWalkingTime,
+    minimumPOIDistance: MinimumPOIDistance,
+    onRouteGenerated: @escaping (GeneratedRoute) -> Void
+  ) {
+    self.startingCity = startingCity
+    self.startingCoordinates = startingCoordinates
+    self.endpointOption = endpointOption
+    self.customEndpoint = customEndpoint
+    self.customEndpointCoordinates = customEndpointCoordinates
+    self.onRouteGenerated = onRouteGenerated
+    
+    // New parameters
+    self.maximumStops = maximumStops
+    self.maximumWalkingTime = maximumWalkingTime
+    self.minimumPOIDistance = minimumPOIDistance
+    
+    // Legacy parameters (nil for new initializer)
+    self.numberOfPlaces = nil
+    self.routeLength = nil
+  }
+  
+  // MARK: - Legacy Initializer (for backwards compatibility)
+  init(
+    startingCity: String,
+    startingCoordinates: CLLocationCoordinate2D?,
+    numberOfPlaces: Int,
+    endpointOption: EndpointOption,
+    customEndpoint: String,
+    customEndpointCoordinates: CLLocationCoordinate2D?,
+    routeLength: RouteLength,
+    onRouteGenerated: @escaping (GeneratedRoute) -> Void
+  ) {
+    self.startingCity = startingCity
+    self.startingCoordinates = startingCoordinates
+    self.endpointOption = endpointOption
+    self.customEndpoint = customEndpoint
+    self.customEndpointCoordinates = customEndpointCoordinates
+    self.onRouteGenerated = onRouteGenerated
+    
+    // Legacy parameters
+    self.numberOfPlaces = numberOfPlaces
+    self.routeLength = routeLength
+    
+    // Convert legacy to new parameters
+    self.maximumStops = MaximumStops.allCases.first { $0.intValue == numberOfPlaces } ?? .five
+    self.maximumWalkingTime = Self.convertLegacyRouteLength(routeLength)
+    self.minimumPOIDistance = .twoFifty // Default value
+  }
+  
+  // MARK: - Helper Functions
+  private static func convertLegacyRouteLength(_ routeLength: RouteLength) -> MaximumWalkingTime {
+    switch routeLength {
+    case .short:
+      return .thirtyMin
+    case .medium:
+      return .sixtyMin
+    case .long:
+      return .twoHours
+    }
+  }
+  
+  private func generateOptimalRoute() async {
+    // Use new or legacy parameters based on availability
+    if let maximumStops = maximumStops,
+       let maximumWalkingTime = maximumWalkingTime,
+       let minimumPOIDistance = minimumPOIDistance {
+      // Use new enhanced route generation
+      await routeService.generateRoute(
+        startingCity: startingCity,
+        maximumStops: maximumStops,
+        endpointOption: endpointOption,
+        customEndpoint: customEndpoint,
+        maximumWalkingTime: maximumWalkingTime,
+        minimumPOIDistance: minimumPOIDistance,
+        availablePOIs: discoveredPOIs
+      )
+    } else if let numberOfPlaces = numberOfPlaces,
+              let routeLength = routeLength {
+      // Use legacy route generation
+      await routeService.generateRoute(
+        startingCity: startingCity,
+        numberOfPlaces: numberOfPlaces,
+        endpointOption: endpointOption,
+        customEndpoint: customEndpoint,
+        routeLength: routeLength,
+        availablePOIs: discoveredPOIs
+      )
+    }
+  }
   
   @StateObject private var routeService = RouteService()
   @StateObject private var historyManager = RouteHistoryManager()
@@ -423,13 +528,7 @@ struct RouteBuilderView: View {
               
               Button("Nochmal probieren!") {
                 Task {
-                  await routeService.generateRoute(
-                    startingCity: startingCity,
-                    numberOfPlaces: numberOfPlaces,
-                    endpointOption: endpointOption,
-                    customEndpoint: customEndpoint,
-                    routeLength: routeLength
-                  )
+                  await generateOptimalRoute()
                 }
               }
               .buttonStyle(.borderedProminent)
@@ -496,14 +595,7 @@ struct RouteBuilderView: View {
       isLoadingPOIs = false
       
       // Step 2: Generate route using discovered POIs
-      await routeService.generateRoute(
-        startingCity: startingCity,
-        numberOfPlaces: numberOfPlaces,
-        endpointOption: endpointOption,
-        customEndpoint: customEndpoint,
-        routeLength: routeLength,
-        availablePOIs: discoveredPOIs
-      )
+      await generateOptimalRoute()
       
       // Step 3: 2-Phase Wikipedia Enrichment
       if let generatedRoute = routeService.generatedRoute {

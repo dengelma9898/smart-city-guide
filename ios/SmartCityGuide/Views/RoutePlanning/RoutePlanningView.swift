@@ -22,10 +22,6 @@ struct RoutePlanningView: View {
   @State private var showingPOIDistanceInfo = false
   @State private var showingEndpointInfo = false
   
-  // Legacy support - entfernen nach Migration
-  @State private var numberOfPlaces = 3
-  @State private var routeLength: RouteLength = .medium
-  
   let onRouteGenerated: (GeneratedRoute) -> Void
   
   var body: some View {
@@ -216,15 +212,15 @@ struct RoutePlanningView: View {
         }
       }
       .sheet(isPresented: $showingRouteBuilder) {
-        // TODO: Update RouteBuilderView to use new parameters in Phase 4
         RouteBuilderView(
           startingCity: startingCity,
           startingCoordinates: startingCoordinates,
-          numberOfPlaces: numberOfPlaces, // Legacy - bis RouteBuilderView aktualisiert ist
+          maximumStops: maximumStops,
           endpointOption: endpointOption,
           customEndpoint: customEndpoint,
           customEndpointCoordinates: customEndpointCoordinates,
-          routeLength: routeLength, // Legacy - bis RouteBuilderView aktualisiert ist
+          maximumWalkingTime: maximumWalkingTime,
+          minimumPOIDistance: minimumPOIDistance,
           onRouteGenerated: onRouteGenerated
         )
       }
@@ -263,34 +259,26 @@ struct RoutePlanningView: View {
     // Migration durchführen falls nötig
     settingsManager.settings.migrateToNewSettings()
     
-    // Load default values from profile settings, but only if not already set
-    let legacyDefaults = settingsManager.settings.getDefaultsForRoutePlanning()
+    // Load default values from profile settings
     let newDefaults = settingsManager.settings.getNewDefaultsForRoutePlanning()
     
-    // Legacy migration für bestehende Einstellungen
-    if numberOfPlaces == 3 { // Legacy support
-      numberOfPlaces = legacyDefaults.0
-    }
-    
-    if endpointOption == .roundtrip { // Only update if still at default value
+    // Load new settings if still at default values
+    if endpointOption == .roundtrip {
       endpointOption = newDefaults.1
     }
     
-    if routeLength == .medium { // Legacy support
-      routeLength = legacyDefaults.2
-    }
-    
-    if customEndpoint.isEmpty { // Only update if empty
+    if customEndpoint.isEmpty {
       customEndpoint = newDefaults.4
     }
     
-    // Neue Settings laden
     if maximumStops == .five {
       maximumStops = newDefaults.0
     }
+    
     if maximumWalkingTime == .sixtyMin {
       maximumWalkingTime = newDefaults.2
     }
+    
     if minimumPOIDistance == .twoFifty {
       minimumPOIDistance = newDefaults.3
     }
