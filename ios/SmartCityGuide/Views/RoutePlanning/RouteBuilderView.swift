@@ -78,6 +78,35 @@ struct RouteBuilderView: View {
   }
   
   // MARK: - Helper Functions
+  
+  /// Extrahiert nur den Stadtnamen aus einer Vollständigen Adresse
+  /// Beispiele: "Bienenweg 4, 90537 Feucht" → "Feucht", "Berlin" → "Berlin"
+  private func extractCityName(from fullAddress: String) -> String {
+    let trimmed = fullAddress.trimmingCharacters(in: .whitespacesAndNewlines)
+    
+    // Split by comma and take the last part (meist Stadt + Land)
+    let parts = trimmed.components(separatedBy: ",")
+    let lastPart = parts.last?.trimmingCharacters(in: .whitespacesAndNewlines) ?? trimmed
+    
+    // Split by spaces and find the city after postal code
+    let words = lastPart.components(separatedBy: .whitespacesAndNewlines).filter { !$0.isEmpty }
+    
+    // Finde Wort nach Postleitzahl (5 Zahlen) oder nehme letztes Wort
+    for i in 0..<words.count {
+      let word = words[i]
+      // Ist das eine deutsche Postleitzahl? (5 Zahlen)
+      if word.count == 5 && word.rangeOfCharacter(from: CharacterSet.decimalDigits.inverted) == nil {
+        // Nehme das nächste Wort als Stadt
+        if i + 1 < words.count {
+          return words[i + 1]
+        }
+      }
+    }
+    
+    // Fallback: Nehme das letzte Wort (meist Stadt)
+    return words.last ?? trimmed
+  }
+  
   private static func convertLegacyRouteLength(_ routeLength: RouteLength) -> MaximumWalkingTime {
     switch routeLength {
     case .short:
@@ -622,7 +651,9 @@ struct RouteBuilderView: View {
       print("📚 [Phase 1] Enriching \(routePOIs.count) route POIs with Wikipedia...")
       
       // Enriche nur die Route-POIs
-      let enrichedRoutePOIs = try await wikipediaService.enrichPOIs(routePOIs, cityName: startingCity)
+      let cityName = extractCityName(from: startingCity)
+      print("📚 Using extracted city name '\(cityName)' from '\(startingCity)' for Wikipedia enrichment")
+      let enrichedRoutePOIs = try await wikipediaService.enrichPOIs(routePOIs, cityName: cityName)
       
       // Speichere enriched POIs in Dictionary für schnellen Zugriff
       await MainActor.run {
@@ -670,10 +701,11 @@ struct RouteBuilderView: View {
       print("📚 [Phase 2] Background enriching \(unenrichedPOIs.count) additional POIs...")
       
       // Enriche im Hintergrund (mit langsamerer Rate für bessere UX)
+      let cityName = extractCityName(from: startingCity)
       var completedCount = 0
       for poi in unenrichedPOIs {
         do {
-          let enrichedPOI = try await wikipediaService.enrichPOI(poi, cityName: startingCity)
+          let enrichedPOI = try await wikipediaService.enrichPOI(poi, cityName: cityName)
           
           await MainActor.run {
             enrichedPOIs[enrichedPOI.basePOI.id] = enrichedPOI
