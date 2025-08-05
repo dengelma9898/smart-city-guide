@@ -14,7 +14,7 @@ class NetworkSecurityManager: NSObject {
     
     // Geoapify API Certificate Pinning Configuration
     private let pinnedCertificates: [String: String] = [
-        "api.geoapify.com": "TBD_GEOAPIFY_CERT_FINGERPRINT"
+        "api.geoapify.com": "FA:83:29:3B:E0:22:40:6B:76:7C:F9:33:AA:2C:56:A3:1C:B6:BB:79:76:C0:D1:72:51:5E:E0:BA:70:0D:36:BE"
     ]
     
     // Lazy URLSession with certificate pinning enabled
