@@ -5,16 +5,16 @@ import os.log
 
 // MARK: - Network Security Manager with Certificate Pinning
 
-/// OWASP-compliant certificate pinning implementation for HERE API
+/// OWASP-compliant certificate pinning implementation for Geoapify API  
 /// Prevents Man-in-the-Middle attacks by validating server certificates
 class NetworkSecurityManager: NSObject {
     static let shared = NetworkSecurityManager()
     
     private let logger = Logger(subsystem: "de.dengelma.smartcity-guide", category: "NetworkSecurity")
     
-    // HERE API Certificate Pinning Configuration
+    // Geoapify API Certificate Pinning Configuration
     private let pinnedCertificates: [String: String] = [
-        "discover.search.hereapi.com": "A9:79:92:B9:15:B2:31:6E:2D:D2:15:E4:48:11:B6:6C:C2:FB:22:4C:89:C1:D8:73:0D:C9:92:1D:84:7B:89:AD"
+        "api.geoapify.com": "TBD_GEOAPIFY_CERT_FINGERPRINT"
     ]
     
     // Lazy URLSession with certificate pinning enabled

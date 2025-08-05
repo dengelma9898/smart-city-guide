@@ -93,13 +93,7 @@ class GeoapifyAPIService: ObservableObject {
         // Extract city name from full address if needed  
         let cleanCityName = extractCityFromInput(cityName)
         
-        // 🚀 CHECK CACHE FIRST - eliminates geocoding API call for known cities!
-        if let cachedCoordinates = CityCoordinatesCache.getCoordinates(for: cleanCityName) {
-            secureLogger.logCoordinates(cachedCoordinates, context: "Cached coordinates for '\(cleanCityName)'")
-            return cachedCoordinates
-        }
-        
-        secureLogger.logInfo("🗺️ City not in cache, using Geoapify Geocoding API", category: .data)
+        secureLogger.logInfo("🗺️ Using Geoapify Geocoding API for '\(cleanCityName)'", category: .data)
         
         let encodedCity = cleanCityName.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? cleanCityName
         let urlString = "\(geocodeURL)/search?text=\(encodedCity)&lang=de&apiKey=\(apiKey)"
@@ -290,8 +284,18 @@ class GeoapifyAPIService: ObservableObject {
                 return POI(from: feature, category: detectedCategory, requestedCity: cityName)
             }
             
-            // Remove duplicates but keep all POIs for better selection downstream
-            let uniquePOIs = Array(Set(allPOIs))
+            // Remove duplicates manually since POI doesn't conform to Hashable
+            var uniquePOIs: [POI] = []
+            for poi in allPOIs {
+                let isDuplicate = uniquePOIs.contains { existingPOI in
+                    existingPOI.name == poi.name && 
+                    abs(existingPOI.coordinate.latitude - poi.coordinate.latitude) < 0.0001 &&
+                    abs(existingPOI.coordinate.longitude - poi.coordinate.longitude) < 0.0001
+                }
+                if !isDuplicate {
+                    uniquePOIs.append(poi)
+                }
+            }
             
             secureLogger.logPOISearch(cityName: cityName, poiCount: uniquePOIs.count)
             return uniquePOIs
@@ -377,6 +381,7 @@ struct GeoapifyProperties: Codable {
     let lon: Double?
     let lat: Double?
     let place_id: String?
+    let wiki_and_media: GeoapifyWikiAndMedia? // NEW: Wikipedia/Wikidata info
 }
 
 struct GeoapifyGeometry: Codable {
@@ -389,6 +394,26 @@ struct GeoapifyDatasource: Codable {
     let attribution: String?
     let license: String?
     let url: String?
+}
+
+/// Geoapify Wikipedia/Wikidata integration data
+struct GeoapifyWikiAndMedia: Codable {
+    let wikidata: String? // e.g. "Q972490" 
+    let wikipedia: String? // e.g. "de:Narrenschiffbrunnen (Nürnberg)"
+    
+    /// Extrahiert den deutschen Wikipedia-Titel (ohne "de:" Prefix)
+    var germanWikipediaTitle: String? {
+        guard let wikipedia = wikipedia,
+              wikipedia.hasPrefix("de:") else {
+            return nil
+        }
+        return String(wikipedia.dropFirst(3)) // Remove "de:" prefix
+    }
+    
+    /// Prüft ob Wikipedia-Daten verfügbar sind
+    var hasWikipediaData: Bool {
+        return germanWikipediaTitle != nil || wikidata != nil
+    }
 }
 
 // MARK: - Geoapify API Errors

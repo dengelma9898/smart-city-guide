@@ -224,14 +224,12 @@ class SecureLogger {
 // MARK: - Supporting Enums
 
 enum APICategory: CaseIterable {
-    case here
     case geoapify
     case geocoding
     case general
     
     var description: String {
         switch self {
-        case .here: return "HERE API"
         case .geoapify: return "Geoapify API"
         case .geocoding: return "Geocoding API"
         case .general: return "API"
@@ -301,7 +299,6 @@ enum LogCategory: CaseIterable {
     case performance
     case ui
     case data
-    case here
     case geoapify
     
     var emoji: String {
@@ -311,7 +308,6 @@ enum LogCategory: CaseIterable {
         case .performance: return "⚡"
         case .ui: return "🎨"
         case .data: return "📊"
-        case .here: return "🗺️"
         case .geoapify: return "🌍"
         }
     }

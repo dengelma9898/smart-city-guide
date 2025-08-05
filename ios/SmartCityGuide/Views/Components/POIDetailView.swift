@@ -299,7 +299,8 @@ struct POIDetailView_Previews: PreviewProvider {
             accessibility: nil,
             pricing: nil,
             operatingHours: "24/7",
-            website: "https://www.berlin.de/sehenswuerdigkeiten/brandenburger-tor"
+            website: "https://www.berlin.de/sehenswuerdigkeiten/brandenburger-tor",
+            geoapifyWikiData: nil
         )
         
         POIDetailView(poi: mockPOI)

@@ -16,15 +16,40 @@ struct RouteBuilderView: View {
   @StateObject private var routeService = RouteService()
   @StateObject private var historyManager = RouteHistoryManager()
   @StateObject private var geoapifyService = GeoapifyAPIService.shared
+  @StateObject private var wikipediaService = WikipediaService.shared
   
   @State private var discoveredPOIs: [POI] = []
+  @State private var enrichedPOIs: [String: WikipediaEnrichedPOI] = [:] // POI.id -> EnrichedPOI
   @State private var isLoadingPOIs = false
+  @State private var isEnrichingRoutePOIs = false
+  @State private var isEnrichingAllPOIs = false
+  @State private var enrichmentProgress = 0.0
+  
+  // Full-Screen Image Modal States
+  @State private var showFullScreenImage = false
+  @State private var fullScreenImageURL: String = ""
+  @State private var fullScreenImageTitle: String = ""
+  @State private var fullScreenWikipediaURL: String = ""
+  
+  // MARK: - Computed Properties
+  
+  private var loadingStateText: String {
+    if isLoadingPOIs {
+      return "Entdecke coole Orte..."
+    } else if routeService.isGenerating {
+      return "Optimiere deine Route..."
+    } else if isEnrichingRoutePOIs {
+      return "Lade Wikipedia-Infos..."
+    } else {
+      return "Bereite vor..."
+    }
+  }
   
   var body: some View {
     NavigationView {
       ScrollView {
         VStack(spacing: 24) {
-          if isLoadingPOIs || routeService.isGenerating {
+          if isLoadingPOIs || routeService.isGenerating || isEnrichingRoutePOIs {
             // Header - only show during generation
             VStack(spacing: 12) {
               Text("Wir basteln deine Route!")
@@ -44,9 +69,9 @@ struct RouteBuilderView: View {
               ProgressView()
                 .scaleEffect(1.2)
               
-                          Text(isLoadingPOIs ? "Entdecke coole Orte..." : "Optimiere deine Route...")
-              .font(.body)
-              .foregroundColor(.secondary)
+              Text(loadingStateText)
+                .font(.body)
+                .foregroundColor(.secondary)
             }
             .padding(.vertical, 40)
             
@@ -176,6 +201,11 @@ struct RouteBuilderView: View {
                               .foregroundColor(.secondary)
                               .lineLimit(2)
                           }
+                        }
+                        
+                        // Wikipedia-Informationen (nur für POI-Waypoints)
+                        if index > 0 && index < route.waypoints.count - 1 {
+                          wikipediaInfoView(for: waypoint)
                         }
                       }
                       
@@ -325,6 +355,33 @@ struct RouteBuilderView: View {
                   .fill(Color(.systemGray6))
               )
               
+              // Background Enrichment Status
+              if isEnrichingAllPOIs {
+                VStack(spacing: 8) {
+                  HStack(spacing: 8) {
+                    ProgressView()
+                      .scaleEffect(0.8)
+                    Text("Wikipedia-Daten für weitere POIs werden im Hintergrund geladen...")
+                      .font(.caption)
+                      .foregroundColor(.secondary)
+                    Spacer()
+                  }
+                  
+                  ProgressView(value: enrichmentProgress)
+                    .tint(.blue)
+                    .scaleEffect(y: 0.8)
+                  
+                  Text("\(Int(enrichmentProgress * 100))% abgeschlossen")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                }
+                .padding()
+                .background(
+                  RoundedRectangle(cornerRadius: 12)
+                    .fill(Color(.systemBlue).opacity(0.1))
+                )
+              }
+              
               // Use Route Button
               Button(action: {
                 onRouteGenerated(route)
@@ -400,6 +457,14 @@ struct RouteBuilderView: View {
     .task {
       await loadPOIsAndGenerateRoute()
     }
+    .fullScreenCover(isPresented: $showFullScreenImage) {
+      FullScreenImageView(
+        imageURL: fullScreenImageURL,
+        title: fullScreenImageTitle,
+        wikipediaURL: fullScreenWikipediaURL.isEmpty ? nil : fullScreenWikipediaURL,
+        isPresented: $showFullScreenImage
+      )
+    }
   }
   
   // MARK: - POI Loading and Route Generation
@@ -440,10 +505,301 @@ struct RouteBuilderView: View {
         availablePOIs: discoveredPOIs
       )
       
+      // Step 3: 2-Phase Wikipedia Enrichment
+      if let generatedRoute = routeService.generatedRoute {
+        await enrichRouteWithWikipedia(route: generatedRoute)
+      }
+      
     } catch {
       isLoadingPOIs = false
                 // Error will be displayed via errorMessage
       routeService.errorMessage = "Konnte keine coolen Orte finden: \(error.localizedDescription)"
     }
+  }
+  
+  // MARK: - Wikipedia Enrichment (2-Phase Strategy)
+  
+  /// Phase 1: Enrich nur die POIs in der generierten Route (schnell für UI)
+  private func enrichRouteWithWikipedia(route: GeneratedRoute) async {
+    isEnrichingRoutePOIs = true
+    
+    do {
+      // Extrahiere die POIs aus den Route-Waypoints (ohne Start/End)
+      let routePOIs = extractPOIsFromRoute(route: route)
+      
+      print("📚 [Phase 1] Enriching \(routePOIs.count) route POIs with Wikipedia...")
+      
+      // Enriche nur die Route-POIs
+      let enrichedRoutePOIs = try await wikipediaService.enrichPOIs(routePOIs, cityName: startingCity)
+      
+      // Speichere enriched POIs in Dictionary für schnellen Zugriff
+      await MainActor.run {
+        for enrichedPOI in enrichedRoutePOIs {
+          enrichedPOIs[enrichedPOI.basePOI.id] = enrichedPOI
+        }
+        isEnrichingRoutePOIs = false
+      }
+      
+      let successCount = enrichedRoutePOIs.filter { $0.wikipediaData != nil }.count
+      print("📚 [Phase 1] Route enrichment completed: \(successCount)/\(routePOIs.count) successful")
+      
+      // Phase 2: Enriche alle anderen POIs im Hintergrund
+      await enrichAllPOIsInBackground()
+      
+    } catch {
+      isEnrichingRoutePOIs = false
+      print("📚 [Phase 1] Route enrichment failed: \(error.localizedDescription)")
+      
+      // Starte trotzdem Phase 2
+      await enrichAllPOIsInBackground()
+    }
+  }
+  
+  /// Phase 2: Enriche alle gefundenen POIs im Hintergrund (für zukünftige Features)
+  private func enrichAllPOIsInBackground() async {
+    await MainActor.run {
+      isEnrichingAllPOIs = true
+    }
+    
+    do {
+      // Filtere POIs die noch nicht enriched wurden
+      let unenrichedPOIs = discoveredPOIs.filter { poi in
+        enrichedPOIs[poi.id] == nil
+      }
+      
+      guard !unenrichedPOIs.isEmpty else {
+        await MainActor.run {
+          isEnrichingAllPOIs = false
+        }
+        print("📚 [Phase 2] All POIs already enriched")
+        return
+      }
+      
+      print("📚 [Phase 2] Background enriching \(unenrichedPOIs.count) additional POIs...")
+      
+      // Enriche im Hintergrund (mit langsamerer Rate für bessere UX)
+      var completedCount = 0
+      for poi in unenrichedPOIs {
+        do {
+          let enrichedPOI = try await wikipediaService.enrichPOI(poi, cityName: startingCity)
+          
+          await MainActor.run {
+            enrichedPOIs[enrichedPOI.basePOI.id] = enrichedPOI
+            completedCount += 1
+            enrichmentProgress = Double(completedCount) / Double(unenrichedPOIs.count)
+          }
+          
+          // Längere Pause für Hintergrund-Enrichment
+          try await Task.sleep(nanoseconds: 200_000_000) // 200ms
+          
+        } catch {
+          print("📚 [Phase 2] Failed to enrich POI '\(poi.name)': \(error.localizedDescription)")
+        }
+      }
+      
+      await MainActor.run {
+        isEnrichingAllPOIs = false
+        enrichmentProgress = 1.0
+      }
+      
+      let totalEnriched = enrichedPOIs.values.filter { $0.wikipediaData != nil }.count
+      print("📚 [Phase 2] Background enrichment completed: \(totalEnriched)/\(discoveredPOIs.count) total enriched")
+      
+    } catch {
+      await MainActor.run {
+        isEnrichingAllPOIs = false
+      }
+      print("📚 [Phase 2] Background enrichment failed: \(error.localizedDescription)")
+    }
+  }
+  
+  /// Extrahiert POI-Objekte aus den Route-Waypoints
+  private func extractPOIsFromRoute(route: GeneratedRoute) -> [POI] {
+    var routePOIs: [POI] = []
+    
+    // Waypoints ohne Start/End (Index 0 und letzter)
+    let poiWaypoints = Array(route.waypoints.dropFirst().dropLast())
+    
+    for waypoint in poiWaypoints {
+      // Finde das ursprüngliche POI basierend auf Koordinaten und Name
+      if let originalPOI = discoveredPOIs.first(where: { poi in
+        let nameMatch = poi.name.lowercased() == waypoint.name.lowercased()
+        let coordinateMatch = abs(poi.coordinate.latitude - waypoint.coordinate.latitude) < 0.001 &&
+                              abs(poi.coordinate.longitude - waypoint.coordinate.longitude) < 0.001
+        return nameMatch || coordinateMatch
+      }) {
+        routePOIs.append(originalPOI)
+      }
+    }
+    
+    return routePOIs
+  }
+  
+  // MARK: - UI Helper Methods
+  
+  /// Erstellt Wikipedia-Info-View für einen Waypoint
+  @ViewBuilder
+  private func wikipediaInfoView(for waypoint: RoutePoint) -> some View {
+    // Finde entsprechende enriched POI
+    if let enrichedPOI = findEnrichedPOI(for: waypoint) {
+      VStack(alignment: .leading, spacing: 6) {
+        
+        // Wikipedia-Artikel gefunden
+        if let wikipediaData = enrichedPOI.wikipediaData {
+          
+          // Wikipedia-Badge + Qualitäts-Indikator
+          HStack(spacing: 6) {
+            HStack(spacing: 4) {
+              Image(systemName: "book.fill")
+                .font(.system(size: 10))
+                .foregroundColor(.blue)
+              Text("Wikipedia")
+                .font(.caption)
+                .fontWeight(.medium)
+                .foregroundColor(.blue)
+            }
+            
+            // Qualitäts-Score
+            if enrichedPOI.isHighQuality {
+              Image(systemName: "star.fill")
+                .font(.system(size: 8))
+                .foregroundColor(.yellow)
+            }
+            
+            Spacer()
+            
+            // Link-Button
+            if let pageURL = enrichedPOI.wikipediaURL,
+               let url = URL(string: pageURL) {
+              Button(action: {
+                UIApplication.shared.open(url)
+              }) {
+                Image(systemName: "arrow.up.right.square")
+                  .font(.system(size: 12))
+                  .foregroundColor(.blue)
+              }
+            }
+          }
+          
+          // Wikipedia-Beschreibung (gekürzt)
+          if let extract = wikipediaData.extract {
+            Text(String(extract.prefix(120)) + (extract.count > 120 ? "..." : ""))
+              .font(.caption)
+              .foregroundColor(.secondary)
+              .lineLimit(3)
+              .fixedSize(horizontal: false, vertical: true)
+          } else if let description = wikipediaData.description {
+            Text(description)
+              .font(.caption)
+              .foregroundColor(.secondary)
+              .lineLimit(2)
+          }
+          
+          // Wikipedia-Bild (optimiert für bessere Sichtbarkeit)
+          if let imageURL = enrichedPOI.wikipediaImageURL,
+             let url = URL(string: imageURL) {
+            HStack(spacing: 12) {
+              AsyncImage(url: url) { imagePhase in
+                switch imagePhase {
+                case .success(let image):
+                  image
+                    .resizable()
+                    .aspectRatio(contentMode: .fit) // Zeige ganzes Bild
+                    .frame(width: 80, height: 50) // Kompakte Größe
+                    .cornerRadius(6)
+                    .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
+                case .failure(_), .empty:
+                  RoundedRectangle(cornerRadius: 6)
+                    .fill(Color(.systemGray5))
+                    .frame(width: 80, height: 50)
+                    .overlay(
+                      Image(systemName: "photo")
+                        .font(.system(size: 16))
+                        .foregroundColor(.gray)
+                    )
+                @unknown default:
+                  EmptyView()
+                }
+              }
+              
+              VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 4) {
+                  Image(systemName: "camera.fill")
+                    .font(.system(size: 10))
+                    .foregroundColor(.blue)
+                  Text("Wikipedia Foto")
+                    .font(.caption2)
+                    .foregroundColor(.blue)
+                    .fontWeight(.medium)
+                }
+                
+                Text("Tap für Vollbild")
+                  .font(.caption2)
+                  .foregroundColor(.secondary)
+              }
+              
+              Spacer()
+            }
+            .contentShape(Rectangle()) // Gesamte Fläche anklickbar
+            .onTapGesture {
+              // ✅ In-App Vollbild statt Browser
+              fullScreenImageURL = imageURL
+              fullScreenImageTitle = enrichedPOI.wikipediaData?.title ?? enrichedPOI.basePOI.name
+              fullScreenWikipediaURL = enrichedPOI.wikipediaURL ?? ""
+              showFullScreenImage = true
+            }
+          }
+          
+        } else {
+          // Enrichment läuft noch oder fehlgeschlagen
+          if isEnrichingRoutePOIs {
+            HStack(spacing: 6) {
+              ProgressView()
+                .scaleEffect(0.8)
+              Text("Lade Wikipedia-Info...")
+                .font(.caption)
+                .foregroundColor(.secondary)
+            }
+          } else {
+            HStack(spacing: 4) {
+              Image(systemName: "exclamationmark.triangle.fill")
+                .font(.system(size: 10))
+                .foregroundColor(.orange)
+              Text("Keine Wikipedia-Info gefunden")
+                .font(.caption)
+                .foregroundColor(.secondary)
+            }
+          }
+        }
+      }
+      .padding(.top, 4)
+      
+    } else if isEnrichingRoutePOIs {
+      // POI wird noch gesucht
+      HStack(spacing: 6) {
+        ProgressView()
+          .scaleEffect(0.8)
+        Text("Lade Wikipedia-Info...")
+          .font(.caption)
+          .foregroundColor(.secondary)
+      }
+      .padding(.top, 4)
+    }
+  }
+  
+  /// Findet die enriched POI für einen gegebenen Waypoint
+  private func findEnrichedPOI(for waypoint: RoutePoint) -> WikipediaEnrichedPOI? {
+    // Suche über POI-ID (effizienteste Methode)
+    for (_, enrichedPOI) in enrichedPOIs {
+      let nameMatch = enrichedPOI.basePOI.name.lowercased() == waypoint.name.lowercased()
+      let coordinateMatch = abs(enrichedPOI.basePOI.coordinate.latitude - waypoint.coordinate.latitude) < 0.001 &&
+                            abs(enrichedPOI.basePOI.coordinate.longitude - waypoint.coordinate.longitude) < 0.001
+      
+      if nameMatch || coordinateMatch {
+        return enrichedPOI
+      }
+    }
+    
+    return nil
   }
 }

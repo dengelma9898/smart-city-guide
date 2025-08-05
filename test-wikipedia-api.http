@@ -1,0 +1,58 @@
+### Wikipedia API Tests für Smart City Guide
+### Neue Such-Logik: [POI-Name] + [Stadt] für bessere Genauigkeit
+### 
+### 1. Wikipedia OpenSearch API - Suche nach POI Seitentiteln
+### Beispiel: Suche nach "Kaiserburg Nürnberg" (POI + Stadt)
+
+GET https://de.wikipedia.org/w/api.php?action=opensearch&search=Narrenschiff&limit=5&namespace=0&format=json
+Content-Type: application/json
+
+###
+### 2. Wikipedia Summary API - Detaillierte Informationen
+### Beispiel: Summary für "Kaiserburg Nürnberg"
+
+GET https://de.wikipedia.org/api/rest_v1/page/summary/Kaiserburg%20Nürnberg
+Content-Type: application/json
+
+###
+### 3. Wikipedia OpenSearch - Weitere Beispiele mit POI + Stadt
+### Schöner Brunnen + Nürnberg
+
+GET https://de.wikipedia.org/w/api.php?action=opensearch&search=Schöner%20Brunnen%20Nürnberg&limit=5&namespace=0&format=json
+Content-Type: application/json
+
+###
+### 4. Wikipedia OpenSearch - Dom St. Sebald + Nürnberg
+
+GET https://de.wikipedia.org/w/api.php?action=opensearch&search=St%20Sebaldus%20Nürnberg&limit=5&namespace=0&format=json
+Content-Type: application/json
+
+###
+### 5. Wikipedia Summary - St. Sebaldus Nürnberg
+
+GET https://de.wikipedia.org/api/rest_v1/page/summary/St.%20Sebaldus%20(Nürnberg)
+Content-Type: application/json
+
+###
+### 6. Wikipedia OpenSearch - Hauptkirche St. Lorenz + Nürnberg
+
+GET https://de.wikipedia.org/w/api.php?action=opensearch&search=Hauptkirche%20St%20Lorenz%20Nürnberg&limit=5&namespace=0&format=json
+Content-Type: application/json
+
+###
+### 7. Wikipedia Summary - Lorenzkirche
+
+GET https://de.wikipedia.org/api/rest_v1/page/summary/Lorenzkirche%20(Nürnberg)
+Content-Type: application/json
+
+###
+### 8. Wikipedia OpenSearch - Germanisches Nationalmuseum + Nürnberg
+
+GET https://de.wikipedia.org/w/api.php?action=opensearch&search=Germanisches%20Nationalmuseum%20Nürnberg&limit=5&namespace=0&format=json
+Content-Type: application/json
+
+###
+### 9. Wikipedia Summary - Germanisches Nationalmuseum
+
+GET https://de.wikipedia.org/api/rest_v1/page/summary/Germanisches%20Nationalmuseum
+Content-Type: application/json

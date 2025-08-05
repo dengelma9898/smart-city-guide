@@ -102,11 +102,11 @@ struct DatenschutzerklaerungView: View {
                         content: """
                         Wir nutzen folgende Drittanbieter-Dienste:
                         
-                        HERE Maps API
+                        Geoapify API
                         • Zweck: Routenplanung und Ortssuche
                         • Daten: Stadtname, Points of Interest
-                        • Anbieter: HERE Technologies
-                        • Datenschutz: https://legal.here.com/privacy
+                        • Anbieter: Geoapify Ltd.
+                        • Datenschutz: https://www.geoapify.com/privacy-policy
                         
                         Apple MapKit
                         • Zweck: Kartenanzeige und Navigation

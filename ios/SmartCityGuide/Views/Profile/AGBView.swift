@@ -49,7 +49,7 @@ struct AGBView: View {
                         • Speicherung deiner Routenhistorie
                         • Navigation und Kartenintegration
                         
-                        Die App nutzt externe Services (HERE API, Apple Maps) zur Bereitstellung von Karten- und Ortsdaten. Wir übernehmen keine Gewähr für die Vollständigkeit oder Aktualität dieser Drittanbieterdaten.
+                        Die App nutzt externe Services (Geoapify API, Apple Maps) zur Bereitstellung von Karten- und Ortsdaten. Wir übernehmen keine Gewähr für die Vollständigkeit oder Aktualität dieser Drittanbieterdaten.
                         """
                     )
                     
@@ -126,7 +126,7 @@ struct AGBView: View {
                         
                         Marken und Logos:
                         • "Smart City Guide" ist eine eingetragene Marke
-                        • Drittanbieter-Marken (HERE, Apple) gehören den jeweiligen Eigentümern
+                        • Drittanbieter-Marken (Geoapify, Apple) gehören den jeweiligen Eigentümern
                         
                         Du darfst Inhalte nur für den persönlichen Gebrauch nutzen. Eine kommerzielle Nutzung oder Weiterverbreitung ist ohne ausdrückliche Genehmigung untersagt.
                         """

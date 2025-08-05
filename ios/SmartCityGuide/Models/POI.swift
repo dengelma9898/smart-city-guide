@@ -64,6 +64,7 @@ struct POI: Identifiable, Codable {
     let pricing: POIPricing?
     let operatingHours: String?
     let website: String?
+    let geoapifyWikiData: GeoapifyWikiAndMedia? // NEW: Wikipedia data from Geoapify
     
     var coordinate: CLLocationCoordinate2D {
         CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
@@ -149,6 +150,9 @@ extension POI {
         self.pricing = nil
         self.operatingHours = nil
         self.website = nil
+        
+        // NEW: Store Geoapify Wikipedia data for optimized enrichment
+        self.geoapifyWikiData = props.wiki_and_media
     }
 }
 
