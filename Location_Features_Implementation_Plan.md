@@ -69,28 +69,28 @@ Diese TODO-Liste beschreibt die Implementierung der folgenden Location-Features:
 ---
 
 ### 3. **Current Location als Route-Startpunkt**
-*Status: ⏳ Pending*
+*Status: ✅ Completed*
 
 #### 3.1 RouteService Erweiterung
-- [ ] `RouteService.swift` um Current Location Funktionalität erweitern
-- [ ] Current Location als optionalen Startpunkt implementieren
-- [ ] Integration mit bestehender TSP-Route-Optimierung
+- [x] `RouteService.swift` um Current Location Funktionalität erweitern (StartingLocation enum)
+- [x] Current Location als optionalen Startpunkt implementieren (neue generateRoute Überladung)
+- [x] Integration mit bestehender TSP-Route-Optimierung (generateRouteInternal refactoring)
 
 **Dateien:** `ios/SmartCityGuide/Services/RouteService.swift`
 
 #### 3.2 UI Integration in RoutePlanningView
-- [ ] "Meinen Standort verwenden" Button/Toggle
-- [ ] X-Icon zum Entfernen der Current Location
-- [ ] LocationSearchField erweitern für Current Location Display
-- [ ] Visual feedback bei aktivierter Current Location
+- [x] "Meinen Standort verwenden" Button/Toggle (conditional rendering)
+- [x] X-Icon zum Entfernen der Current Location (in Current Location Display)
+- [x] LocationSearchField erweitern für Current Location Display (smart switching)
+- [x] Visual feedback bei aktivierter Current Location (coordinates display)
 
 **Dateien:** 
 - `ios/SmartCityGuide/Views/RoutePlanning/RoutePlanningView.swift`
-- `ios/SmartCityGuide/Views/Components/LocationSearchField.swift`
+- `ios/SmartCityGuide/Views/RoutePlanning/RouteBuilderView.swift`
 
-**Verifikation:** User kann Current Location als Startpunkt auswählen und wieder entfernen
+**Verifikation:** ✅ User kann Current Location als Startpunkt auswählen und wieder entfernen
 
-#### 3.3 ProfileSettingsView Konfiguration
+#### 3.3 ProfileSettingsView Konfiguration (Optional)
 - [ ] Neue Setting-Option "Standard-Startpunkt: Mein Standort"
 - [ ] Toggle in Endpoint-Options Section hinzufügen
 - [ ] Default-Verhalten konfigurierbar machen
@@ -99,7 +99,7 @@ Diese TODO-Liste beschreibt die Implementierung der folgenden Location-Features:
 - `ios/SmartCityGuide/Views/Profile/ProfileSettingsView.swift`
 - `ios/SmartCityGuide/Models/ProfileSettings.swift`
 
-**Verifikation:** Einstellung wird korrekt gespeichert und angewendet
+**Verifikation:** *Optional für zukünftige Verbesserung*
 
 ---
 

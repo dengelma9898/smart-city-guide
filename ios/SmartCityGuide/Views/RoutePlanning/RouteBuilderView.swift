@@ -6,6 +6,7 @@ struct RouteBuilderView: View {
   @Environment(\.dismiss) private var dismiss
   let startingCity: String
   let startingCoordinates: CLLocationCoordinate2D?
+  let usingCurrentLocation: Bool // Phase 3: Current Location flag
   let endpointOption: EndpointOption
   let customEndpoint: String
   let customEndpointCoordinates: CLLocationCoordinate2D?
@@ -24,6 +25,7 @@ struct RouteBuilderView: View {
   init(
     startingCity: String,
     startingCoordinates: CLLocationCoordinate2D?,
+    usingCurrentLocation: Bool = false, // Phase 3
     maximumStops: MaximumStops,
     endpointOption: EndpointOption,
     customEndpoint: String,
@@ -34,6 +36,7 @@ struct RouteBuilderView: View {
   ) {
     self.startingCity = startingCity
     self.startingCoordinates = startingCoordinates
+    self.usingCurrentLocation = usingCurrentLocation
     self.endpointOption = endpointOption
     self.customEndpoint = customEndpoint
     self.customEndpointCoordinates = customEndpointCoordinates
@@ -62,6 +65,7 @@ struct RouteBuilderView: View {
   ) {
     self.startingCity = startingCity
     self.startingCoordinates = startingCoordinates
+    self.usingCurrentLocation = false // Legacy initializer defaults to false
     self.endpointOption = endpointOption
     self.customEndpoint = customEndpoint
     self.customEndpointCoordinates = customEndpointCoordinates
@@ -123,16 +127,32 @@ struct RouteBuilderView: View {
     if let maximumStops = maximumStops,
        let maximumWalkingTime = maximumWalkingTime,
        let minimumPOIDistance = minimumPOIDistance {
-      // Use new enhanced route generation
-      await routeService.generateRoute(
-        startingCity: startingCity,
-        maximumStops: maximumStops,
-        endpointOption: endpointOption,
-        customEndpoint: customEndpoint,
-        maximumWalkingTime: maximumWalkingTime,
-        minimumPOIDistance: minimumPOIDistance,
-        availablePOIs: discoveredPOIs
-      )
+      
+      // Phase 3: Check if using current location
+      if usingCurrentLocation, let coordinates = startingCoordinates {
+        // Use current location route generation
+        let currentLocation = CLLocation(latitude: coordinates.latitude, longitude: coordinates.longitude)
+        await routeService.generateRoute(
+          fromCurrentLocation: currentLocation,
+          maximumStops: maximumStops,
+          endpointOption: endpointOption,
+          customEndpoint: customEndpoint,
+          maximumWalkingTime: maximumWalkingTime,
+          minimumPOIDistance: minimumPOIDistance,
+          availablePOIs: discoveredPOIs
+        )
+      } else {
+        // Use city-based route generation
+        await routeService.generateRoute(
+          startingCity: startingCity,
+          maximumStops: maximumStops,
+          endpointOption: endpointOption,
+          customEndpoint: customEndpoint,
+          maximumWalkingTime: maximumWalkingTime,
+          minimumPOIDistance: minimumPOIDistance,
+          availablePOIs: discoveredPOIs
+        )
+      }
     } else if let numberOfPlaces = numberOfPlaces,
               let routeLength = routeLength {
       // Use legacy route generation

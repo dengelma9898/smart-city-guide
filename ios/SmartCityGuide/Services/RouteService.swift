@@ -3,6 +3,12 @@ import MapKit
 import CoreLocation
 import os.log
 
+// MARK: - Phase 3: Starting Location Type
+enum StartingLocation {
+  case city(String)
+  case currentLocation(CLLocation)
+}
+
 @MainActor
 class RouteService: ObservableObject {
   private let logger = Logger(subsystem: "de.dengelma.smartcity-guide", category: "Route")
@@ -31,13 +37,66 @@ class RouteService: ObservableObject {
     minimumPOIDistance: MinimumPOIDistance,
     availablePOIs: [POI]? = nil
   ) async {
+    await generateRouteInternal(
+      startingLocation: .city(startingCity),
+      maximumStops: maximumStops,
+      endpointOption: endpointOption,
+      customEndpoint: customEndpoint,
+      maximumWalkingTime: maximumWalkingTime,
+      minimumPOIDistance: minimumPOIDistance,
+      availablePOIs: availablePOIs
+    )
+  }
+  
+  // MARK: - Phase 3: Current Location Route Generation
+  func generateRoute(
+    fromCurrentLocation location: CLLocation,
+    maximumStops: MaximumStops,
+    endpointOption: EndpointOption,
+    customEndpoint: String,
+    maximumWalkingTime: MaximumWalkingTime,
+    minimumPOIDistance: MinimumPOIDistance,
+    availablePOIs: [POI]? = nil
+  ) async {
+    await generateRouteInternal(
+      startingLocation: .currentLocation(location),
+      maximumStops: maximumStops,
+      endpointOption: endpointOption,
+      customEndpoint: customEndpoint,
+      maximumWalkingTime: maximumWalkingTime,
+      minimumPOIDistance: minimumPOIDistance,
+      availablePOIs: availablePOIs
+    )
+  }
+  
+  // MARK: - Internal Route Generation
+  private func generateRouteInternal(
+    startingLocation: StartingLocation,
+    maximumStops: MaximumStops,
+    endpointOption: EndpointOption,
+    customEndpoint: String,
+    maximumWalkingTime: MaximumWalkingTime,
+    minimumPOIDistance: MinimumPOIDistance,
+    availablePOIs: [POI]? = nil
+  ) async {
     isGenerating = true
     errorMessage = nil
     generatedRoute = nil
     
     do {
       // Step 1: Find starting location
-      let startLocationPoint = try await findLocation(query: startingCity)
+      let startLocationPoint: RoutePoint
+      let startingCityName: String
+      
+      switch startingLocation {
+      case .city(let cityName):
+        startLocationPoint = try await findLocation(query: cityName)
+        startingCityName = cityName
+      case .currentLocation(let location):
+        startLocationPoint = try await createRoutePointFromCurrentLocation(location)
+        startingCityName = startLocationPoint.name // Will be resolved from reverse geocoding
+      }
+      
       let startLocation = startLocationPoint.coordinate
       
       // Step 2: Generate route using POIs with new filters
@@ -51,7 +110,7 @@ class RouteService: ObservableObject {
           customEndpoint: customEndpoint,
           maximumWalkingTime: maximumWalkingTime,
           minimumPOIDistance: minimumPOIDistance,
-          startingCity: startingCity
+          startingCity: startingCityName
         )
       } else {
         throw NSError(
@@ -214,6 +273,92 @@ class RouteService: ObservableObject {
         }
       }
     }
+  }
+  
+  // MARK: - Phase 3: Current Location Integration
+  private func createRoutePointFromCurrentLocation(_ location: CLLocation) async throws -> RoutePoint {
+    return try await withCheckedThrowingContinuation { continuation in
+      let geocoder = CLGeocoder()
+      geocoder.reverseGeocodeLocation(location) { placemarks, error in
+        if let error = error {
+          self.logger.warning("Reverse geocoding failed: \(error.localizedDescription)")
+          // Fallback: Create RoutePoint without reverse geocoding
+          let routePoint = RoutePoint(
+            name: "Mein Standort",
+            coordinate: location.coordinate,
+            address: "Aktuelle Position",
+            category: .attraction // Default category for current location
+          )
+          continuation.resume(returning: routePoint)
+        } else if let placemark = placemarks?.first {
+          // Create RoutePoint with resolved location name
+          let locationName = self.formatLocationName(from: placemark)
+          let addressString = self.formatAddress(from: placemark)
+          let routePoint = RoutePoint(
+            name: locationName,
+            coordinate: location.coordinate,
+            address: addressString,
+            category: .attraction
+          )
+          continuation.resume(returning: routePoint)
+        } else {
+          // Fallback: Create RoutePoint without resolved name
+          let routePoint = RoutePoint(
+            name: "Mein Standort",
+            coordinate: location.coordinate,
+            address: "Aktuelle Position",
+            category: .attraction
+          )
+          continuation.resume(returning: routePoint)
+        }
+      }
+    }
+  }
+  
+  private func formatLocationName(from placemark: CLPlacemark) -> String {
+    var components: [String] = []
+    
+    if let locality = placemark.locality {
+      components.append(locality)
+    }
+    if let subLocality = placemark.subLocality {
+      components.append(subLocality)
+    }
+    if let thoroughfare = placemark.thoroughfare {
+      components.append(thoroughfare)
+    }
+    
+    if components.isEmpty {
+      return "Mein Standort"
+    } else {
+      return "Mein Standort (\(components.joined(separator: ", ")))"
+    }
+  }
+  
+  private func formatAddress(from placemark: CLPlacemark) -> String {
+    var addressComponents: [String] = []
+    
+    if let thoroughfare = placemark.thoroughfare {
+      if let subThoroughfare = placemark.subThoroughfare {
+        addressComponents.append("\(thoroughfare) \(subThoroughfare)")
+      } else {
+        addressComponents.append(thoroughfare)
+      }
+    }
+    
+    if let locality = placemark.locality {
+      addressComponents.append(locality)
+    }
+    
+    if let postalCode = placemark.postalCode {
+      addressComponents.append(postalCode)
+    }
+    
+    if let country = placemark.country {
+      addressComponents.append(country)
+    }
+    
+    return addressComponents.isEmpty ? "Aktuelle Position" : addressComponents.joined(separator: ", ")
   }
   
   private func findOptimalRoute(
