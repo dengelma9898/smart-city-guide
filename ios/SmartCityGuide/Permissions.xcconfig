@@ -1,0 +1,5 @@
+// SmartCityGuide Permission Descriptions
+// Diese Datei definiert die Location-Permission-Texte für die App
+
+NSLocationWhenInUseUsageDescription = Smart City Guide nutzt deinen Standort für die beste Route von deiner Position
+NSLocationAlwaysAndWhenInUseUsageDescription = Für Benachrichtigungen bei interessanten Spots auf deiner Route
