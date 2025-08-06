@@ -22,49 +22,49 @@ Diese TODO-Liste beschreibt die Implementierung der folgenden Location-Features:
 ## 🛠️ Implementation Steps
 
 ### 1. **Location-Permission-Management** 
-*Status: ⏳ Pending*
+*Status: ✅ Completed*
 
 #### 1.1 Info.plist Konfiguration
-- [ ] `NSLocationWhenInUseUsageDescription` in Info.plist hinzufügen
-- [ ] `NSLocationAlwaysAndWhenInUseUsageDescription` für Background-Location hinzufügen
-- [ ] Friendly German text für Permission-Dialoge
+- [x] `NSLocationWhenInUseUsageDescription` in Info.plist hinzufügen
+- [x] `NSLocationAlwaysAndWhenInUseUsageDescription` für Background-Location hinzufügen
+- [x] Friendly German text für Permission-Dialoge
 
-**Dateien:** `ios/SmartCityGuide/Info.plist`
+**Dateien:** `ios/SmartCityGuide/Permissions.xcconfig`
 
-**Verifikation:** Permission-Dialog erscheint beim ersten Start
+**Verifikation:** ✅ Permission-Dialog erscheint beim ersten Start mit deutschen Texten
 
 #### 1.2 LocationManager Service erstellen
-- [ ] `LocationManagerService.swift` in `Services/` Ordner erstellen
-- [ ] CLLocationManager mit `@MainActor` implementieren
-- [ ] Permission-Status Management (denied, authorized, notDetermined)
-- [ ] Delegate-Pattern für Location-Updates
-- [ ] Error-Handling für Location-Services
+- [x] `LocationManagerService.swift` in `Services/` Ordner erstellen
+- [x] CLLocationManager mit `@MainActor` implementieren
+- [x] Permission-Status Management (denied, authorized, notDetermined)
+- [x] Delegate-Pattern für Location-Updates (separater LocationDelegate)
+- [x] Error-Handling für Location-Services
 
 **Dateien:** `ios/SmartCityGuide/Services/LocationManagerService.swift`
 
-**Verifikation:** Service kann Permission-Status korrekt abfragen und verwalten
+**Verifikation:** ✅ Service kann Permission-Status korrekt abfragen und verwalten (getestet: Nürnberg 49.4521, 11.0767)
 
 ---
 
 ### 2. **Current Location auf Karte anzeigen**
-*Status: ⏳ Pending*
+*Status: ✅ Completed*
 
 #### 2.1 MapView Integration
-- [ ] MKMapView um Current Location erweitern
-- [ ] Blue Dot für User-Position aktivieren
-- [ ] Location-Permission-Check vor Map-Anzeige
-- [ ] Fallback-Verhalten bei verweigerter Permission
+- [x] MKMapView um Current Location erweitern (ContentView.swift)
+- [x] Blue Dot für User-Position aktivieren (UserAnnotation())
+- [x] Location-Permission-Check vor Map-Anzeige
+- [x] Fallback-Verhalten bei verweigerter Permission
 
-**Dateien:** `ios/SmartCityGuide/Views/RoutePlanning/RoutePlanningView.swift` (falls MapView vorhanden)
+**Dateien:** `ios/SmartCityGuide/ContentView.swift`
 
-**Verifikation:** Blaues Punkt-Icon zeigt User-Position auf der Karte
+**Verifikation:** ✅ Blaues Punkt-Icon zeigt User-Position auf der Karte
 
 #### 2.2 Permission UI Integration
-- [ ] Permission-Request-Button in Map-Interface
-- [ ] Informative Messages bei denied/notDetermined Status
-- [ ] Settings-Link bei permanently denied Permission
+- [x] Permission-Request-Button in Map-Interface (smart top-right button)
+- [x] Informative Messages bei denied/notDetermined Status (color-coded icons)
+- [x] Settings-Link bei permanently denied Permission (alert dialog)
 
-**Verifikation:** Graceful UI-Handling für alle Permission-States
+**Verifikation:** ✅ Graceful UI-Handling für alle Permission-States (orange→blue button, centering function)
 
 ---
 
