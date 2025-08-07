@@ -23,7 +23,7 @@ struct RouteEditView: View {
     let cityName: String
     
     /// Callback when a spot is changed
-    let onSpotChanged: (POI) -> Void
+    let onSpotChanged: (POI, GeneratedRoute?) -> Void
     
     /// Callback when editing is cancelled
     let onCancel: () -> Void
@@ -113,24 +113,63 @@ struct RouteEditView: View {
             // Original spot info
             originalSpotCard
             
-            // Instructions (with intro animation)
-            if showingIntroAnimation {
-                instructionsView
-                    .transition(.asymmetric(
-                        insertion: .scale.combined(with: .opacity),
-                        removal: .opacity
-                    ))
+            // Main content area
+            ZStack {
+                // Swipe card stack
+                SwipeCardStackView(
+                    initialCards: availableCards,
+                    onCardAction: handleCardAction,
+                    onStackEmpty: handleStackEmpty
+                )
+                .frame(maxHeight: 420)
+                
+                // Instructions overlay (only briefly visible)
+                if showingIntroAnimation {
+                    VStack {
+                        Spacer()
+                        
+                        // Instructions at bottom
+                        VStack(spacing: 8) {
+                            Text("💡 Swipe Tipp")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                                .fontWeight(.medium)
+                            
+                            HStack(spacing: 16) {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "hand.draw.fill")
+                                        .foregroundColor(.green)
+                                    Text("Links = Nehmen")
+                                        .font(.caption2)
+                                        .foregroundColor(.green)
+                                }
+                                
+                                HStack(spacing: 4) {
+                                    Image(systemName: "hand.draw.fill")
+                                        .foregroundColor(.red)
+                                        .scaleEffect(x: -1, y: 1)
+                                    Text("Rechts = Weiter")
+                                        .font(.caption2)
+                                        .foregroundColor(.red)
+                                }
+                            }
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                        .background(
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(.ultraThinMaterial)
+                                .stroke(Color.primary.opacity(0.1), lineWidth: 1)
+                        )
+                        .transition(.opacity.combined(with: .scale))
+                    }
+                }
             }
             
-            // Swipe card stack
-            SwipeCardStackView(
-                initialCards: availableCards,
-                onCardAction: handleCardAction,
-                onStackEmpty: handleStackEmpty
-            )
-            .frame(maxHeight: 480)
-            .opacity(showingIntroAnimation ? 0.7 : 1.0)
-            .scaleEffect(showingIntroAnimation ? 0.95 : 1.0)
+            // Manual action buttons
+            if !availableCards.isEmpty && !showingIntroAnimation {
+                manualActionButtons
+            }
             
             Spacer()
         }
@@ -144,50 +183,26 @@ struct RouteEditView: View {
     // MARK: - Original Spot Card
     
     private var originalSpotCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Aktueller Stopp")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                        .fontWeight(.medium)
-                    
-                    Text(editableSpot.originalWaypoint.name)
-                        .font(.headline)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.primary)
-                        .lineLimit(2)
-                }
-                
-                Spacer()
-                
-                // Category badge
-                HStack(spacing: 4) {
-                    Image(systemName: editableSpot.originalWaypoint.category.icon)
-                        .font(.caption)
-                    Text(editableSpot.originalWaypoint.category.rawValue)
-                        .font(.caption)
-                        .fontWeight(.medium)
-                }
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(
-                    Capsule()
-                        .fill(editableSpot.originalWaypoint.category.color.opacity(0.1))
-                )
-                .foregroundColor(editableSpot.originalWaypoint.category.color)
-            }
-            
-            if !editableSpot.originalWaypoint.address.isEmpty {
-                Text(editableSpot.originalWaypoint.address)
-                    .font(.body)
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Aktueller Stopp")
+                    .font(.caption)
                     .foregroundColor(.secondary)
+                    .fontWeight(.medium)
+                
+                Text(editableSpot.originalWaypoint.name)
+                    .font(.headline)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.primary)
                     .lineLimit(2)
             }
+            
+            Spacer()
         }
-        .padding(16)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
         .background(
-            RoundedRectangle(cornerRadius: 12)
+            RoundedRectangle(cornerRadius: 10)
                 .fill(.ultraThinMaterial)
                 .stroke(Color.primary.opacity(0.1), lineWidth: 1)
         )
@@ -369,6 +384,55 @@ struct RouteEditView: View {
         }
     }
     
+    // MARK: - Manual Action Buttons
+    
+    private var manualActionButtons: some View {
+        HStack(spacing: 24) {
+            // Decline/Skip button
+            Button(action: {
+                // Handle manual reject (same as right swipe)
+                handleManualReject()
+            }) {
+                VStack(spacing: 8) {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 32))
+                        .foregroundColor(.red)
+                    Text("Überspringen")
+                        .font(.caption)
+                        .fontWeight(.medium)
+                        .foregroundColor(.red)
+                }
+            }
+            .buttonStyle(PlainButtonStyle())
+            
+            Spacer()
+            
+            // Accept button
+            Button(action: {
+                // Handle manual accept (same as left swipe)
+                handleManualAccept()
+            }) {
+                VStack(spacing: 8) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 32))
+                        .foregroundColor(.green)
+                    Text("Nehmen")
+                        .font(.caption)
+                        .fontWeight(.medium)
+                        .foregroundColor(.green)
+                }
+            }
+            .buttonStyle(PlainButtonStyle())
+        }
+        .padding(.horizontal, 40)
+        .padding(.vertical, 16)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(.ultraThinMaterial)
+                .stroke(Color.primary.opacity(0.1), lineWidth: 1)
+        )
+    }
+    
     // MARK: - Animation & Interaction
     
     private func startIntroAnimation() {
@@ -436,19 +500,39 @@ struct RouteEditView: View {
             )
             
             await MainActor.run {
-                if editService.newRoute != nil {
-                    // Success - notify parent
-                    onSpotChanged(poi)
+                if let newRoute = editService.newRoute {
+                    // Success - notify parent with the new route
+                    onSpotChanged(poi, newRoute)
                 } else if editService.errorMessage != nil {
                     // Error - show error overlay
                     // Error is already bound to the service
                 } else {
                     // TODO: Handle case where route service integration is needed
                     // For now, just proceed with the POI change
-                    onSpotChanged(poi)
+                    onSpotChanged(poi, nil)
                 }
             }
         }
+    }
+    
+    // MARK: - Manual Action Handlers
+    
+    private func handleManualAccept() {
+        // Get current top card and accept it
+        guard !availableCards.isEmpty else { return }
+        
+        let currentCard = availableCards[0]
+        let action = SwipeAction.accept(currentCard.poi)
+        handleCardAction(action)
+    }
+    
+    private func handleManualReject() {
+        // Get current top card and reject it
+        guard !availableCards.isEmpty else { return }
+        
+        let currentCard = availableCards[0]
+        let action = SwipeAction.reject(currentCard.poi)
+        handleCardAction(action)
     }
 }
 
@@ -497,8 +581,11 @@ struct RouteEditView: View {
                 originalRoute: sampleRoute,
                 editableSpot: editableSpot,
                 cityName: "Nürnberg",
-                onSpotChanged: { poi in
+                onSpotChanged: { poi, newRoute in
                     print("Selected POI: \(poi.name)")
+                    if let route = newRoute {
+                        print("New route has \(route.waypoints.count) waypoints")
+                    }
                     showingEdit = false
                 },
                 onCancel: {

@@ -185,6 +185,11 @@ struct RouteBuilderView: View {
   @State private var fullScreenImageTitle: String = ""
   @State private var fullScreenWikipediaURL: String = ""
   
+  // Route Edit States
+  @State private var showingEditView = false
+  @State private var editingWaypointIndex: Int?
+  @State private var editableSpot: EditableRouteSpot?
+  
   // MARK: - Computed Properties
   
   private var loadingStateText: String {
@@ -364,6 +369,18 @@ struct RouteBuilderView: View {
                       }
                       
                       Spacer()
+                      
+                      // Edit button (only for intermediate waypoints)
+                      if index > 0 && index < route.waypoints.count - 1 {
+                        Button(action: {
+                          editWaypoint(at: index)
+                        }) {
+                          Image(systemName: "pencil.circle.fill")
+                            .font(.system(size: 24))
+                            .foregroundColor(.blue)
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                      }
                     }
                     .padding(.vertical, 12)
                     .padding(.horizontal, 16)
@@ -618,6 +635,17 @@ struct RouteBuilderView: View {
         wikipediaURL: fullScreenWikipediaURL.isEmpty ? nil : fullScreenWikipediaURL,
         isPresented: $showFullScreenImage
       )
+    }
+    .sheet(isPresented: $showingEditView) {
+      if let editableSpot = editableSpot {
+        RouteEditView(
+          originalRoute: routeService.generatedRoute!,
+          editableSpot: editableSpot,
+          cityName: startingCity,
+          onSpotChanged: handleSpotChange,
+          onCancel: handleEditCancel
+        )
+      }
     }
   }
   
@@ -943,5 +971,208 @@ struct RouteBuilderView: View {
     }
     
     return nil
+  }
+  
+  // MARK: - Route Edit Methods
+  
+  /// Start editing a waypoint
+  private func editWaypoint(at index: Int) {
+    guard let route = routeService.generatedRoute,
+          index >= 0 && index < route.waypoints.count else { return }
+    
+    let waypoint = route.waypoints[index]
+    
+    // Create editable spot with alternatives from current cache
+    let alternatives = findAlternativePOIs(for: waypoint, from: discoveredPOIs)
+    
+    editableSpot = EditableRouteSpot(
+      originalWaypoint: waypoint,
+      waypointIndex: index,
+      alternativePOIs: alternatives,
+      currentPOI: findCurrentPOI(for: waypoint)
+    )
+    
+    editingWaypointIndex = index
+    showingEditView = true
+  }
+  
+  /// Handle spot change from route edit
+  private func handleSpotChange(_ newPOI: POI, _ newRoute: GeneratedRoute?) {
+    // Use the already generated route from RouteEditService
+    if let updatedRoute = newRoute {
+      // Apply the new route directly
+      routeService.generatedRoute = updatedRoute
+      
+      // Re-enrich the updated route with Wikipedia data
+      Task {
+        await enrichRouteWithWikipedia(route: updatedRoute)
+      }
+    }
+    
+    // Close edit view
+    showingEditView = false
+    self.editableSpot = nil
+    self.editingWaypointIndex = nil
+  }
+  
+  /// Handle edit cancellation
+  private func handleEditCancel() {
+    showingEditView = false
+    editableSpot = nil
+    editingWaypointIndex = nil
+  }
+  
+  /// Find alternative POIs for a waypoint from the current cache
+  private func findAlternativePOIs(for waypoint: RoutePoint, from cachedPOIs: [POI]) -> [POI] {
+    return cachedPOIs.filter { poi in
+      // Distance constraint (500m radius)
+      let distance = calculateDistance(from: poi.coordinate, to: waypoint.coordinate)
+      guard distance <= 500.0 else { return false }
+      
+      // Not already in route
+      guard !isAlreadyInRoute(poi) else { return false }
+      
+      return true
+    }
+    .sorted { poi1, poi2 in
+      // Sort by category match, then distance
+      let categoryMatch1 = poi1.category == waypoint.category
+      let categoryMatch2 = poi2.category == waypoint.category
+      
+      if categoryMatch1 && !categoryMatch2 {
+        return true
+      } else if !categoryMatch1 && categoryMatch2 {
+        return false
+      }
+      
+      // Sort by distance
+      let distance1 = calculateDistance(from: poi1.coordinate, to: waypoint.coordinate)
+      let distance2 = calculateDistance(from: poi2.coordinate, to: waypoint.coordinate)
+      return distance1 < distance2
+    }
+    .prefix(20) // Limit to 20 alternatives
+    .map { $0 }
+  }
+  
+  /// Check if POI is already in the current route
+  private func isAlreadyInRoute(_ poi: POI) -> Bool {
+    guard let route = routeService.generatedRoute else { return false }
+    
+    return route.waypoints.contains { waypoint in
+      poi.name.lowercased() == waypoint.name.lowercased() &&
+      calculateDistance(from: poi.coordinate, to: waypoint.coordinate) < 50 // 50m tolerance
+    }
+  }
+  
+  /// Find current POI for a waypoint (if it exists in cache)
+  private func findCurrentPOI(for waypoint: RoutePoint) -> POI? {
+    return discoveredPOIs.first { poi in
+      poi.name.lowercased() == waypoint.name.lowercased() &&
+      calculateDistance(from: poi.coordinate, to: waypoint.coordinate) < 50
+    }
+  }
+  
+  /// Calculate distance between coordinates
+  private func calculateDistance(from: CLLocationCoordinate2D, to: CLLocationCoordinate2D) -> Double {
+    let fromLocation = CLLocation(latitude: from.latitude, longitude: from.longitude)
+    let toLocation = CLLocation(latitude: to.latitude, longitude: to.longitude)
+    return fromLocation.distance(from: toLocation)
+  }
+  
+  /// Generate updated route with new POI
+  private func generateUpdatedRoute(
+    replacing waypointIndex: Int,
+    with newPOI: POI,
+    in originalRoute: GeneratedRoute
+  ) async {
+    
+    // Update UI to show loading
+    await MainActor.run {
+      routeService.isGenerating = true
+      routeService.errorMessage = nil
+    }
+    
+    do {
+      // Update the route by replacing the waypoint
+      var newWaypoints = originalRoute.waypoints
+      let newWaypoint = RoutePoint(from: newPOI)
+      newWaypoints[waypointIndex] = newWaypoint
+      
+      // Recalculate walking routes between waypoints
+      let newRoutes = try await recalculateWalkingRoutes(for: newWaypoints)
+      
+      // Calculate new metrics
+      let newTotalDistance = newRoutes.reduce(0) { $0 + $1.distance }
+      let newTotalTravelTime = newRoutes.reduce(0) { $0 + ($1.expectedTravelTime / 60.0) }
+      
+      // Keep original visit time, update experience time
+      let newTotalExperienceTime = newTotalTravelTime + originalRoute.totalVisitTime
+      
+      let updatedRoute = GeneratedRoute(
+        waypoints: newWaypoints,
+        routes: newRoutes,
+        totalDistance: newTotalDistance,
+        totalTravelTime: newTotalTravelTime,
+        totalVisitTime: originalRoute.totalVisitTime,
+        totalExperienceTime: newTotalExperienceTime
+      )
+      
+      await MainActor.run {
+        routeService.generatedRoute = updatedRoute
+        routeService.isGenerating = false
+        
+        // Re-enrich the updated route with Wikipedia data
+        Task {
+          await enrichRouteWithWikipedia(route: updatedRoute)
+        }
+      }
+      
+    } catch {
+      await MainActor.run {
+        routeService.isGenerating = false
+        routeService.errorMessage = "Route-Update fehlgeschlagen: \(error.localizedDescription)"
+      }
+    }
+  }
+  
+  /// Recalculate walking routes between waypoints
+  private func recalculateWalkingRoutes(for waypoints: [RoutePoint]) async throws -> [MKRoute] {
+    var routes: [MKRoute] = []
+    
+    for i in 0..<(waypoints.count - 1) {
+      let startPoint = waypoints[i]
+      let endPoint = waypoints[i + 1]
+      
+      let request = MKDirections.Request()
+      request.source = MKMapItem(placemark: MKPlacemark(coordinate: startPoint.coordinate))
+      request.destination = MKMapItem(placemark: MKPlacemark(coordinate: endPoint.coordinate))
+      request.transportType = .walking
+      
+      let directions = MKDirections(request: request)
+      
+      do {
+        let response = try await directions.calculate()
+        if let route = response.routes.first {
+          routes.append(route)
+        } else {
+          throw NSError(
+            domain: "RouteUpdate",
+            code: 404,
+            userInfo: [NSLocalizedDescriptionKey: "Keine Route zwischen Wegpunkten gefunden"]
+          )
+        }
+      } catch {
+        throw NSError(
+          domain: "RouteUpdate", 
+          code: 500,
+          userInfo: [NSLocalizedDescriptionKey: "Routenberechnung fehlgeschlagen: \(error.localizedDescription)"]
+        )
+      }
+      
+      // Rate limiting to be respectful to Apple's servers
+      try await Task.sleep(nanoseconds: 200_000_000) // 0.2 seconds
+    }
+    
+    return routes
   }
 }

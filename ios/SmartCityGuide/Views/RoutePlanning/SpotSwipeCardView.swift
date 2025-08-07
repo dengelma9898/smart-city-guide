@@ -268,8 +268,7 @@ struct SpotSwipeCardView: View {
                 isDragging = true
                 dragOffset = value.translation
                 
-                // Update card binding for external state sync
-                card.offset = dragOffset
+                // Mark card as animating for UI state
                 card.isAnimating = true
                 
                 // Haptic feedback at threshold
@@ -317,7 +316,6 @@ struct SpotSwipeCardView: View {
         
         withAnimation(CardAnimationConfig.removeAnimation) {
             dragOffset = CGSize(width: exitDistance, height: dragOffset.height)
-            card.offset = dragOffset
         }
         
         // Haptic feedback for action
@@ -333,9 +331,10 @@ struct SpotSwipeCardView: View {
     private func bounceBack() {
         withAnimation(CardAnimationConfig.returnAnimation) {
             dragOffset = .zero
-            card.offset = .zero
-            card.isAnimating = false
         }
+        
+        // Update card state outside animation to avoid conflicts
+        card.isAnimating = false
     }
 }
 

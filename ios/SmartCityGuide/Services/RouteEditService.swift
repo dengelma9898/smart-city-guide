@@ -8,6 +8,7 @@
 import Foundation
 import CoreLocation
 import SwiftUI
+import MapKit
 
 /// Service for handling route editing operations
 @MainActor
@@ -177,29 +178,69 @@ final class RouteEditService: ObservableObject {
         do {
             // 1. Create new waypoints array with replacement
             var newWaypoints = originalRoute.waypoints
-            
             let newWaypoint = RoutePoint(from: newPOI)
             newWaypoints[waypointIndex] = newWaypoint
             
-            // 2. Generate new route through RouteService
-            // Note: We'll delegate to RouteService for the actual route calculation
-            // This maintains consistency with existing route generation logic
+            // 2. Recalculate walking routes between all waypoints
+            let newRoutes = try await recalculateWalkingRoutes(for: newWaypoints)
             
-            // Use RouteService to recalculate walking directions
-            let newRoute = try await routeService.generateRouteWithWaypoints(newWaypoints)
+            // 3. Calculate new metrics
+            let newTotalDistance = newRoutes.reduce(0) { $0 + $1.distance }
+            let newTotalTravelTime = newRoutes.reduce(0) { $0 + ($1.expectedTravelTime / 60.0) }
             
-            // 3. Validate new route
-            guard let generatedRoute = newRoute else {
-                throw RouteEditError.routeGenerationFailed("Neue Route konnte nicht berechnet werden")
-            }
+            // Keep original visit time, update experience time
+            let newTotalExperienceTime = newTotalTravelTime + originalRoute.totalVisitTime
             
-            // 4. Store result
-            self.newRoute = generatedRoute
+            // 4. Create updated route
+            let updatedRoute = GeneratedRoute(
+                waypoints: newWaypoints,
+                routes: newRoutes,
+                totalDistance: newTotalDistance,
+                totalTravelTime: newTotalTravelTime,
+                totalVisitTime: originalRoute.totalVisitTime,
+                totalExperienceTime: newTotalExperienceTime
+            )
+            
+            // 5. Store result
+            self.newRoute = updatedRoute
             isGeneratingNewRoute = false
             
         } catch {
             setError("Route-Neuberechnung fehlgeschlagen: \(error.localizedDescription)")
         }
+    }
+    
+    /// Recalculate walking routes between waypoints using MapKit
+    private func recalculateWalkingRoutes(for waypoints: [RoutePoint]) async throws -> [MKRoute] {
+        var routes: [MKRoute] = []
+        
+        for i in 0..<(waypoints.count - 1) {
+            let startPoint = waypoints[i]
+            let endPoint = waypoints[i + 1]
+            
+            let request = MKDirections.Request()
+            request.source = MKMapItem(placemark: MKPlacemark(coordinate: startPoint.coordinate))
+            request.destination = MKMapItem(placemark: MKPlacemark(coordinate: endPoint.coordinate))
+            request.transportType = .walking
+            
+            let directions = MKDirections(request: request)
+            
+            do {
+                let response = try await directions.calculate()
+                if let route = response.routes.first {
+                    routes.append(route)
+                } else {
+                    throw RouteEditError.routeGenerationFailed("Keine Route zwischen Wegpunkten gefunden")
+                }
+            } catch {
+                throw RouteEditError.routeGenerationFailed("Routenberechnung fehlgeschlagen: \(error.localizedDescription)")
+            }
+            
+            // Rate limiting to be respectful to Apple's servers
+            try await Task.sleep(nanoseconds: 200_000_000) // 0.2 seconds
+        }
+        
+        return routes
     }
     
     // MARK: - Load Enriched Alternatives
