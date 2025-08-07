@@ -210,7 +210,7 @@ struct RouteBuilderView: View {
                 .font(.title2)
                 .fontWeight(.semibold)
               
-              Text("Suchen die coolsten \(numberOfPlaces ?? 5) Stopps in \(startingCity) für dich!")
+              Text("Suchen die coolsten \(maximumStops?.intValue ?? 5) Stopps in \(startingCity) für dich!")
                 .font(.subheadline)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)

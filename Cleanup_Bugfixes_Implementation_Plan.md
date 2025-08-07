@@ -18,7 +18,7 @@ Systematische Behebung von **Critical Bugs** und **Code Quality Issues** nach de
 ## 🔴 **CRITICAL BUGS (Priority 1)**
 
 ### **Bug #1: Route Options Not Applied**
-*Status: 🚨 Critical*
+*Status: ✅ FIXED*
 
 **Problem:** 
 - RoutePlanningView filter values (Maximale Gehzeit, etc.) werden nicht an RouteBuilderView weitergegeben
@@ -32,10 +32,12 @@ Systematische Behebung von **Critical Bugs** und **Code Quality Issues** nach de
 **Root Cause:** Data Flow zwischen Views unterbrochen
 
 **Investigation Steps:**
-1. [ ] Überprüfe RouteBuilderView Parameter-Mapping
-2. [ ] Verifiziere @State Variable Binding
+1. [x] Überprüfe RouteBuilderView Parameter-Mapping
+2. [x] Verifiziere @State Variable Binding ✅ KORREKT
 3. [ ] Teste alle Filter-Optionen End-to-End
 4. [ ] Debug Route Generation mit Console Logs
+
+**FOUND:** Display bug in RouteBuilderView line 213 - using legacy `numberOfPlaces` instead of `maximumStops.intValue`
 
 **Fix Strategy:**
 - Ensure all @State variables are properly passed to RouteBuilderView
