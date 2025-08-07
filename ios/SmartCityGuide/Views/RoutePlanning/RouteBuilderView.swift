@@ -210,7 +210,7 @@ struct RouteBuilderView: View {
                 .font(.title2)
                 .fontWeight(.semibold)
               
-              Text("Suchen die coolsten \(numberOfPlaces) Stopps in \(startingCity) für dich!")
+              Text("Suchen die coolsten \(numberOfPlaces ?? 5) Stopps in \(startingCity) für dich!")
                 .font(.subheadline)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
@@ -710,57 +710,49 @@ struct RouteBuilderView: View {
       isEnrichingAllPOIs = true
     }
     
-    do {
-      // Filtere POIs die noch nicht enriched wurden
-      let unenrichedPOIs = discoveredPOIs.filter { poi in
-        enrichedPOIs[poi.id] == nil
-      }
-      
-      guard !unenrichedPOIs.isEmpty else {
-        await MainActor.run {
-          isEnrichingAllPOIs = false
-        }
-        print("📚 [Phase 2] All POIs already enriched")
-        return
-      }
-      
-      print("📚 [Phase 2] Background enriching \(unenrichedPOIs.count) additional POIs...")
-      
-      // Enriche im Hintergrund (mit langsamerer Rate für bessere UX)
-      let cityName = extractCityName(from: startingCity)
-      var completedCount = 0
-      for poi in unenrichedPOIs {
-        do {
-          let enrichedPOI = try await wikipediaService.enrichPOI(poi, cityName: cityName)
-          
-          await MainActor.run {
-            enrichedPOIs[enrichedPOI.basePOI.id] = enrichedPOI
-            completedCount += 1
-            enrichmentProgress = Double(completedCount) / Double(unenrichedPOIs.count)
-          }
-          
-          // Längere Pause für Hintergrund-Enrichment
-          try await Task.sleep(nanoseconds: 200_000_000) // 200ms
-          
-        } catch {
-          print("📚 [Phase 2] Failed to enrich POI '\(poi.name)': \(error.localizedDescription)")
-        }
-      }
-      
-      await MainActor.run {
-        isEnrichingAllPOIs = false
-        enrichmentProgress = 1.0
-      }
-      
-      let totalEnriched = enrichedPOIs.values.filter { $0.wikipediaData != nil }.count
-      print("📚 [Phase 2] Background enrichment completed: \(totalEnriched)/\(discoveredPOIs.count) total enriched")
-      
-    } catch {
-      await MainActor.run {
-        isEnrichingAllPOIs = false
-      }
-      print("📚 [Phase 2] Background enrichment failed: \(error.localizedDescription)")
+    // Filtere POIs die noch nicht enriched wurden
+    let unenrichedPOIs = discoveredPOIs.filter { poi in
+      enrichedPOIs[poi.id] == nil
     }
+    
+    guard !unenrichedPOIs.isEmpty else {
+      await MainActor.run {
+        isEnrichingAllPOIs = false
+      }
+      print("📚 [Phase 2] All POIs already enriched")
+      return
+    }
+    
+    print("📚 [Phase 2] Background enriching \(unenrichedPOIs.count) additional POIs...")
+    
+    // Enriche im Hintergrund (mit langsamerer Rate für bessere UX)
+    let cityName = extractCityName(from: startingCity)
+    var completedCount = 0
+    for poi in unenrichedPOIs {
+      do {
+        let enrichedPOI = try await wikipediaService.enrichPOI(poi, cityName: cityName)
+        
+        await MainActor.run {
+          enrichedPOIs[enrichedPOI.basePOI.id] = enrichedPOI
+          completedCount += 1
+          enrichmentProgress = Double(completedCount) / Double(unenrichedPOIs.count)
+        }
+        
+        // Längere Pause für Hintergrund-Enrichment
+        try await Task.sleep(nanoseconds: 200_000_000) // 200ms
+        
+      } catch {
+        print("📚 [Phase 2] Failed to enrich POI '\(poi.name)': \(error.localizedDescription)")
+      }
+    }
+    
+    await MainActor.run {
+      isEnrichingAllPOIs = false
+      enrichmentProgress = 1.0
+    }
+    
+    let totalEnriched = enrichedPOIs.values.filter { $0.wikipediaData != nil }.count
+    print("📚 [Phase 2] Background enrichment completed: \(totalEnriched)/\(discoveredPOIs.count) total enriched")
   }
   
   /// Extrahiert POI-Objekte aus den Route-Waypoints

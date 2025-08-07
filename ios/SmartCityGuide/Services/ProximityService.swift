@@ -6,6 +6,8 @@ import UIKit
 import os.log
 
 // MARK: - Proximity Service for Location-based Notifications
+/// Service für standortbasierte Benachrichtigungen bei Route-Spots
+/// Überwacht GPS-Position und triggert Notifications bei Annäherung (25m Radius)
 @MainActor
 class ProximityService: NSObject, ObservableObject {
     static let shared = ProximityService()
@@ -59,6 +61,8 @@ class ProximityService: NSObject, ObservableObject {
     }
     
     // MARK: - Active Route Management
+    /// Startet Proximity Monitoring für eine aktive Route
+    /// Fordert Notification + Location Permissions an und aktiviert Background Location
     func startProximityMonitoring(for route: GeneratedRoute) async {
         logger.info("🎯 Starting proximity monitoring for route with \(route.waypoints.count) spots")
         
