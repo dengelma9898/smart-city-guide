@@ -64,7 +64,7 @@ struct ProfileImageView: View {
                 .foregroundColor(.red)
             }
         }
-        .onChange(of: selectedItem) { newItem in
+        .onChange(of: selectedItem) { _, newItem in
             Task {
                 await loadSelectedImage(from: newItem)
             }

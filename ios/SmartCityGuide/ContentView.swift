@@ -245,7 +245,7 @@ struct ContentView: View {
         showingRoutePlanning = false // Dismiss the route planning sheet
         // Adjust camera to show entire route
         if let firstWaypoint = route.waypoints.first,
-           let lastWaypoint = route.waypoints.last {
+           let _ = route.waypoints.last {
           let coordinates = route.waypoints.map { $0.coordinate }
           let minLat = coordinates.map { $0.latitude }.min() ?? firstWaypoint.coordinate.latitude
           let maxLat = coordinates.map { $0.latitude }.max() ?? firstWaypoint.coordinate.latitude

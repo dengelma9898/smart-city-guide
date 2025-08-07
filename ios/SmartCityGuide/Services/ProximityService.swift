@@ -1,7 +1,6 @@
 import Foundation
 import CoreLocation
 import UserNotifications
-import MapKit
 import UIKit
 import os.log
 

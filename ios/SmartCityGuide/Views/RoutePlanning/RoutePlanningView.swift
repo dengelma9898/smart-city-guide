@@ -297,7 +297,7 @@ struct RoutePlanningView: View {
       .onAppear {
         loadDefaultSettings()
       }
-      .onChange(of: settingsManager.isLoading) { isLoading in
+      .onChange(of: settingsManager.isLoading) { _, isLoading in
         if !isLoading {
           withAnimation(.easeInOut(duration: 0.3)) {
             loadDefaultSettings()
