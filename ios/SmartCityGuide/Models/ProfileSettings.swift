@@ -15,6 +15,9 @@ struct ProfileSettings: Codable {
     var defaultMaximumWalkingTime: MaximumWalkingTime
     var defaultMinimumPOIDistance: MinimumPOIDistance
     
+    // Phase 3: Location-basierte Einstellungen
+    var useCurrentLocationAsDefault: Bool
+    
     init() {
         // Legacy Werte für Backwards Compatibility
         self.defaultNumberOfPlaces = 3
@@ -26,6 +29,9 @@ struct ProfileSettings: Codable {
         self.defaultMaximumStops = .five      // 5 Stopps ist ein guter Default
         self.defaultMaximumWalkingTime = .sixtyMin  // 60min ist vernünftig
         self.defaultMinimumPOIDistance = .twoFifty  // 250m verhindert zu nah gelegene POIs
+        
+        // Phase 3: Location-basierte Defaults
+        self.useCurrentLocationAsDefault = false  // Konservativ: User muss opt-in
     }
     
     // Migration von alten zu neuen Settings (nur für bestehende User die upgrades)
@@ -182,6 +188,12 @@ class ProfileSettingsManager: ObservableObject {
         if let minimumPOIDistance = minimumPOIDistance {
             settings.defaultMinimumPOIDistance = minimumPOIDistance
         }
+        save()
+    }
+    
+    // Phase 3: Update Location Default Setting
+    func updateLocationDefault(useCurrentLocation: Bool) {
+        settings.useCurrentLocationAsDefault = useCurrentLocation
         save()
     }
     

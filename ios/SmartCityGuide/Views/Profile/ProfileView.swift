@@ -297,7 +297,7 @@ struct ProfileView: View {
     private var currentAchievement: Achievement? {
         let routes = historyManager.savedRoutes.count
         let distance = totalDistanceValue
-        let days = daysSinceJoined
+        let _ = daysSinceJoined // Future: Could be used for time-based achievements
         
         if routes >= 20 && distance >= 100 {
             return Achievement(emoji: "🏅", title: "Abenteuer-Legende!")

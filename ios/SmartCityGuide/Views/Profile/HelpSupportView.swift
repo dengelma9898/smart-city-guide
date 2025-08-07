@@ -375,23 +375,47 @@ struct FAQCategory {
             ]
         ),
         
-        // Datenschutz & Sicherheit
+        // Standort & Datenschutz
         FAQCategory(
-            title: "Datenschutz",
-            icon: "🔒",
+            title: "Standort & Datenschutz",
+            icon: "📍",
             faqs: [
+                FAQ(
+                    question: "Warum braucht die App meinen Standort?",
+                    answer: "Die App nutzt deinen Standort nur für drei Funktionen: 1) Um dich auf der Karte anzuzeigen (blauer Punkt), 2) Um deinen aktuellen Standort als Startpunkt für Routen zu verwenden, und 3) Um dir Benachrichtigungen zu senden, wenn du interessante Orte auf deiner Route erreichst. Alle Funktionen sind optional - die App funktioniert auch ohne Standortzugriff."
+                ),
+                FAQ(
+                    question: "Wie funktionieren die Standort-Benachrichtigungen?",
+                    answer: "Wenn du eine Route startest und sowohl Benachrichtigungen als auch Standort erlaubst, bekommst du eine Mitteilung, sobald du einem interessanten Ort auf deiner Route nahe kommst (ca. 25 Meter). So verpasst du garantiert nichts! Die Benachrichtigungen funktionieren auch, wenn die App im Hintergrund läuft."
+                ),
+                FAQ(
+                    question: "Kann ich die App ohne Location-Permission verwenden?",
+                    answer: "Ja, absolut! Du kannst die App vollständig nutzen, ohne Standortzugriff zu gewähren. Du gibst einfach eine Stadt manuell ein, und die App plant trotzdem perfekte Routen für dich. Lediglich die automatische Anzeige deiner Position und Benachrichtigungen sind dann nicht verfügbar."
+                ),
+                FAQ(
+                    question: "Wie kann ich meinen Standort als Standard-Startpunkt setzen?",
+                    answer: "Gehe in dein Profil → Einstellungen → 'Immer meinen Standort verwenden'. Wenn diese Option aktiviert ist, wird automatisch dein aktueller Standort als Startpunkt vorgeschlagen, sobald du eine neue Route planst. Du kannst trotzdem jederzeit manuell eine andere Stadt eingeben."
+                ),
                 FAQ(
                     question: "Welche Daten sammelt die App?",
                     answer: "Wir sammeln nur die notwendigen Daten für die Routenplanung: Deine Standortangaben für Städte und gespeicherte Routen. Deine persönlichen Daten bleiben lokal auf deinem Gerät gespeichert."
                 ),
                 FAQ(
                     question: "Wird mein Standort getrackt?",
-                    answer: "Nein! Wir tracken deinen Standort nicht kontinuierlich. Die App nutzt Standortdaten nur, wenn du aktiv eine Route planst oder nach Orten in deiner Nähe suchst."
+                    answer: "Nein! Wir tracken deinen Standort nicht kontinuierlich. Die App nutzt Standortdaten nur, wenn du aktiv eine Route planst oder nach Orten in deiner Nähe suchst. Bei Background-Benachrichtigungen wird dein Standort nur überprüft, um dir relevante Benachrichtigungen zu senden."
                 ),
                 FAQ(
                     question: "Kann ich meine Daten löschen?",
                     answer: "Ja, du kannst jederzeit alle deine gespeicherten Daten in den Profileinstellungen löschen. Dies umfasst deine Routenhistorie und Profileinstellungen."
-                ),
+                )
+            ]
+        ),
+        
+        // Rechtliche Informationen
+        FAQCategory(
+            title: "Rechtliches",
+            icon: "🔒",
+            faqs: [
                 FAQ(
                     question: "Wo finde ich die rechtlichen Informationen?",
                     answer: "Im Profil-Bereich findest du alle rechtlichen Dokumente: 'Impressum' mit Unternehmensinformationen, 'AGB' mit den Nutzungsbedingungen und 'Datenschutzerklärung' mit Details zum Umgang mit deinen Daten. Alle Dokumente entsprechen den deutschen Rechtsvorgaben und sind kostenlos einsehbar."

@@ -12,10 +12,36 @@ struct ContentView: View {
   @State private var showingRoutePlanning = false
   @State private var activeRoute: GeneratedRoute?
   
+  // Phase 2: Location Features
+  @StateObject private var locationService = LocationManagerService.shared
+  @State private var showingLocationPermissionAlert = false
+  
+  // Computed properties for Location Button
+  private var locationButtonIcon: String {
+    if !locationService.isLocationAuthorized {
+      return locationService.authorizationStatus == .denied ? "location.slash" : "location"
+    } else {
+      return "location.fill"
+    }
+  }
+  
+  private var locationButtonColor: Color {
+    if !locationService.isLocationAuthorized {
+      return locationService.authorizationStatus == .denied ? .red : .orange
+    } else {
+      return .blue
+    }
+  }
+  
   var body: some View {
     ZStack {
       // Fullscreen Map
       Map(position: $cameraPosition) {
+        // Phase 2: User Location (Blue Dot)
+        if locationService.currentLocation != nil {
+          UserAnnotation()
+        }
+        
         // Display route if active
         if let route = activeRoute {
           // Route polylines
@@ -61,6 +87,42 @@ struct ContentView: View {
           }
           
           Spacer()
+          
+          // Phase 2: Location Button - Always visible, smart behavior
+          Button(action: {
+            if !locationService.isLocationAuthorized {
+              // Not authorized - request permission or show settings
+              if locationService.authorizationStatus == .denied || locationService.authorizationStatus == .restricted {
+                showingLocationPermissionAlert = true
+              } else {
+                Task { @MainActor in
+                  locationService.requestLocationPermission()
+                }
+              }
+            } else {
+              // Authorized - center on user location
+              if let userLocation = locationService.currentLocation {
+                withAnimation(.easeInOut(duration: 0.8)) {
+                  cameraPosition = MapCameraPosition.region(
+                    MKCoordinateRegion(
+                      center: userLocation.coordinate,
+                      span: MKCoordinateSpan(latitudeDelta: 0.005, longitudeDelta: 0.005)
+                    )
+                  )
+                }
+              }
+            }
+          }) {
+            Image(systemName: locationButtonIcon)
+              .font(.system(size: 18))
+              .foregroundColor(locationButtonColor)
+              .frame(width: 40, height: 40)
+              .background(
+                Circle()
+                  .fill(.regularMaterial)
+                  .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
+              )
+          }
         }
         .padding(.horizontal, 20)
         .padding(.top, 16)
@@ -207,6 +269,47 @@ struct ContentView: View {
           }
         }
       })
+    }
+    // Phase 2: Lifecycle & Alerts
+    .onAppear {
+      // Automatisch Location Permission anfordern bei erstem App-Start
+      if locationService.authorizationStatus == .notDetermined {
+        Task { @MainActor in
+          locationService.requestLocationPermission()
+        }
+      }
+      // Location-Updates starten wenn bereits authorized
+      if locationService.isLocationAuthorized {
+        locationService.startLocationUpdates()
+      }
+    }
+    .onChange(of: locationService.isLocationAuthorized) { _, isAuthorized in
+      if isAuthorized {
+        locationService.startLocationUpdates()
+        // Kamera zur User-Location bewegen bei erster Autorisierung
+        if let location = locationService.currentLocation {
+          withAnimation(.easeInOut(duration: 1.0)) {
+            cameraPosition = MapCameraPosition.region(
+              MKCoordinateRegion(
+                center: location.coordinate,
+                span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
+              )
+            )
+          }
+        }
+      } else {
+        locationService.stopLocationUpdates()
+      }
+    }
+    .alert("Location-Zugriff erforderlich", isPresented: $showingLocationPermissionAlert) {
+      Button("Einstellungen öffnen") {
+        if let settingsUrl = URL(string: UIApplication.openSettingsURLString) {
+          UIApplication.shared.open(settingsUrl)
+        }
+      }
+      Button("Abbrechen", role: .cancel) { }
+    } message: {
+      Text("Um deine Position auf der Karte zu sehen, aktiviere bitte Location-Services in den Einstellungen.")
     }
   }
 }

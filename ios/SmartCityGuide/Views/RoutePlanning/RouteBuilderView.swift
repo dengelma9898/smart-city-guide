@@ -6,6 +6,7 @@ struct RouteBuilderView: View {
   @Environment(\.dismiss) private var dismiss
   let startingCity: String
   let startingCoordinates: CLLocationCoordinate2D?
+  let usingCurrentLocation: Bool // Phase 3: Current Location flag
   let endpointOption: EndpointOption
   let customEndpoint: String
   let customEndpointCoordinates: CLLocationCoordinate2D?
@@ -24,6 +25,7 @@ struct RouteBuilderView: View {
   init(
     startingCity: String,
     startingCoordinates: CLLocationCoordinate2D?,
+    usingCurrentLocation: Bool = false, // Phase 3
     maximumStops: MaximumStops,
     endpointOption: EndpointOption,
     customEndpoint: String,
@@ -34,6 +36,7 @@ struct RouteBuilderView: View {
   ) {
     self.startingCity = startingCity
     self.startingCoordinates = startingCoordinates
+    self.usingCurrentLocation = usingCurrentLocation
     self.endpointOption = endpointOption
     self.customEndpoint = customEndpoint
     self.customEndpointCoordinates = customEndpointCoordinates
@@ -62,6 +65,7 @@ struct RouteBuilderView: View {
   ) {
     self.startingCity = startingCity
     self.startingCoordinates = startingCoordinates
+    self.usingCurrentLocation = false // Legacy initializer defaults to false
     self.endpointOption = endpointOption
     self.customEndpoint = customEndpoint
     self.customEndpointCoordinates = customEndpointCoordinates
@@ -123,16 +127,32 @@ struct RouteBuilderView: View {
     if let maximumStops = maximumStops,
        let maximumWalkingTime = maximumWalkingTime,
        let minimumPOIDistance = minimumPOIDistance {
-      // Use new enhanced route generation
-      await routeService.generateRoute(
-        startingCity: startingCity,
-        maximumStops: maximumStops,
-        endpointOption: endpointOption,
-        customEndpoint: customEndpoint,
-        maximumWalkingTime: maximumWalkingTime,
-        minimumPOIDistance: minimumPOIDistance,
-        availablePOIs: discoveredPOIs
-      )
+      
+      // Phase 3: Check if using current location
+      if usingCurrentLocation, let coordinates = startingCoordinates {
+        // Use current location route generation
+        let currentLocation = CLLocation(latitude: coordinates.latitude, longitude: coordinates.longitude)
+        await routeService.generateRoute(
+          fromCurrentLocation: currentLocation,
+          maximumStops: maximumStops,
+          endpointOption: endpointOption,
+          customEndpoint: customEndpoint,
+          maximumWalkingTime: maximumWalkingTime,
+          minimumPOIDistance: minimumPOIDistance,
+          availablePOIs: discoveredPOIs
+        )
+      } else {
+        // Use city-based route generation
+        await routeService.generateRoute(
+          startingCity: startingCity,
+          maximumStops: maximumStops,
+          endpointOption: endpointOption,
+          customEndpoint: customEndpoint,
+          maximumWalkingTime: maximumWalkingTime,
+          minimumPOIDistance: minimumPOIDistance,
+          availablePOIs: discoveredPOIs
+        )
+      }
     } else if let numberOfPlaces = numberOfPlaces,
               let routeLength = routeLength {
       // Use legacy route generation
@@ -190,7 +210,7 @@ struct RouteBuilderView: View {
                 .font(.title2)
                 .fontWeight(.semibold)
               
-              Text("Suchen die coolsten \(numberOfPlaces) Stopps in \(startingCity) für dich!")
+              Text("Suchen die coolsten \(numberOfPlaces ?? 5) Stopps in \(startingCity) für dich!")
                 .font(.subheadline)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
@@ -519,6 +539,12 @@ struct RouteBuilderView: View {
               // Use Route Button
               Button(action: {
                 onRouteGenerated(route)
+                
+                // Phase 4: Start proximity monitoring for the active route
+                Task {
+                  await ProximityService.shared.startProximityMonitoring(for: route)
+                }
+                
                 dismiss()
               }) {
                 HStack(spacing: 8) {
@@ -684,57 +710,49 @@ struct RouteBuilderView: View {
       isEnrichingAllPOIs = true
     }
     
-    do {
-      // Filtere POIs die noch nicht enriched wurden
-      let unenrichedPOIs = discoveredPOIs.filter { poi in
-        enrichedPOIs[poi.id] == nil
-      }
-      
-      guard !unenrichedPOIs.isEmpty else {
-        await MainActor.run {
-          isEnrichingAllPOIs = false
-        }
-        print("📚 [Phase 2] All POIs already enriched")
-        return
-      }
-      
-      print("📚 [Phase 2] Background enriching \(unenrichedPOIs.count) additional POIs...")
-      
-      // Enriche im Hintergrund (mit langsamerer Rate für bessere UX)
-      let cityName = extractCityName(from: startingCity)
-      var completedCount = 0
-      for poi in unenrichedPOIs {
-        do {
-          let enrichedPOI = try await wikipediaService.enrichPOI(poi, cityName: cityName)
-          
-          await MainActor.run {
-            enrichedPOIs[enrichedPOI.basePOI.id] = enrichedPOI
-            completedCount += 1
-            enrichmentProgress = Double(completedCount) / Double(unenrichedPOIs.count)
-          }
-          
-          // Längere Pause für Hintergrund-Enrichment
-          try await Task.sleep(nanoseconds: 200_000_000) // 200ms
-          
-        } catch {
-          print("📚 [Phase 2] Failed to enrich POI '\(poi.name)': \(error.localizedDescription)")
-        }
-      }
-      
-      await MainActor.run {
-        isEnrichingAllPOIs = false
-        enrichmentProgress = 1.0
-      }
-      
-      let totalEnriched = enrichedPOIs.values.filter { $0.wikipediaData != nil }.count
-      print("📚 [Phase 2] Background enrichment completed: \(totalEnriched)/\(discoveredPOIs.count) total enriched")
-      
-    } catch {
-      await MainActor.run {
-        isEnrichingAllPOIs = false
-      }
-      print("📚 [Phase 2] Background enrichment failed: \(error.localizedDescription)")
+    // Filtere POIs die noch nicht enriched wurden
+    let unenrichedPOIs = discoveredPOIs.filter { poi in
+      enrichedPOIs[poi.id] == nil
     }
+    
+    guard !unenrichedPOIs.isEmpty else {
+      await MainActor.run {
+        isEnrichingAllPOIs = false
+      }
+      print("📚 [Phase 2] All POIs already enriched")
+      return
+    }
+    
+    print("📚 [Phase 2] Background enriching \(unenrichedPOIs.count) additional POIs...")
+    
+    // Enriche im Hintergrund (mit langsamerer Rate für bessere UX)
+    let cityName = extractCityName(from: startingCity)
+    var completedCount = 0
+    for poi in unenrichedPOIs {
+      do {
+        let enrichedPOI = try await wikipediaService.enrichPOI(poi, cityName: cityName)
+        
+        await MainActor.run {
+          enrichedPOIs[enrichedPOI.basePOI.id] = enrichedPOI
+          completedCount += 1
+          enrichmentProgress = Double(completedCount) / Double(unenrichedPOIs.count)
+        }
+        
+        // Längere Pause für Hintergrund-Enrichment
+        try await Task.sleep(nanoseconds: 200_000_000) // 200ms
+        
+      } catch {
+        print("📚 [Phase 2] Failed to enrich POI '\(poi.name)': \(error.localizedDescription)")
+      }
+    }
+    
+    await MainActor.run {
+      isEnrichingAllPOIs = false
+      enrichmentProgress = 1.0
+    }
+    
+    let totalEnriched = enrichedPOIs.values.filter { $0.wikipediaData != nil }.count
+    print("📚 [Phase 2] Background enrichment completed: \(totalEnriched)/\(discoveredPOIs.count) total enriched")
   }
   
   /// Extrahiert POI-Objekte aus den Route-Waypoints

@@ -5,10 +5,12 @@ import MapKit
 struct RoutePlanningView: View {
   @Environment(\.dismiss) private var dismiss
   @StateObject private var settingsManager = ProfileSettingsManager()
+  @StateObject private var locationService = LocationManagerService.shared // Phase 3
 
   
   @State private var startingCity = ""
   @State private var startingCoordinates: CLLocationCoordinate2D? = nil // NEW: Store coordinates
+  @State private var usingCurrentLocation = false // Phase 3: Track if using current location
   @State private var maximumStops: MaximumStops = .five
   @State private var endpointOption: EndpointOption = .roundtrip
   @State private var customEndpoint = ""
@@ -56,18 +58,82 @@ struct RoutePlanningView: View {
                 .accessibilityHint("Mehr Infos zum Startort")
               }
               
-              LocationSearchField(
-                placeholder: "Berlin, München, Hamburg... worauf hast du Lust?",
-                text: $startingCity,
-                onLocationSelected: { coordinates, address in
-                  startingCoordinates = coordinates
-                  SecureLogger.shared.logCoordinates(coordinates, context: "Starting location saved")
+              if !usingCurrentLocation {
+                LocationSearchField(
+                  placeholder: "Berlin, München, Hamburg... worauf hast du Lust?",
+                  text: $startingCity,
+                  onLocationSelected: { coordinates, address in
+                    startingCoordinates = coordinates
+                    SecureLogger.shared.logCoordinates(coordinates, context: "Starting location saved")
+                  }
+                )
+                
+                // City extraction hint
+                if !startingCity.isEmpty {
+                  CityInputHintView(inputText: startingCity)
                 }
-              )
+              } else {
+                // Phase 3: Current Location Display
+                HStack {
+                  Image(systemName: "location.fill")
+                    .foregroundColor(.blue)
+                    .font(.system(size: 16))
+                  
+                  Text("Mein Standort")
+                    .font(.body)
+                    .foregroundColor(.primary)
+                  
+                  if let location = locationService.currentLocation {
+                    Text("(\(String(format: "%.4f", location.coordinate.latitude)), \(String(format: "%.4f", location.coordinate.longitude)))")
+                      .font(.caption)
+                      .foregroundColor(.secondary)
+                  }
+                  
+                  Spacer()
+                  
+                  Button(action: {
+                    usingCurrentLocation = false
+                    startingCity = ""
+                    startingCoordinates = nil
+                  }) {
+                    Image(systemName: "xmark.circle.fill")
+                      .foregroundColor(.gray)
+                      .font(.system(size: 20))
+                  }
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                .background(
+                  RoundedRectangle(cornerRadius: 12)
+                    .fill(Color(.systemGray6))
+                )
+              }
               
-              // City extraction hint
-              if !startingCity.isEmpty {
-                CityInputHintView(inputText: startingCity)
+              // Phase 3: "Meinen Standort verwenden" Button
+              if !usingCurrentLocation && locationService.isLocationAuthorized {
+                Button(action: {
+                  if let currentLocation = locationService.currentLocation {
+                    usingCurrentLocation = true
+                    startingCity = "Mein Standort"
+                    startingCoordinates = currentLocation.coordinate
+                  }
+                }) {
+                  HStack {
+                    Image(systemName: "location.fill")
+                      .font(.system(size: 16))
+                    Text("Meinen Standort verwenden")
+                      .font(.body)
+                      .fontWeight(.medium)
+                  }
+                  .foregroundColor(.blue)
+                  .padding(.horizontal, 16)
+                  .padding(.vertical, 10)
+                  .background(
+                    RoundedRectangle(cornerRadius: 8)
+                      .stroke(Color.blue, lineWidth: 1)
+                  )
+                }
+                .disabled(locationService.currentLocation == nil)
               }
             }
             
@@ -192,16 +258,18 @@ struct RoutePlanningView: View {
           .padding(.vertical, 16)
           .background(
             RoundedRectangle(cornerRadius: 12)
-              .fill(startingCity.isEmpty ? .gray : .blue)
+              .fill((startingCity.isEmpty && !usingCurrentLocation) ? .gray : .blue)
           )
         }
-        .disabled(startingCity.isEmpty)
+        .disabled(startingCity.isEmpty && !usingCurrentLocation)
         .padding(.horizontal, 20)
         .padding(.bottom, 34)
         .background(.regularMaterial.opacity(0.8))
         .accessibilityLabel("Los geht's!")
         .accessibilityHint("Startet deine Abenteuer-Tour!")
       }
+      .opacity(settingsManager.isLoading ? 0.4 : 1.0)
+      .animation(.easeInOut(duration: 0.4), value: settingsManager.isLoading)
       .navigationTitle("Lass uns loslegen!")
       .navigationBarTitleDisplayMode(.large)
       .toolbar {
@@ -215,6 +283,7 @@ struct RoutePlanningView: View {
         RouteBuilderView(
           startingCity: startingCity,
           startingCoordinates: startingCoordinates,
+          usingCurrentLocation: usingCurrentLocation, // Phase 3
           maximumStops: maximumStops,
           endpointOption: endpointOption,
           customEndpoint: customEndpoint,
@@ -226,6 +295,13 @@ struct RoutePlanningView: View {
       }
       .onAppear {
         loadDefaultSettings()
+      }
+      .onChange(of: settingsManager.isLoading) { isLoading in
+        if !isLoading {
+          withAnimation(.easeInOut(duration: 0.3)) {
+            loadDefaultSettings()
+          }
+        }
       }
       .alert("Startort Info", isPresented: $showingStartPointInfo) {
         Button("Alles klar!") { }
@@ -256,6 +332,11 @@ struct RoutePlanningView: View {
   }
   
   private func loadDefaultSettings() {
+    // Don't apply while settings are still loading
+    guard !settingsManager.isLoading else {
+      return
+    }
+    
     // Load default values from profile settings ONLY if still at initial defaults
     // This preserves user's active selections while providing intelligent defaults for new users
     
