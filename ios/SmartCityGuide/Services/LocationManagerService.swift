@@ -17,6 +17,7 @@ class LocationManagerService: ObservableObject {
     // MARK: - Private Properties
     private let locationManager = CLLocationManager()
     private var locationUpdateContinuation: CheckedContinuation<CLLocation, Error>?
+    private var authorizationContinuation: CheckedContinuation<CLAuthorizationStatus, Never>?
     
     // MARK: - Singleton
     static let shared = LocationManagerService()
@@ -51,28 +52,62 @@ class LocationManagerService: ObservableObject {
             }
         }
         
-        // Initial authorization status setzen
-        authorizationStatus = locationManager.authorizationStatus
-        logger.info("LocationManager initialisiert mit Status: \(String(describing: self.authorizationStatus))")
+        // Initial authorization status asynchron via delegate erhalten
+        // Nicht synchron auf Main Thread abfragen um UI-Responsiveness zu gewährleisten
+        Task {
+            // Trigger delegate callback to get current status async
+            // This prevents blocking the main thread with synchronous property access
+            await initializeAuthorizationStatus()
+        }
+        logger.info("LocationManager initialisiert - Authorization Status wird asynchron geladen")
+    }
+    
+    // MARK: - Async Authorization Initialization
+    
+    /// Initialisiert Authorization Status asynchron um UI-Responsiveness zu gewährleisten
+    private func initializeAuthorizationStatus() async {
+        // Use delegate-based approach instead of synchronous property access
+        // This prevents "UI unresponsiveness" warning on main thread
+        let currentStatus = await withCheckedContinuation { continuation in
+            // Set up continuation to receive status via delegate
+            authorizationContinuation = continuation
+            
+            // Use Task to properly handle MainActor isolation
+            Task { @MainActor in
+                // Check authorization status on main thread (MainActor isolated)
+                let status = self.locationManager.authorizationStatus
+                
+                // Call delegate handler directly (already on main thread)
+                self.handleAuthorizationChange(status)
+            }
+        }
+        
+        logger.info("✅ Authorization Status asynchron geladen: \(String(describing: currentStatus))")
     }
     
     // MARK: - Permission Management
     
-    /// Fordert Location-Permission vom User an
-    func requestLocationPermission() {
+    /// Fordert Location-Permission vom User an (async to prevent UI blocking)
+    func requestLocationPermission() async {
         logger.info("Location-Permission wird angefordert")
         
         guard CLLocationManager.locationServicesEnabled() else {
-            errorMessage = "Location-Services sind auf diesem Gerät deaktiviert"
+            await MainActor.run {
+                errorMessage = "Location-Services sind auf diesem Gerät deaktiviert"
+            }
             logger.error("Location-Services nicht verfügbar")
             return
         }
         
         switch authorizationStatus {
         case .notDetermined:
-            locationManager.requestWhenInUseAuthorization()
+            // Async request to prevent UI blocking
+            let status = await requestAuthorizationAsync(type: .whenInUse)
+            logger.info("Permission request completed with status: \(String(describing: status))")
         case .denied, .restricted:
-            errorMessage = "Location-Zugriff wurde verweigert. Du kannst ihn in den Einstellungen aktivieren."
+            await MainActor.run {
+                errorMessage = "Location-Zugriff wurde verweigert. Du kannst ihn in den Einstellungen aktivieren."
+            }
             logger.warning("Location-Permission verweigert")
         case .authorizedWhenInUse, .authorizedAlways:
             logger.info("Location-Permission bereits gewährt")
@@ -81,12 +116,21 @@ class LocationManagerService: ObservableObject {
         }
     }
     
+    /// Legacy synchronous version for backward compatibility
+    func requestLocationPermissionSync() {
+        Task {
+            await requestLocationPermission()
+        }
+    }
+    
     /// Fordert Always Location Permission für Background Notifications
-    func requestAlwaysLocationPermission() {
+    func requestAlwaysLocationPermission() async {
         logger.info("Always Location-Permission wird angefordert für Background Notifications")
         
         guard CLLocationManager.locationServicesEnabled() else {
-            errorMessage = "Location-Services sind auf diesem Gerät deaktiviert"
+            await MainActor.run {
+                errorMessage = "Location-Services sind auf diesem Gerät deaktiviert"
+            }
             logger.error("Location-Services nicht verfügbar")
             return
         }
@@ -94,18 +138,52 @@ class LocationManagerService: ObservableObject {
         switch authorizationStatus {
         case .notDetermined:
             // Erst When In Use anfordern
-            locationManager.requestWhenInUseAuthorization()
+            let whenInUseStatus = await requestAuthorizationAsync(type: .whenInUse)
+            if whenInUseStatus == .authorizedWhenInUse {
+                // Dann Always anfordern
+                let alwaysStatus = await requestAuthorizationAsync(type: .always)
+                logger.info("Always permission request completed with status: \(String(describing: alwaysStatus))")
+            }
         case .authorizedWhenInUse:
             // Upgrade zu Always
-            locationManager.requestAlwaysAuthorization()
+            let status = await requestAuthorizationAsync(type: .always)
+            logger.info("Always upgrade completed with status: \(String(describing: status))")
         case .authorizedAlways:
             logger.info("Always Location-Permission bereits gewährt")
         case .denied, .restricted:
-            errorMessage = "Location-Zugriff wurde verweigert. Du kannst ihn in den Einstellungen aktivieren."
+            await MainActor.run {
+                errorMessage = "Location-Zugriff wurde verweigert. Du kannst ihn in den Einstellungen aktivieren."
+            }
             logger.warning("Location-Permission verweigert")
         @unknown default:
             logger.error("Unbekannter Authorization-Status")
         }
+    }
+    
+    /// Async authorization request helper
+    private func requestAuthorizationAsync(type: AuthorizationType) async -> CLAuthorizationStatus {
+        return await withCheckedContinuation { continuation in
+            authorizationContinuation = continuation
+            
+            DispatchQueue.main.async { [weak self] in
+                guard let self = self else {
+                    continuation.resume(returning: .notDetermined)
+                    return
+                }
+                
+                switch type {
+                case .whenInUse:
+                    self.locationManager.requestWhenInUseAuthorization()
+                case .always:
+                    self.locationManager.requestAlwaysAuthorization()
+                }
+            }
+        }
+    }
+    
+    private enum AuthorizationType {
+        case whenInUse
+        case always
     }
     
     /// Prüft ob Location-Services verfügbar sind
@@ -272,6 +350,12 @@ class LocationManagerService: ObservableObject {
         
         authorizationStatus = status
         updateLocationAvailability()
+        
+        // Fulfill pending authorization continuation if waiting
+        if let continuation = authorizationContinuation {
+            authorizationContinuation = nil
+            continuation.resume(returning: status)
+        }
         
         switch status {
         case .authorizedWhenInUse, .authorizedAlways:

@@ -96,7 +96,7 @@ struct ContentView: View {
                 showingLocationPermissionAlert = true
               } else {
                 Task { @MainActor in
-                  locationService.requestLocationPermission()
+                  await locationService.requestLocationPermission()
                 }
               }
             } else {
@@ -275,7 +275,7 @@ struct ContentView: View {
       // Automatisch Location Permission anfordern bei erstem App-Start
       if locationService.authorizationStatus == .notDetermined {
         Task { @MainActor in
-          locationService.requestLocationPermission()
+          await locationService.requestLocationPermission()
         }
       }
       // Location-Updates starten wenn bereits authorized

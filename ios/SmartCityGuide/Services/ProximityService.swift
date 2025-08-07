@@ -127,7 +127,9 @@ class ProximityService: NSObject, ObservableObject {
         // For now, just request Always permission automatically
         // In production, you might want to show a user dialog first
         logger.info("📍 Requesting Always location permission for background notifications...")
-        locationService.requestAlwaysLocationPermission()
+        Task {
+            await locationService.requestAlwaysLocationPermission()
+        }
     }
     
     private func checkBackgroundAppRefresh() async {
