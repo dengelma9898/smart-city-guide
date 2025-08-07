@@ -1,0 +1,216 @@
+import Foundation
+import CoreLocation
+import UserNotifications
+import MapKit
+import os.log
+
+// MARK: - Proximity Service for Location-based Notifications
+@MainActor
+class ProximityService: NSObject, ObservableObject {
+    static let shared = ProximityService()
+    
+    // MARK: - Published Properties
+    @Published var isActive = false
+    @Published var visitedSpots: Set<String> = []
+    @Published var notificationPermissionStatus: UNAuthorizationStatus = .notDetermined
+    
+    // MARK: - Private Properties
+    private let notificationCenter = UNUserNotificationCenter.current()
+    private let logger = Logger(subsystem: "de.dengelma.smartcity-guide", category: "Proximity")
+    private let proximityThreshold: CLLocationDistance = 25.0 // 25 meters
+    private var activeRoute: GeneratedRoute?
+    private var locationService = LocationManagerService.shared
+    
+    override init() {
+        super.init()
+        setupNotificationCenter()
+    }
+    
+    // MARK: - Notification Permission Setup
+    func requestNotificationPermission() async -> Bool {
+        do {
+            let granted = try await notificationCenter.requestAuthorization(
+                options: [.alert, .sound, .badge]
+            )
+            
+            await MainActor.run {
+                self.notificationPermissionStatus = granted ? .authorized : .denied
+            }
+            
+            logger.info("📢 Notification permission: \(granted ? "granted" : "denied")")
+            return granted
+        } catch {
+            logger.error("❌ Notification permission error: \(error)")
+            await MainActor.run {
+                self.notificationPermissionStatus = .denied
+            }
+            return false
+        }
+    }
+    
+    func checkNotificationPermission() async {
+        let settings = await notificationCenter.notificationSettings()
+        await MainActor.run {
+            self.notificationPermissionStatus = settings.authorizationStatus
+        }
+    }
+    
+    // MARK: - Active Route Management
+    func startProximityMonitoring(for route: GeneratedRoute) async {
+        logger.info("🎯 Starting proximity monitoring for route with \(route.waypoints.count) spots")
+        
+        // Check notification permission first
+        await checkNotificationPermission()
+        
+        if notificationPermissionStatus == .notDetermined {
+            let granted = await requestNotificationPermission()
+            if !granted {
+                logger.warning("⚠️ Proximity monitoring without notifications - permission denied")
+            }
+        }
+        
+        activeRoute = route
+        visitedSpots.removeAll()
+        isActive = true
+        
+        // Start location monitoring
+        await startLocationMonitoring()
+    }
+    
+    func stopProximityMonitoring() {
+        logger.info("⏹️ Stopping proximity monitoring")
+        isActive = false
+        activeRoute = nil
+        visitedSpots.removeAll()
+    }
+    
+    // MARK: - Location Monitoring
+    private func startLocationMonitoring() async {
+        // Check if location is authorized
+        guard locationService.isLocationAuthorized else {
+            logger.warning("⚠️ Location not authorized for proximity monitoring")
+            return
+        }
+        
+        // Start monitoring user location changes
+        // This will be triggered by LocationManagerService location updates
+        logger.info("📍 Location monitoring active for proximity detection")
+    }
+    
+    // MARK: - Proximity Detection
+    func checkProximityToSpots() async {
+        guard isActive,
+              let route = activeRoute,
+              let userLocation = locationService.currentLocation else {
+            return
+        }
+        
+        for waypoint in route.waypoints {
+            let spotId = "\(waypoint.name)_\(waypoint.coordinate.latitude)_\(waypoint.coordinate.longitude)"
+            
+            // Skip if already visited
+            if visitedSpots.contains(spotId) {
+                continue
+            }
+            
+            let spotLocation = CLLocation(
+                latitude: waypoint.coordinate.latitude,
+                longitude: waypoint.coordinate.longitude
+            )
+            
+            let distance = userLocation.distance(from: spotLocation)
+            
+            if distance <= proximityThreshold {
+                await triggerSpotNotification(for: waypoint, distance: distance)
+                visitedSpots.insert(spotId)
+                logger.info("✅ Spot visited: \(waypoint.name) at \(String(format: "%.1f", distance))m")
+            }
+        }
+    }
+    
+    // MARK: - Notification Triggering
+    private func triggerSpotNotification(for waypoint: RoutePoint, distance: CLLocationDistance) async {
+        guard notificationPermissionStatus == .authorized else {
+            logger.info("📢 Would trigger notification for \(waypoint.name) but permission not granted")
+            return
+        }
+        
+        let content = UNMutableNotificationContent()
+        content.title = "🎯 Spot erreicht!"
+        content.body = "Du bist bei \(waypoint.name) angekommen! Schau dich um und entdecke was Neues."
+        content.sound = .default
+        content.badge = 1
+        
+        // Add custom data
+        content.userInfo = [
+            "spotName": waypoint.name,
+            "spotCoordinates": [
+                "latitude": waypoint.coordinate.latitude,
+                "longitude": waypoint.coordinate.longitude
+            ],
+            "distance": distance,
+            "category": waypoint.category.rawValue
+        ]
+        
+        // Trigger immediately
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 0.1, repeats: false)
+        let request = UNNotificationRequest(
+            identifier: "spot_\(waypoint.name)_\(Date().timeIntervalSince1970)",
+            content: content,
+            trigger: trigger
+        )
+        
+        do {
+            try await notificationCenter.add(request)
+            logger.info("📢 Notification triggered for: \(waypoint.name)")
+        } catch {
+            logger.error("❌ Failed to schedule notification: \(error)")
+        }
+    }
+    
+    // MARK: - Notification Center Setup
+    private func setupNotificationCenter() {
+        notificationCenter.delegate = self
+    }
+    
+    // MARK: - Utility Methods
+    func getActiveRouteProgress() -> (visited: Int, total: Int) {
+        guard let route = activeRoute else { return (0, 0) }
+        return (visitedSpots.count, route.waypoints.count)
+    }
+    
+    func isSpotVisited(_ waypoint: RoutePoint) -> Bool {
+        let spotId = "\(waypoint.name)_\(waypoint.coordinate.latitude)_\(waypoint.coordinate.longitude)"
+        return visitedSpots.contains(spotId)
+    }
+}
+
+// MARK: - UNUserNotificationCenterDelegate
+extension ProximityService: UNUserNotificationCenterDelegate {
+    nonisolated func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        willPresent notification: UNNotification,
+        withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
+    ) {
+        // Show notification even when app is in foreground
+        completionHandler([.banner, .sound, .badge])
+    }
+    
+    nonisolated func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        didReceive response: UNNotificationResponse,
+        withCompletionHandler completionHandler: @escaping () -> Void
+    ) {
+        // Handle notification tap
+        let userInfo = response.notification.request.content.userInfo
+        
+        Task { @MainActor in
+            if let spotName = userInfo["spotName"] as? String {
+                self.logger.info("📱 User tapped notification for: \(spotName)")
+                // Could navigate to spot detail or route view here
+            }
+        }
+        
+        completionHandler()
+    }
+}

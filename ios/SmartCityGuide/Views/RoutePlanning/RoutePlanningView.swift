@@ -268,6 +268,8 @@ struct RoutePlanningView: View {
         .accessibilityLabel("Los geht's!")
         .accessibilityHint("Startet deine Abenteuer-Tour!")
       }
+      .opacity(settingsManager.isLoading ? 0.4 : 1.0)
+      .animation(.easeInOut(duration: 0.4), value: settingsManager.isLoading)
       .navigationTitle("Lass uns loslegen!")
       .navigationBarTitleDisplayMode(.large)
       .toolbar {
@@ -293,6 +295,13 @@ struct RoutePlanningView: View {
       }
       .onAppear {
         loadDefaultSettings()
+      }
+      .onChange(of: settingsManager.isLoading) { isLoading in
+        if !isLoading {
+          withAnimation(.easeInOut(duration: 0.3)) {
+            loadDefaultSettings()
+          }
+        }
       }
       .alert("Startort Info", isPresented: $showingStartPointInfo) {
         Button("Alles klar!") { }
@@ -323,6 +332,11 @@ struct RoutePlanningView: View {
   }
   
   private func loadDefaultSettings() {
+    // Don't apply while settings are still loading
+    guard !settingsManager.isLoading else {
+      return
+    }
+    
     // Load default values from profile settings ONLY if still at initial defaults
     // This preserves user's active selections while providing intelligent defaults for new users
     

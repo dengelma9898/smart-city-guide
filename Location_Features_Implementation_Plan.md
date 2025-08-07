@@ -90,16 +90,17 @@ Diese TODO-Liste beschreibt die Implementierung der folgenden Location-Features:
 
 **Verifikation:** ✅ User kann Current Location als Startpunkt auswählen und wieder entfernen
 
-#### 3.3 ProfileSettingsView Konfiguration (Optional)
-- [ ] Neue Setting-Option "Standard-Startpunkt: Mein Standort"
-- [ ] Toggle in Endpoint-Options Section hinzufügen
-- [ ] Default-Verhalten konfigurierbar machen
+#### 3.3 ProfileSettingsView Konfiguration
+- [x] Neue Setting-Option "Standard-Startpunkt: Mein Standort" (useCurrentLocationAsDefault)
+- [x] Toggle in neue "Startpunkt-Präferenzen" Section hinzugefügt
+- [x] Default-Verhalten konfigurierbar (auto-aktiviert Current Location wenn eingestellt)
 
 **Dateien:** 
 - `ios/SmartCityGuide/Views/Profile/ProfileSettingsView.swift`
 - `ios/SmartCityGuide/Models/ProfileSettings.swift`
+- `ios/SmartCityGuide/Views/RoutePlanning/RoutePlanningView.swift`
 
-**Verifikation:** *Optional für zukünftige Verbesserung*
+**Verifikation:** ✅ Toggle in Settings funktioniert, RoutePlanningView wendet Setting automatisch an
 
 ---
 

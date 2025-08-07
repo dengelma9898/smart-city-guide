@@ -29,6 +29,38 @@ struct ProfileSettingsView: View {
                 }
                 .listRowBackground(Color.clear)
                 
+                // Phase 3: Startpunkt-Präferenzen Section (moved to top)
+                Section {
+                    HStack {
+                        Image(systemName: "location.circle.fill")
+                            .foregroundColor(.blue)
+                            .frame(width: 20)
+                        
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Immer meinen Standort verwenden")
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                            
+                            Text("Nutze automatisch deine aktuelle Position als Startpunkt")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        
+                        Spacer()
+                        
+                        Toggle("", isOn: Binding(
+                            get: { settingsManager.settings.useCurrentLocationAsDefault },
+                            set: { newValue in
+                                settingsManager.updateLocationDefault(useCurrentLocation: newValue)
+                            }
+                        ))
+                        .labelsHidden()
+                    }
+                    .padding(.vertical, 4)
+                } header: {
+                    Text("Startpunkt-Präferenzen")
+                }
+                
                 // Maximum Stops Section
                 Section {
                     VStack(alignment: .leading, spacing: 12) {
@@ -249,6 +281,8 @@ struct ProfileSettingsView: View {
                                 .foregroundColor(.orange)
                         }
                     }
+                } header: {
+                    Text("Abstand-Präferenzen")
                 } footer: {
                     Text("Du kannst das später jederzeit bei jeder Tour ändern!")
                         .font(.caption)

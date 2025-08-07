@@ -150,6 +150,11 @@ class LocationManagerService: ObservableObject {
         updateLocationAvailability()
         errorMessage = nil
         
+        // Phase 4: Trigger proximity check for active routes
+        Task {
+            await ProximityService.shared.checkProximityToSpots()
+        }
+        
         // Falls eine Continuation wartet, erfülle sie
         if let continuation = locationUpdateContinuation {
             locationUpdateContinuation = nil

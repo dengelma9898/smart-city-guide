@@ -539,6 +539,12 @@ struct RouteBuilderView: View {
               // Use Route Button
               Button(action: {
                 onRouteGenerated(route)
+                
+                // Phase 4: Start proximity monitoring for the active route
+                Task {
+                  await ProximityService.shared.startProximityMonitoring(for: route)
+                }
+                
                 dismiss()
               }) {
                 HStack(spacing: 8) {
