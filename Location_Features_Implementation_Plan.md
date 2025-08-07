@@ -105,27 +105,29 @@ Diese TODO-Liste beschreibt die Implementierung der folgenden Location-Features:
 ---
 
 ### 4. **Location-basierte Benachrichtigungen**
-*Status: ⏳ Pending*
+*Status: ✅ Completed*
 
 #### 4.1 Notification Permission Setup
-- [ ] UNUserNotificationCenter Permission Request
-- [ ] Local Notification Templates für Route-Spots
-- [ ] Background Location für Geo-Fencing (optional)
+- [x] UNUserNotificationCenter Permission Request
+- [x] Local Notification Templates für Route-Spots
+- [x] Background Location für Geo-Fencing mit UIBackgroundModes
 
 #### 4.2 Proximity Detection Service
-- [ ] `ProximityService.swift` erstellen
-- [ ] Distanz-Berechnung zwischen User und Route-Spots
-- [ ] Threshold-Definition (z.B. 25m Radius)
-- [ ] Notification-Trigger bei Annäherung
+- [x] `ProximityService.swift` erstellen
+- [x] Distanz-Berechnung zwischen User und Route-Spots
+- [x] Threshold-Definition (25m Radius)
+- [x] Notification-Trigger bei Annäherung
 
 **Dateien:** `ios/SmartCityGuide/Services/ProximityService.swift`
 
 #### 4.3 Integration mit aktiver Route
-- [ ] Active Route State Management
-- [ ] Spot-Visited Status Tracking
-- [ ] Integration mit RouteService für aktuelle Route-Daten
+- [x] Active Route State Management
+- [x] Spot-Visited Status Tracking
+- [x] Integration mit RouteService für aktuelle Route-Daten
+- [x] Background Location Updates mit Always Permission
+- [x] Significant Location Changes für iOS Background
 
-**Verifikation:** Notification erscheint beim Annähern an einen Route-Spot
+**Verifikation:** ✅ Notification erscheint beim Annähern an einen Route-Spot (Tested on Real Device)
 
 ---
 
