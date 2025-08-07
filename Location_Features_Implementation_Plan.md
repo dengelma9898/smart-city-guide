@@ -9,13 +9,16 @@
 
 ## 📋 Übersicht
 
-Diese TODO-Liste beschreibt die Implementierung der folgenden Location-Features:
+Diese TODO-Liste beschreibt die Implementierung der **Core Location-Features**:
 - ✅ Location-Permission-Management
-- 📍 Aktuelle Position auf der Karte anzeigen
-- 🎯 Current Location als Startpunkt für Route-Planung
-- 🔔 Location-basierte Benachrichtigungen beim Passieren von Route-Spots
-- 📸 In-App Foto-Feature für Route-Spots mit Speicherung in Photos + Route History
-- ⚙️ Location-Einstellungen in ProfileSettingsView
+- ✅ Aktuelle Position auf der Karte anzeigen
+- ✅ Current Location als Startpunkt für Route-Planung
+- ✅ Location-basierte Benachrichtigungen beim Passieren von Route-Spots
+- ⏳ FAQ Update für alle Location-Features (MANDATORY)
+
+**Zukünftige Features** sind in [`Future_Location_Features.md`](./Future_Location_Features.md) dokumentiert:
+- 📸 In-App Foto-Feature für Route-Spots
+- ⚙️ Erweiterte Location-Einstellungen
 
 ---
 
@@ -131,97 +134,40 @@ Diese TODO-Liste beschreibt die Implementierung der folgenden Location-Features:
 
 ---
 
-### 5. **In-App Foto-Feature für Route-Spots**
-*Status: ⏳ Pending*
+### 5. **FAQ Update (MANDATORY)**
+*Status: ✅ Completed*
 
-#### 5.1 Camera Permission & Integration
-- [ ] `NSCameraUsageDescription` in Info.plist
-- [ ] `NSPhotoLibraryAddUsageDescription` für Photo-Saving
-- [ ] Camera-Interface mit SwiftUI (UIImagePickerController wrapper)
-
-#### 5.2 Photo Capture Service
-- [ ] `PhotoCaptureService.swift` erstellen
-- [ ] Integration mit Photos Framework
-- [ ] Metadata-Tagging für Route-zugehörige Fotos
-- [ ] Location-Tagging in EXIF-Daten
-
-**Dateien:** `ios/SmartCityGuide/Services/PhotoCaptureService.swift`
-
-#### 5.3 UI Integration
-- [ ] Foto-Button in aktiver Route-View
-- [ ] Quick-Camera-Access während Route
-- [ ] Preview und Speichern-Flow
-- [ ] Spot-Assignment für Fotos
-
-#### 5.4 Route History Integration
-- [ ] Foto-Referenzen in RouteHistory-Model erweitern
-- [ ] Photo-Gallery in RouteHistoryDetailView
-- [ ] Photo-Display in POIDetailView
-
-**Dateien:**
-- `ios/SmartCityGuide/Models/RouteHistory.swift`
-- `ios/SmartCityGuide/Views/Profile/RouteHistoryDetailView.swift`
-- `ios/SmartCityGuide/Views/Components/POIDetailView.swift`
-
-**Verifikation:** Fotos werden sowohl in Photos-App als auch in Route-History gespeichert
-
----
-
-### 6. **ProfileSettingsView Location-Einstellungen**
-*Status: ⏳ Pending*
-
-#### 6.1 Location Settings Section
-- [ ] Neue Form-Section "Standort-Präferenzen" hinzufügen
-- [ ] Toggle: "Mein Standort als Standard-Startpunkt"
-- [ ] Toggle: "Benachrichtigungen bei Route-Spots"
-- [ ] Toggle: "Automatisches Foto-Tagging"
-
-#### 6.2 Settings Model Erweiterung
-- [ ] `ProfileSettings.swift` um Location-Properties erweitern
-- [ ] Default-Werte definieren
-- [ ] Persistence über ProfileSettingsManager
-
-**Dateien:**
-- `ios/SmartCityGuide/Models/ProfileSettings.swift`
-- `ios/SmartCityGuide/Views/Profile/ProfileSettingsView.swift`
-
-**Verifikation:** Alle Location-Settings werden korrekt gespeichert und angewendet
-
----
-
-### 7. **FAQ Update (MANDATORY)**
-*Status: ⏳ Pending*
-
-#### 7.1 HelpSupportView FAQ Erweiterung
-- [ ] Neue FAQ-Kategorie "Standort & Datenschutz"
-- [ ] FAQ: "Warum braucht die App meinen Standort?"
-- [ ] FAQ: "Wie funktionieren die Standort-Benachrichtigungen?"
-- [ ] FAQ: "Werden meine Fotos automatisch geteilt?"
-- [ ] FAQ: "Kann ich die App ohne Location-Permission verwenden?"
+#### 5.1 HelpSupportView FAQ Erweiterung
+- [x] Neue FAQ-Kategorie "Standort & Datenschutz"
+- [x] FAQ: "Warum braucht die App meinen Standort?"
+- [x] FAQ: "Wie funktionieren die Standort-Benachrichtigungen?"
+- [x] FAQ: "Kann ich die App ohne Location-Permission verwenden?"
+- [x] FAQ: "Wie kann ich meinen Standort als Standard-Startpunkt setzen?"
+- [x] Bestehende Datenschutz-FAQs aktualisiert
+- [x] Neue Kategorie "Rechtliches" für rechtliche Informationen
 
 **Dateien:** `ios/SmartCityGuide/Views/Profile/HelpSupportView.swift`
 
-**Verifikation:** FAQ enthält alle neuen Location-Features
+**Verifikation:** ✅ FAQ enthält alle neuen Location-Features mit benutzerfreundlichen Erklärungen
 
 ---
 
-### 8. **Build-Verifikation und Testing**
+### 6. **Build-Verifikation und Testing**
 *Status: ⏳ Pending*
 
-#### 8.1 Xcode MCP Build Verification
+#### 6.1 Xcode MCP Build Verification
 - [ ] `mcp_XcodeBuildMCP_build_sim_name_proj` für Compile-Check
 - [ ] Build-Errors beheben falls vorhanden
 - [ ] Simulator-Testing mit iPhone 16
 
-#### 8.2 Permission Testing
+#### 6.2 Permission Testing
 - [ ] Permission-Flow testen (Allow/Deny scenarios)
 - [ ] Graceful Degradation bei denied Permissions
 - [ ] Settings-App Integration testen
 
-#### 8.3 Feature Integration Testing
+#### 6.3 Feature Integration Testing
 - [ ] Current Location in Route-Planning testen
-- [ ] Notification-Flow simulieren
-- [ ] Foto-Capture und Storage testen
+- [ ] Background Notification-Flow testen (Real Device)
 - [ ] Profile-Settings persistence testen
 
 **Verifikation:** Alle Features funktionieren korrekt und App kompiliert erfolgreich
@@ -257,14 +203,12 @@ Diese TODO-Liste beschreibt die Implementierung der folgenden Location-Features:
 
 ## 🎯 Success Criteria
 
-- ✅ App kompiliert erfolgreich mit allen neuen Features
+- ✅ App kompiliert erfolgreich mit allen Core Location Features
 - ✅ Permission-Management funktioniert graceful
 - ✅ Current Location wird korrekt auf Karte angezeigt
 - ✅ Route-Planning nutzt Current Location als Startpunkt
-- ✅ Notifications triggern bei Spot-Proximity
-- ✅ Fotos werden korrekt in Photos + Route History gespeichert
-- ✅ Profile-Settings für alle Location-Features verfügbar
-- ✅ FAQ komplett aktualisiert
+- ✅ Notifications triggern bei Spot-Proximity (Real Device tested)
+- ✅ FAQ komplett aktualisiert für alle implementierten Features
 - ✅ Alle Features funktional auch ohne Location-Permission
 
 ---
