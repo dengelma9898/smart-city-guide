@@ -47,7 +47,7 @@ Systematische Behebung von **Critical Bugs** und **Code Quality Issues** nach de
 ---
 
 ### **Bug #2: Profile Settings Defaults Not Applied**
-*Status: 🚨 Critical*
+*Status: ✅ FIXED*
 
 **Problem:**
 - ProfileSettingsView Default-Werte werden nicht in RoutePlanningView angewendet
@@ -63,10 +63,18 @@ Systematische Behebung von **Critical Bugs** und **Code Quality Issues** nach de
 **Root Cause:** Settings Loading/Application Timing Issues
 
 **Investigation Steps:**
-1. [ ] Debug ProfileSettingsManager loading sequence
-2. [ ] Verify `loadDefaultSettings()` function logic
-3. [ ] Check Settings persistence and retrieval
+1. [x] Debug ProfileSettingsManager loading sequence ✅ FOUND: Different instances!
+2. [x] Verify `loadDefaultSettings()` function logic ✅ FOUND: Reversed logic!
+3. [x] Check Settings persistence and retrieval ✅ WORKING
 4. [ ] Test Settings → RoutePlanning data flow
+
+**FOUND TWO CRITICAL ISSUES:**
+1. **Different Manager Instances:** RoutePlanningView & ProfileSettingsView used separate ProfileSettingsManager instances
+2. **Reversed Logic:** loadDefaultSettings() only applied defaults when still at default values (paradox!)
+
+**FIXED:**
+1. **Shared Instance:** Added ProfileSettingsManager.shared singleton pattern
+2. **Correct Logic:** hasLoadedDefaults flag + always apply settings defaults on first load
 
 **Fix Strategy:**  
 - Fix async settings loading in RoutePlanningView

@@ -75,6 +75,8 @@ struct ProfileSettings: Codable {
 // MARK: - ProfileSettings Manager with Secure Keychain Storage
 @MainActor
 class ProfileSettingsManager: ObservableObject {
+    static let shared = ProfileSettingsManager()
+    
     @Published var settings: ProfileSettings
     @Published var isLoading = false
     @Published var errorMessage: String?
@@ -84,7 +86,7 @@ class ProfileSettingsManager: ObservableObject {
     private let legacyUserDefaultsKey = "profile_settings" // For migration
     private let logger = Logger(subsystem: "de.dengelma.smartcity-guide", category: "ProfileSettings")
     
-    init() {
+    private init() {
         self.settings = ProfileSettings() // Temporary default
         Task {
             await loadSettings()

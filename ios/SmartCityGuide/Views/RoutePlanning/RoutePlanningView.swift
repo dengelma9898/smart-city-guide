@@ -4,7 +4,7 @@ import MapKit
 // MARK: - Route Planning View
 struct RoutePlanningView: View {
   @Environment(\.dismiss) private var dismiss
-  @StateObject private var settingsManager = ProfileSettingsManager()
+  @StateObject private var settingsManager = ProfileSettingsManager.shared
   @StateObject private var locationService = LocationManagerService.shared // Phase 3
 
   
@@ -23,6 +23,7 @@ struct RoutePlanningView: View {
   @State private var showingWalkingTimeInfo = false
   @State private var showingPOIDistanceInfo = false
   @State private var showingEndpointInfo = false
+  @State private var hasLoadedDefaults = false // Track if defaults have been loaded
   
   let onRouteGenerated: (GeneratedRoute) -> Void
   
@@ -337,31 +338,24 @@ struct RoutePlanningView: View {
       return
     }
     
-    // Load default values from profile settings ONLY if still at initial defaults
-    // This preserves user's active selections while providing intelligent defaults for new users
+    // Only load defaults once per view instance to preserve user's active selections
+    guard !hasLoadedDefaults else {
+      return
+    }
     
+    // Load default values from profile settings
     let newDefaults = settingsManager.settings.getNewDefaultsForRoutePlanning()
     
-    // Only load defaults if user hasn't changed from initial values
-    if endpointOption == .roundtrip {
-      endpointOption = newDefaults.1
-    }
+    // Apply all settings defaults
+    maximumStops = newDefaults.0
+    endpointOption = newDefaults.1
+    maximumWalkingTime = newDefaults.2
+    minimumPOIDistance = newDefaults.3
+    customEndpoint = newDefaults.4
     
-    if customEndpoint.isEmpty {
-      customEndpoint = newDefaults.4
-    }
+    // Mark as loaded to prevent reloading
+    hasLoadedDefaults = true
     
-    // Load user's preferred defaults for new filter options (ONLY on first load)
-    if maximumStops == .five {
-      maximumStops = newDefaults.0
-    }
-    
-    if maximumWalkingTime == .sixtyMin {
-      maximumWalkingTime = newDefaults.2
-    }
-    
-    if minimumPOIDistance == .twoFifty {
-      minimumPOIDistance = newDefaults.3
-    }
+    print("📱 RoutePlanningView: Loaded settings defaults - Stops: \(maximumStops.rawValue), Time: \(maximumWalkingTime.rawValue), Distance: \(minimumPOIDistance.rawValue)")
   }
 }

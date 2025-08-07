@@ -4,7 +4,7 @@ import SwiftUI
 struct ProfileView: View {
     @Environment(\.dismiss) private var dismiss
     @StateObject private var profileManager = UserProfileManager()
-    @StateObject private var settingsManager = ProfileSettingsManager()
+    @StateObject private var settingsManager = ProfileSettingsManager.shared
     @StateObject private var historyManager = RouteHistoryManager()
     
     @State private var showingSettings = false

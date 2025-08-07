@@ -304,5 +304,5 @@ struct ProfileSettingsView: View {
 
 #Preview {
     ProfileSettingsView()
-        .environmentObject(ProfileSettingsManager())
+        .environmentObject(ProfileSettingsManager.shared)
 }
