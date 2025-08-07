@@ -2,6 +2,7 @@ import Foundation
 import CoreLocation
 import UserNotifications
 import MapKit
+import UIKit
 import os.log
 
 // MARK: - Proximity Service for Location-based Notifications
@@ -13,6 +14,7 @@ class ProximityService: NSObject, ObservableObject {
     @Published var isActive = false
     @Published var visitedSpots: Set<String> = []
     @Published var notificationPermissionStatus: UNAuthorizationStatus = .notDetermined
+
     
     // MARK: - Private Properties
     private let notificationCenter = UNUserNotificationCenter.current()
@@ -20,6 +22,7 @@ class ProximityService: NSObject, ObservableObject {
     private let proximityThreshold: CLLocationDistance = 25.0 // 25 meters
     private var activeRoute: GeneratedRoute?
     private var locationService = LocationManagerService.shared
+
     
     override init() {
         super.init()
@@ -73,8 +76,11 @@ class ProximityService: NSObject, ObservableObject {
         visitedSpots.removeAll()
         isActive = true
         
-        // Start location monitoring
-        await startLocationMonitoring()
+        // Offer Always Permission for Background Notifications
+        await requestBackgroundLocationIfNeeded()
+        
+        // Start background location monitoring
+        await startBackgroundLocationMonitoring()
     }
     
     func stopProximityMonitoring() {
@@ -82,6 +88,9 @@ class ProximityService: NSObject, ObservableObject {
         isActive = false
         activeRoute = nil
         visitedSpots.removeAll()
+        
+        // Stop background location updates
+        locationService.stopBackgroundLocationUpdates()
     }
     
     // MARK: - Location Monitoring
@@ -97,6 +106,59 @@ class ProximityService: NSObject, ObservableObject {
         logger.info("📍 Location monitoring active for proximity detection")
     }
     
+    // MARK: - Background Location Methods
+    private func requestBackgroundLocationIfNeeded() async {
+        // Only ask for Always permission if user has notifications enabled
+        guard notificationPermissionStatus == .authorized else {
+            logger.info("📱 Skipping Always location request - notifications not enabled")
+            return
+        }
+        
+        // Only ask if not already Always
+        guard locationService.authorizationStatus != .authorizedAlways else {
+            logger.info("🌙 Always location permission already granted")
+            await checkBackgroundAppRefresh()
+            return
+        }
+        
+        // For now, just request Always permission automatically
+        // In production, you might want to show a user dialog first
+        logger.info("📍 Requesting Always location permission for background notifications...")
+        locationService.requestAlwaysLocationPermission()
+    }
+    
+    private func checkBackgroundAppRefresh() async {
+        let backgroundRefreshStatus = UIApplication.shared.backgroundRefreshStatus
+        
+        switch backgroundRefreshStatus {
+        case .available:
+            logger.info("✅ Background App Refresh available")
+        case .denied:
+            logger.warning("❌ Background App Refresh denied - background notifications may not work")
+        case .restricted:
+            logger.warning("⚠️ Background App Refresh restricted")
+        @unknown default:
+            logger.warning("❓ Unknown Background App Refresh status")
+        }
+    }
+    
+    private func startBackgroundLocationMonitoring() async {
+        // Check if location is authorized
+        guard locationService.isLocationAuthorized else {
+            logger.warning("⚠️ Location not authorized for background monitoring")
+            return
+        }
+        
+        // Start background location updates
+        locationService.startBackgroundLocationUpdates()
+        
+        if locationService.authorizationStatus == .authorizedAlways {
+            logger.info("🌙 Background location monitoring started with Always permission")
+        } else {
+            logger.info("📱 Foreground location monitoring started (upgrade to Always for background notifications)")
+        }
+    }
+    
     // MARK: - Proximity Detection
     func checkProximityToSpots() async {
         guard isActive,
@@ -106,7 +168,7 @@ class ProximityService: NSObject, ObservableObject {
         }
         
         for waypoint in route.waypoints {
-            let spotId = "\(waypoint.name)_\(waypoint.coordinate.latitude)_\(waypoint.coordinate.longitude)"
+            let spotId = generateSpotId(for: waypoint)
             
             // Skip if already visited
             if visitedSpots.contains(spotId) {
@@ -180,8 +242,13 @@ class ProximityService: NSObject, ObservableObject {
     }
     
     func isSpotVisited(_ waypoint: RoutePoint) -> Bool {
-        let spotId = "\(waypoint.name)_\(waypoint.coordinate.latitude)_\(waypoint.coordinate.longitude)"
+        let spotId = generateSpotId(for: waypoint)
         return visitedSpots.contains(spotId)
+    }
+    
+    /// Generiert eine konsistente ID für einen RoutePoint
+    private func generateSpotId(for waypoint: RoutePoint) -> String {
+        return "\(waypoint.name)_\(waypoint.coordinate.latitude)_\(waypoint.coordinate.longitude)"
     }
 }
 

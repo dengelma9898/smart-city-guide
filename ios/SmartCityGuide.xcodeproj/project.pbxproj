@@ -22,6 +22,8 @@
 		A1234567890ABCDEF012345B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A1234567890ABCDEF012345D /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		E1048AC22E43A94000FD6F70 /* Permissions.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Permissions.xcconfig; sourceTree = "<group>"; };
+		E1048AC62E447EDA00FD6F70 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		E1048AC72E449AE300FD6F70 /* zeidlerschloss feucht.gpx */ = {isa = PBXFileReference; lastKnownFileType = text.xml; name = "zeidlerschloss feucht.gpx"; path = "../../../../Downloads/zeidlerschloss feucht.gpx"; sourceTree = "<group>"; };
 		E1FEF13C2E3FEF1B00C409C6 /* APIKeys.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = APIKeys.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -46,6 +48,7 @@
 		A1234567890ABCDEF0123447 = {
 			isa = PBXGroup;
 			children = (
+				E1048AC72E449AE300FD6F70 /* zeidlerschloss feucht.gpx */,
 				A1234567890ABCDEF0123452 /* SmartCityGuide */,
 				A1234567890ABCDEF0123451 /* Products */,
 			);
@@ -62,6 +65,7 @@
 		A1234567890ABCDEF0123452 /* SmartCityGuide */ = {
 			isa = PBXGroup;
 			children = (
+				E1048AC62E447EDA00FD6F70 /* Info.plist */,
 				E1048AC22E43A94000FD6F70 /* Permissions.xcconfig */,
 				E1FEF13C2E3FEF1B00C409C6 /* APIKeys.plist */,
 				E1FEF0EC2E3E989700C409C6 /* Models */,
@@ -305,6 +309,7 @@
 				DEVELOPMENT_TEAM = 4T9BXP692G;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = SmartCityGuide/Info.plist;
 				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "Für Routen von deinem aktuellen Standort";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Für Routen von deinem aktuellen Standort";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -337,6 +342,7 @@
 				DEVELOPMENT_TEAM = 4T9BXP692G;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = SmartCityGuide/Info.plist;
 				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "Für Routen von deinem aktuellen Standort";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Für Routen von deinem aktuellen Standort";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;

@@ -81,6 +81,33 @@ class LocationManagerService: ObservableObject {
         }
     }
     
+    /// Fordert Always Location Permission für Background Notifications
+    func requestAlwaysLocationPermission() {
+        logger.info("Always Location-Permission wird angefordert für Background Notifications")
+        
+        guard CLLocationManager.locationServicesEnabled() else {
+            errorMessage = "Location-Services sind auf diesem Gerät deaktiviert"
+            logger.error("Location-Services nicht verfügbar")
+            return
+        }
+        
+        switch authorizationStatus {
+        case .notDetermined:
+            // Erst When In Use anfordern
+            locationManager.requestWhenInUseAuthorization()
+        case .authorizedWhenInUse:
+            // Upgrade zu Always
+            locationManager.requestAlwaysAuthorization()
+        case .authorizedAlways:
+            logger.info("Always Location-Permission bereits gewährt")
+        case .denied, .restricted:
+            errorMessage = "Location-Zugriff wurde verweigert. Du kannst ihn in den Einstellungen aktivieren."
+            logger.warning("Location-Permission verweigert")
+        @unknown default:
+            logger.error("Unbekannter Authorization-Status")
+        }
+    }
+    
     /// Prüft ob Location-Services verfügbar sind
     var isLocationServicesEnabled: Bool {
         return CLLocationManager.locationServicesEnabled()
@@ -109,6 +136,54 @@ class LocationManagerService: ObservableObject {
         
         logger.info("Location-Updates gestartet")
         locationManager.startUpdatingLocation()
+    }
+    
+    /// Startet Background Location Updates für Proximity Monitoring
+    func startBackgroundLocationUpdates() {
+        guard isLocationAuthorized else {
+            errorMessage = "Location-Permission erforderlich für Background-Updates"
+            logger.warning("Background Location-Updates ohne Permission angefordert")
+            return
+        }
+        
+        guard isLocationServicesEnabled else {
+            errorMessage = "Location-Services sind deaktiviert"
+            logger.error("Location-Services nicht verfügbar für Background-Updates")
+            return
+        }
+        
+        // Configure for background updates
+        locationManager.desiredAccuracy = kCLLocationAccuracyBest
+        locationManager.distanceFilter = 10 // 10 meters for proximity detection
+        
+        // Enable background location updates if permission is "Always"
+        if authorizationStatus == .authorizedAlways {
+            // Enable background location updates
+            locationManager.allowsBackgroundLocationUpdates = true
+            locationManager.pausesLocationUpdatesAutomatically = false
+            logger.info("🌙 Background Location-Updates aktiviert für Proximity Monitoring")
+            
+            // Also start significant location changes for background (simulator compatible)
+            locationManager.startMonitoringSignificantLocationChanges()
+            logger.info("🌙 Significant Location Changes monitoring started for background")
+        } else {
+            logger.info("📍 Foreground Location-Updates für Proximity Monitoring (Background benötigt 'Always' Permission)")
+        }
+        
+        // Start continuous location updates
+        locationManager.startUpdatingLocation()
+    }
+    
+    /// Stoppt Background Location Updates
+    func stopBackgroundLocationUpdates() {
+        if authorizationStatus == .authorizedAlways {
+            locationManager.allowsBackgroundLocationUpdates = false
+            locationManager.pausesLocationUpdatesAutomatically = true
+            locationManager.stopMonitoringSignificantLocationChanges()
+            logger.info("🌙 Background Location-Updates und Significant Location Changes gestoppt")
+        }
+        
+        locationManager.stopUpdatingLocation()
     }
     
     /// Stoppt Location-Updates
