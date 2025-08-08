@@ -492,8 +492,8 @@ struct RouteEditView: View {
         switch action {
         case .accept(let poi):
             selectedPOI = poi
-            // Generate new route in background
-            generateNewRoute(with: poi)
+            // Immediately hand over to parent and close sheet there
+            onSpotChanged(poi, nil)
             
         case .reject, .skip:
             // For reject/skip, we need to trigger the stack to show next card

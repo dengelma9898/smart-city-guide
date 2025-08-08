@@ -1017,21 +1017,27 @@ struct RouteBuilderView: View {
       }
     }
     
-    // Use the already generated route from RouteEditService
-    if let updatedRoute = newRoute {
-      // Apply the new route directly
-      routeService.generatedRoute = updatedRoute
-      
-      // Re-enrich the updated route with Wikipedia data
-      Task {
-        await enrichRouteWithWikipedia(route: updatedRoute)
-      }
-    }
-    
-    // Close edit view
+    // Strategy: close edit sheet immediately and show global loading while route updates in background.
     showingEditView = false
     self.editableSpot = nil
     self.editingWaypointIndex = nil
+
+    Task {
+      // If RouteEditService already provided a new route, use it directly; otherwise generate now
+      if let updatedRoute = newRoute {
+        await MainActor.run {
+          routeService.generatedRoute = updatedRoute
+          routeService.isGenerating = false
+        }
+        await enrichRouteWithWikipedia(route: updatedRoute)
+      } else if let route = routeService.generatedRoute, let editableSpot = editableSpot {
+        await generateUpdatedRoute(
+          replacing: editableSpot.waypointIndex,
+          with: newPOI,
+          in: route
+        )
+      }
+    }
   }
   
   /// Handle edit cancellation
