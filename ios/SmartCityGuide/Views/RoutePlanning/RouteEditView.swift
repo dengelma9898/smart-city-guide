@@ -492,8 +492,17 @@ struct RouteEditView: View {
         switch action {
         case .accept(let poi):
             selectedPOI = poi
-            // Immediately hand over to parent and close sheet there
-            onSpotChanged(poi, nil)
+            // Start recalculation request in background via service, but close the sheet immediately
+            Task {
+                await editService.generateUpdatedRoute(
+                    replacing: editableSpot.waypointIndex,
+                    with: poi,
+                    in: originalRoute
+                )
+                await MainActor.run {
+                    onSpotChanged(poi, editService.newRoute)
+                }
+            }
             
         case .reject, .skip:
             // For reject/skip, we need to trigger the stack to show next card

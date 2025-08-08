@@ -1003,12 +1003,13 @@ struct RouteBuilderView: View {
   
   /// Handle spot change from route edit
   private func handleSpotChange(_ newPOI: POI, _ newRoute: GeneratedRoute?) {
+    // Capture index before clearing state
+    let capturedIndex: Int? = editableSpot?.waypointIndex
+
     // Track the replaced POI in history
-    if let editableSpot = editableSpot {
-      let waypointIndex = editableSpot.waypointIndex
-      
-      // Add current waypoint's POI to replaced history
-      if let currentPOI = findCurrentPOI(for: editableSpot.originalWaypoint) {
+    if let e = editableSpot {
+      let waypointIndex = e.waypointIndex
+      if let currentPOI = findCurrentPOI(for: e.originalWaypoint) {
         var history = replacedPOIsHistory[waypointIndex] ?? []
         if !history.contains(where: { $0.id == currentPOI.id }) {
           history.append(currentPOI)
@@ -1016,23 +1017,24 @@ struct RouteBuilderView: View {
         }
       }
     }
-    
-    // Strategy: close edit sheet immediately and show global loading while route updates in background.
+
+    // Close edit sheet immediately for responsive UX
     showingEditView = false
     self.editableSpot = nil
     self.editingWaypointIndex = nil
 
     Task {
-      // If RouteEditService already provided a new route, use it directly; otherwise generate now
       if let updatedRoute = newRoute {
+        // We already have a recalculated route; apply it directly
         await MainActor.run {
           routeService.generatedRoute = updatedRoute
           routeService.isGenerating = false
         }
         await enrichRouteWithWikipedia(route: updatedRoute)
-      } else if let route = routeService.generatedRoute, let editableSpot = editableSpot {
+      } else if let index = capturedIndex, let route = routeService.generatedRoute {
+        // Recalculate in background and show global loading in parent
         await generateUpdatedRoute(
-          replacing: editableSpot.waypointIndex,
+          replacing: index,
           with: newPOI,
           in: route
         )
