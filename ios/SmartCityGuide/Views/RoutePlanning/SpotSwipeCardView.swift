@@ -56,6 +56,8 @@ struct SpotSwipeCardView: View {
         }
         // Programmatic exit animation for manual buttons
         .onReceive(NotificationCenter.default.publisher(for: .manualCardExit)) { note in
+            // Only animate the top card matching the id, if provided
+            if let targetId = note.userInfo?["cardId"] as? String, targetId != card.id.uuidString { return }
             guard let direction = note.userInfo?["direction"] as? String else { return }
             let exitDistance: CGFloat = (direction == "left") ? -400 : 400
             var t = Transaction(); t.disablesAnimations = true
