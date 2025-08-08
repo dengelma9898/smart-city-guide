@@ -48,11 +48,7 @@ struct SwipeCardStackView: View {
                 } else {
                     cardStackView(in: geometry)
                 }
-                
-                // Loading overlay
-                if stackState.isAnimating {
-                    loadingOverlay
-                }
+                // Remove loading overlay for fluid UX; card transitions are visible anyway
             }
         }
         .onAppear {
@@ -188,26 +184,7 @@ struct SwipeCardStackView: View {
         }
     }
     
-    // MARK: - Loading Overlay
-    
-    private var loadingOverlay: some View {
-        ZStack {
-            Rectangle()
-                .fill(.ultraThinMaterial)
-                .ignoresSafeArea()
-            
-            VStack(spacing: 16) {
-                ProgressView()
-                    .scaleEffect(1.2)
-                
-                Text("Karte wird entfernt...")
-                    .font(.body)
-                    .foregroundColor(.secondary)
-            }
-        }
-        .opacity(stackState.isAnimating ? 1.0 : 0.0)
-        .animation(.easeInOut(duration: 0.2), value: stackState.isAnimating)
-    }
+    // Loading overlay removed (not shown) to keep interactions snappy
     
     // MARK: - Stack Management
     
