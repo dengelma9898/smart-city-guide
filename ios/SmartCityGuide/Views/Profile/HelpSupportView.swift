@@ -323,6 +323,64 @@ struct FAQCategory {
                 FAQ(
                     question: "Welche Kategorien von Orten kann ich auswählen?",
                     answer: "Du kannst zwischen Sehenswürdigkeiten, Museen, Parks und Nationalparks wählen. Die App findet automatisch die besten Orte in deiner gewählten Stadt für diese Kategorien."
+                ),
+                FAQ(
+                    question: "Wie kann ich einzelne Stopps in meiner Route ändern?",
+                    answer: """
+                    Du kannst jeden Stopp deiner generierten Route bearbeiten:
+                    
+                    **So funktioniert's:**
+                    1. **Stopp auswählen:** Tippe auf das Bearbeiten-Symbol (Stift) neben einem Stopp
+                    2. **Alternativen durchschauen:** Swipe die Karten nach links (nehmen) oder rechts (überspringen)
+                    3. **Neue Route:** Bei Auswahl wird automatisch eine optimierte Route berechnet
+                    
+                    **Swipe-Steuerung:**
+                    • Nach links swipen = Stopp übernehmen ✅
+                    • Nach rechts swipen = Stopp ablehnen ❌
+                    • Alternativ: Verwende die Buttons am unteren Rand
+                    
+                    **Was wird gezeigt:**
+                    • Bilder und Beschreibung des Ortes
+                    • Entfernung zum ursprünglichen Stopp
+                    • Wikipedia-Informationen (falls verfügbar)
+                    """
+                ),
+                FAQ(
+                    question: "Warum werden mir nur bestimmte Alternative Stopps gezeigt?",
+                    answer: """
+                    Die App zeigt dir alle interessanten Orte in der Stadt, außer denen, die bereits in deiner Route sind.
+                    
+                    **Was wird bevorzugt:**
+                    • Orte der gleichen Kategorie (Museum, Park, etc.)
+                    • Spots mit Wikipedia-Daten für bessere Infos
+                    • Qualitätsgeprüfte Sehenswürdigkeiten
+                    
+                    **Sortierung der Alternativen:**
+                    1. Kategorie-Übereinstimmung
+                    2. Verfügbarkeit von Qualitätsdaten
+                    3. Entfernung zum Original-Stopp
+                    
+                    **Wichtig:** Du siehst ALLE verfügbaren Alternativen - egal wie weit entfernt. Die App berechnet danach automatisch die beste neue Route für dich!
+                    """
+                ),
+                FAQ(
+                    question: "Was passiert wenn ich einen Stopp ändere?",
+                    answer: """
+                    **Automatische Route-Optimierung:**
+                    
+                    1. **Neuer Stopp eingefügt:** Der gewählte alternative Stopp ersetzt den ursprünglichen
+                    2. **Intelligente Positionierung:** Bei weit entfernten Alternativen (>1,5km) wird die beste Position in der Route automatisch gefunden
+                    3. **Route neu berechnet:** Laufwege werden vollständig neu optimiert
+                    4. **Zeiten aktualisiert:** Gesamtzeit und Laufdauer werden angepasst
+                    5. **Wikipedia-Daten geladen:** Neue Informationen werden im Hintergrund ergänzt
+                    
+                    **Smart Re-Optimierung:**
+                    • Nahe Alternativen bleiben an derselben Position
+                    • Ferne Alternativen werden optimal in die Route eingesetzt
+                    • Reihenfolge kann sich ändern für beste Effizienz
+                    
+                    **Tipp:** Das System sorgt automatisch für die kürzeste und sinnvollste Route!
+                    """
                 )
             ]
         ),
