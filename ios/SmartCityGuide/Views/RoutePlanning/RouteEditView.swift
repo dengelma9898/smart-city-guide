@@ -56,6 +56,9 @@ struct RouteEditView: View {
     /// Current top card for manual actions
     @State private var currentTopCard: SwipeCard?
     
+    /// Show accepting overlay while recalculation runs
+    @State private var isAcceptingUpdate: Bool = false
+    
     // MARK: - Body
     
     var body: some View {
@@ -76,6 +79,19 @@ struct RouteEditView: View {
                 // Service error overlay
                 if let errorMessage = editService.errorMessage {
                     errorOverlay(message: errorMessage)
+                }
+                
+                // Accepting overlay (blocks UI, predictable UX)
+                if isAcceptingUpdate || editService.isGeneratingNewRoute {
+                    VStack(spacing: 16) {
+                        ProgressView()
+                            .scaleEffect(1.2)
+                        Text("Route wird erstellt…")
+                            .font(.body)
+                            .foregroundColor(.secondary)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(.ultraThinMaterial)
                 }
             }
             .navigationTitle("Stopp bearbeiten")
@@ -492,7 +508,8 @@ struct RouteEditView: View {
         switch action {
         case .accept(let poi):
             selectedPOI = poi
-            // Start recalculation request in background via service, but close the sheet immediately
+            // Start recalculation request and show blocking overlay; only dismiss when route is ready
+            isAcceptingUpdate = true
             Task {
                 await editService.generateUpdatedRoute(
                     replacing: editableSpot.waypointIndex,
@@ -501,10 +518,13 @@ struct RouteEditView: View {
                 )
                 await MainActor.run {
                     onSpotChanged(poi, editService.newRoute)
+                    isAcceptingUpdate = false
+                    if editService.newRoute != nil || editService.errorMessage != nil {
+                        onCancel() // dismiss after completion
+                    }
                 }
             }
-            // Dismiss instantly for immediate feedback
-            onCancel()
+            // Do not dismiss immediately – we wait for completion
             
         case .reject, .skip:
             // For reject/skip, we need to trigger the stack to show next card
