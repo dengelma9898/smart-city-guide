@@ -1003,6 +1003,8 @@ struct RouteBuilderView: View {
   
   /// Handle spot change from route edit
   private func handleSpotChange(_ newPOI: POI, _ newRoute: GeneratedRoute?) {
+    // Immediately show global loading in parent to avoid flicker when returning from edit sheet
+    routeService.isGenerating = true
     // Capture index before clearing state
     let capturedIndex: Int? = editableSpot?.waypointIndex
 
