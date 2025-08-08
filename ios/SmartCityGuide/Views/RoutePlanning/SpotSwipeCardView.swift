@@ -16,9 +16,22 @@ struct SpotSwipeCardView: View {
     /// Callback when swipe action is performed
     let onSwipe: (SwipeAction) -> Void
     
-    /// State for drag gesture
-    @State private var dragOffset: CGSize = .zero
-    @State private var isDragging: Bool = false
+    /// Gesture state (following SwiftUI best practices to avoid animation timing conflicts)
+    @GestureState private var gestureOffset: CGSize = .zero
+    @GestureState private var isGestureActive: Bool = false
+    @State private var viewOffset: CGSize = .zero // Persistent offset for animations
+    
+    // Computed properties based on gesture state
+    private var totalOffset: CGSize {
+        CGSize(
+            width: viewOffset.width + gestureOffset.width,
+            height: viewOffset.height + gestureOffset.height
+        )
+    }
+    
+    private var isDragging: Bool {
+        isGestureActive || (gestureOffset.width != 0 || gestureOffset.height != 0)
+    }
     
     /// Environment values
     @Environment(\.colorScheme) private var colorScheme
@@ -40,15 +53,16 @@ struct SpotSwipeCardView: View {
             // Swipe direction indicators
             swipeIndicators
         }
-        .offset(x: dragOffset.width, y: dragOffset.height * 0.1) // Slight vertical dampening
-        .rotationEffect(.degrees(dragOffset.width / 15)) // Rotation based on horizontal drag
+        .offset(x: totalOffset.width, y: totalOffset.height * 0.1) // Slight vertical dampening
+        .rotationEffect(.degrees(totalOffset.width / 15)) // Rotation based on horizontal drag
         .scaleEffect(isDragging ? 0.95 : 1.0)
-        .animation(.spring(response: 0.3, dampingFraction: 0.8), value: isDragging)
+        // Remove implicit animation to prevent AnimatablePair conflicts
+        // Individual gesture animations are handled via @GestureState and withAnimation
         .gesture(swipeGesture)
         .onChange(of: card.offset) { oldValue, newValue in
-            // Sync external offset changes
-            if !isDragging {
-                dragOffset = newValue
+            // Sync external offset changes (avoid conflicts during gesture)
+            if !isGestureActive {
+                viewOffset = newValue
             }
         }
     }
@@ -257,7 +271,7 @@ struct SpotSwipeCardView: View {
             // Left indicator (Accept)
             swipeIndicator(
                 direction: .left,
-                isVisible: dragOffset.width < -SwipeThresholds.directionThreshold
+                isVisible: totalOffset.width < -SwipeThresholds.directionThreshold
             )
             
             Spacer()
@@ -265,7 +279,7 @@ struct SpotSwipeCardView: View {
             // Right indicator (Reject)  
             swipeIndicator(
                 direction: .right,
-                isVisible: dragOffset.width > SwipeThresholds.directionThreshold
+                isVisible: totalOffset.width > SwipeThresholds.directionThreshold
             )
         }
         .padding(.horizontal, 40)
@@ -291,12 +305,9 @@ struct SpotSwipeCardView: View {
     
     private var swipeGesture: some Gesture {
         DragGesture()
-            .onChanged { value in
-                isDragging = true
-                dragOffset = value.translation
-                
-                // Mark card as animating for UI state
-                card.isAnimating = true
+            .updating($gestureOffset) { value, state, transaction in
+                // Update gesture state (automatically resets when gesture ends)
+                state = value.translation
                 
                 // Haptic feedback at threshold
                 if abs(value.translation.width) > SwipeThresholds.triggerDistance {
@@ -304,9 +315,12 @@ struct SpotSwipeCardView: View {
                     impactFeedback.impactOccurred()
                 }
             }
+            .updating($isGestureActive) { _, state, transaction in
+                // Track active gesture state
+                state = true
+                transaction.animation = .spring(response: 0.3, dampingFraction: 0.8)
+            }
             .onEnded { value in
-                isDragging = false
-                
                 let swipeGesture = SwipeGesture(
                     translation: value.translation,
                     velocity: value.velocity.width
@@ -342,7 +356,7 @@ struct SpotSwipeCardView: View {
         let exitDistance: CGFloat = gesture.direction == .left ? -400 : 400
         
         withAnimation(CardAnimationConfig.removeAnimation) {
-            dragOffset = CGSize(width: exitDistance, height: dragOffset.height)
+            viewOffset = CGSize(width: exitDistance, height: viewOffset.height)
         }
         
         // Haptic feedback for action
@@ -357,11 +371,10 @@ struct SpotSwipeCardView: View {
     
     private func bounceBack() {
         withAnimation(CardAnimationConfig.returnAnimation) {
-            dragOffset = .zero
+            viewOffset = .zero
         }
-        
-        // Update card state outside animation to avoid conflicts
-        card.isAnimating = false
+        // Note: gestureOffset automatically resets when gesture ends via @GestureState
+        // No need to manually update card.isAnimating - gesture state handles this
     }
 }
 

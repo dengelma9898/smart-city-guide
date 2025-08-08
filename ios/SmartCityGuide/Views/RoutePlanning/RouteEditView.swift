@@ -8,6 +8,8 @@
 import SwiftUI
 import CoreLocation
 
+// Note: Notification.Name extension is in SwipeCardStackView.swift
+
 /// Main interface for editing route spots with Tinder-style swipe cards
 struct RouteEditView: View {
     
@@ -494,7 +496,9 @@ struct RouteEditView: View {
             generateNewRoute(with: poi)
             
         case .reject, .skip:
-            // Just continue to next card
+            // For reject/skip, we need to trigger the stack to show next card
+            // The SwipeCardStackView handles card removal automatically through gesture
+            // No additional action needed - just let the stack progress
             break
         }
     }
@@ -535,7 +539,10 @@ struct RouteEditView: View {
         guard let topCard = currentTopCard else { return }
         
         let action = SwipeAction.accept(topCard.poi)
-        handleCardAction(action)
+        
+        // Manually trigger card removal by simulating swipe completion
+        // This ensures the SwipeCardStackView updates its state properly
+        simulateCardSwipeCompletion(action: action)
     }
     
     private func handleManualReject() {
@@ -543,6 +550,16 @@ struct RouteEditView: View {
         guard let topCard = currentTopCard else { return }
         
         let action = SwipeAction.reject(topCard.poi)
+        
+        // Manually trigger card removal by simulating swipe completion
+        simulateCardSwipeCompletion(action: action)
+    }
+    
+    private func simulateCardSwipeCompletion(action: SwipeAction) {
+        // Trigger card removal in SwipeCardStackView via notification
+        NotificationCenter.default.post(name: .manualCardRemoval, object: nil)
+        
+        // Handle the action (route generation for accept, or just progression for reject)  
         handleCardAction(action)
     }
 }

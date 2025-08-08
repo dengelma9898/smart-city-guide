@@ -8,6 +8,12 @@
 import SwiftUI
 import CoreLocation
 
+// MARK: - Notification Names
+
+extension Notification.Name {
+    static let manualCardRemoval = Notification.Name("manualCardRemoval")
+}
+
 /// Container view that manages a stack of swipeable cards
 struct SwipeCardStackView: View {
     /// Observable state for the card stack
@@ -24,6 +30,8 @@ struct SwipeCardStackView: View {
     
     /// Callback to expose current top card for manual actions
     let onTopCardChanged: ((SwipeCard?) -> Void)?
+    
+    // Manual removal is handled via NotificationCenter
     
     /// Animation namespace for card transitions
     @Namespace private var cardNamespace
@@ -53,6 +61,10 @@ struct SwipeCardStackView: View {
         .onChange(of: stackState.topCard) { oldCard, newCard in
             // Notify parent about top card changes for manual actions
             onTopCardChanged?(newCard)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .manualCardRemoval)) { _ in
+            // Trigger manual card removal when notification is received
+            stackState.removeTopCard()
         }
     }
     
@@ -89,10 +101,8 @@ struct SwipeCardStackView: View {
         .opacity(card.opacity)
         .offset(y: CGFloat(index) * SwipeThresholds.backgroundCardOffset)
         .zIndex(card.zIndex)
-        .animation(
-            CardAnimationConfig.stackAnimation.delay(Double(index) * 0.05),
-            value: stackState.topCardIndex
-        )
+        // Remove conflicting animation - card animations are handled individually
+        // .animation removed to prevent timing conflicts with gesture animations
     }
     
     // MARK: - Empty State
