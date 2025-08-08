@@ -112,10 +112,19 @@ struct SpotSwipeCardView: View {
                 categoryFallbackImage
             }
             
-            // Category badge overlay
+            // Badge overlays
             VStack {
                 HStack {
+                    // Replaced indicator (top-left)
+                    if card.wasReplaced {
+                        replacedIndicator
+                            .padding(.top, 12)
+                            .padding(.leading, 12)
+                    }
+                    
                     Spacer()
+                    
+                    // Category badge (top-right)
                     categoryBadge
                         .padding(.top, 12)
                         .padding(.trailing, 12)
@@ -161,6 +170,24 @@ struct SpotSwipeCardView: View {
                 .fill(.regularMaterial)
         )
         .foregroundColor(.primary)
+    }
+    
+    private var replacedIndicator: some View {
+        HStack(spacing: 4) {
+            Image(systemName: "arrow.clockwise.circle.fill")
+                .font(.caption)
+            Text("Ersetzt")
+                .font(.caption2)
+                .fontWeight(.medium)
+        }
+        .foregroundColor(.white)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .background(
+            Capsule()
+                .fill(.orange)
+        )
+        .shadow(color: .black.opacity(0.2), radius: 2, x: 0, y: 1)
     }
     
     // MARK: - Title Section
@@ -367,10 +394,11 @@ struct SpotSwipeCardView: View {
             geoapifyWikiData: nil
         ),
         distanceFromOriginal: 250.0,
-        category: .attraction
+        category: .attraction,
+        wasReplaced: false
     )
     
-    return VStack {
+    VStack {
         SpotSwipeCardView(card: $sampleCard) { action in
             print("Swipe action: \(action)")
         }
@@ -416,10 +444,11 @@ struct SpotSwipeCardView: View {
             geoapifyWikiData: nil
         ),
         distanceFromOriginal: 420.0,
-        category: .museum
+        category: .museum,
+        wasReplaced: true // Demo for replaced indicator
     )
     
-    return SpotSwipeCardView(card: $sampleCard) { action in
+    SpotSwipeCardView(card: $sampleCard) { action in
         print("Swipe action: \(action)")
     }
     .padding()

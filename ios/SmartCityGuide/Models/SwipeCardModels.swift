@@ -13,7 +13,7 @@ import CoreLocation
 // MARK: - Swipe Card Core Model
 
 /// Individual swipe card representing a POI alternative
-struct SwipeCard: Identifiable {
+struct SwipeCard: Identifiable, Equatable {
     /// Unique identifier for the card
     let id = UUID()
     
@@ -28,6 +28,9 @@ struct SwipeCard: Identifiable {
     
     /// Category of the POI for display and filtering
     let category: PlaceCategory
+    
+    /// Whether this POI was previously replaced at this position
+    let wasReplaced: Bool
     
     /// Current drag offset for animations
     var offset: CGSize = .zero
@@ -50,11 +53,19 @@ struct SwipeCard: Identifiable {
     ///   - enrichedData: Optional Wikipedia enrichment data
     ///   - distanceFromOriginal: Distance to original waypoint in meters
     ///   - category: PlaceCategory for display
-    init(poi: POI, enrichedData: WikipediaEnrichedPOI? = nil, distanceFromOriginal: Double, category: PlaceCategory) {
+    ///   - wasReplaced: Whether this POI was previously replaced at this position
+    init(poi: POI, enrichedData: WikipediaEnrichedPOI? = nil, distanceFromOriginal: Double, category: PlaceCategory, wasReplaced: Bool = false) {
         self.poi = poi
         self.enrichedData = enrichedData
         self.distanceFromOriginal = distanceFromOriginal
         self.category = category
+        self.wasReplaced = wasReplaced
+    }
+    
+    // MARK: - Equatable
+    
+    static func == (lhs: SwipeCard, rhs: SwipeCard) -> Bool {
+        return lhs.id == rhs.id
     }
 }
 

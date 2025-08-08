@@ -18,10 +18,12 @@ struct EditableRouteSpot {
     let originalWaypoint: RoutePoint
     /// Position/index in the route waypoints array
     let waypointIndex: Int
-    /// Available alternative POIs from cache (filtered by distance and quality)
+    /// Available alternative POIs from cache (no distance restrictions)
     let alternativePOIs: [POI]
     /// Currently selected POI (if different from original)
     let currentPOI: POI?
+    /// List of previously replaced POIs at this position
+    let replacedPOIs: [POI]
     
     /// Initialize an editable route spot
     /// - Parameters:
@@ -29,11 +31,13 @@ struct EditableRouteSpot {
     ///   - waypointIndex: Index position in the route waypoints array
     ///   - alternativePOIs: Filtered alternatives available for swapping
     ///   - currentPOI: Currently selected POI (optional)
-    init(originalWaypoint: RoutePoint, waypointIndex: Int, alternativePOIs: [POI], currentPOI: POI? = nil) {
+    ///   - replacedPOIs: Previously replaced POIs at this position
+    init(originalWaypoint: RoutePoint, waypointIndex: Int, alternativePOIs: [POI], currentPOI: POI? = nil, replacedPOIs: [POI] = []) {
         self.originalWaypoint = originalWaypoint
         self.waypointIndex = waypointIndex
         self.alternativePOIs = alternativePOIs
         self.currentPOI = currentPOI
+        self.replacedPOIs = replacedPOIs
     }
 }
 
@@ -200,12 +204,16 @@ struct RouteEditConfiguration {
     /// Whether to require Wikipedia data for alternatives
     let requireWikipediaData: Bool
     
+    /// Distance threshold for triggering route re-optimization (meters)
+    let reoptimizationThreshold: Double
+    
     /// Default configuration
     static let `default` = RouteEditConfiguration(
         maxDistanceFromOriginal: 500.0, // 500m radius
         maxAlternatives: 20,             // Max 20 cards
         preferSameCategory: true,        // Same category preferred
-        requireWikipediaData: false      // Wikipedia nice-to-have but not required
+        requireWikipediaData: false,     // Wikipedia nice-to-have but not required
+        reoptimizationThreshold: 1500.0 // 1.5km - re-optimize for distant POIs
     )
     
     /// Strict configuration for better quality alternatives
@@ -213,7 +221,8 @@ struct RouteEditConfiguration {
         maxDistanceFromOriginal: 300.0,  // Smaller radius
         maxAlternatives: 10,             // Fewer alternatives
         preferSameCategory: true,        // Same category required
-        requireWikipediaData: true       // Wikipedia required
+        requireWikipediaData: true,      // Wikipedia required
+        reoptimizationThreshold: 1000.0 // 1km - more aggressive re-optimization
     )
 }
 

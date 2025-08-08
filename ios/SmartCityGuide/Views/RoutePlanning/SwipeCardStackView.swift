@@ -22,6 +22,9 @@ struct SwipeCardStackView: View {
     /// Callback when stack is empty
     let onStackEmpty: () -> Void
     
+    /// Callback to expose current top card for manual actions
+    let onTopCardChanged: ((SwipeCard?) -> Void)?
+    
     /// Animation namespace for card transitions
     @Namespace private var cardNamespace
     
@@ -46,6 +49,10 @@ struct SwipeCardStackView: View {
         }
         .onAppear {
             initializeStack()
+        }
+        .onChange(of: stackState.topCard) { oldCard, newCard in
+            // Notify parent about top card changes for manual actions
+            onTopCardChanged?(newCard)
         }
     }
     
@@ -75,7 +82,7 @@ struct SwipeCardStackView: View {
     
     private func SwipeCardView(card: SwipeCard, index: Int) -> some View {
         SpotSwipeCardView(
-            card: .constant(stackState.cards[stackState.topCardIndex + index]),
+            card: .constant(card), // Use the correct card parameter, not array lookup!
             onSwipe: handleCardAction
         )
         .scaleEffect(card.scale)
@@ -221,6 +228,9 @@ struct SwipeCardStackView: View {
         }
         
         stackState.initialize(with: cardsWithPositions)
+        
+        // Notify parent about initial top card
+        onTopCardChanged?(stackState.topCard)
     }
     
     private func handleCardAction(_ action: SwipeAction) {
@@ -255,15 +265,18 @@ extension SwipeCardStackView {
     ///   - originalWaypoint: The original waypoint for distance calculation
     ///   - onCardAction: Callback for card actions
     ///   - onStackEmpty: Callback when stack becomes empty
+    ///   - onTopCardChanged: Optional callback for top card changes
     init(
         pois: [POI],
         enrichedData: [String: WikipediaEnrichedPOI],
         originalWaypoint: RoutePoint,
         onCardAction: @escaping (SwipeAction) -> Void,
-        onStackEmpty: @escaping () -> Void
+        onStackEmpty: @escaping () -> Void,
+        onTopCardChanged: ((SwipeCard?) -> Void)? = nil
     ) {
         self.onCardAction = onCardAction
         self.onStackEmpty = onStackEmpty
+        self.onTopCardChanged = onTopCardChanged
         
         // Create cards from POIs
         self.initialCards = pois.map { poi in
@@ -283,7 +296,8 @@ extension SwipeCardStackView {
                 poi: poi,
                 enrichedData: enrichedData[poi.id],
                 distanceFromOriginal: distance,
-                category: poi.category
+                category: poi.category,
+                wasReplaced: false // Default for new cards from convenience init
             )
         }
     }
@@ -413,7 +427,8 @@ extension SwipeCardStackView {
     SwipeCardStackView(
         initialCards: [],
         onCardAction: { _ in },
-        onStackEmpty: { print("Empty!") }
+        onStackEmpty: { print("Empty!") },
+        onTopCardChanged: nil
     )
     .frame(height: 500)
     .background(Color(.systemGray6))

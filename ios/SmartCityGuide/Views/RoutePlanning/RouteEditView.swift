@@ -22,6 +22,9 @@ struct RouteEditView: View {
     /// City name for POI cache lookups
     let cityName: String
     
+    /// All discovered POIs for the city (unfiltered)
+    let allDiscoveredPOIs: [POI]
+    
     /// Callback when a spot is changed
     let onSpotChanged: (POI, GeneratedRoute?) -> Void
     
@@ -40,13 +43,16 @@ struct RouteEditView: View {
     @State private var isLoadingCards: Bool = true
     
     /// Whether intro animation is showing
-    @State private var showingIntroAnimation: Bool = true
+    @State private var showingIntroAnimation: Bool = false
     
     /// Selected POI (if any)
     @State private var selectedPOI: POI?
     
     /// Whether the view has appeared (for animation timing)
     @State private var hasAppeared: Bool = false
+    
+    /// Current top card for manual actions
+    @State private var currentTopCard: SwipeCard?
     
     // MARK: - Body
     
@@ -119,55 +125,16 @@ struct RouteEditView: View {
                 SwipeCardStackView(
                     initialCards: availableCards,
                     onCardAction: handleCardAction,
-                    onStackEmpty: handleStackEmpty
+                    onStackEmpty: handleStackEmpty,
+                    onTopCardChanged: { card in
+                        currentTopCard = card
+                    }
                 )
                 .frame(maxHeight: 420)
-                
-                // Instructions overlay (only briefly visible)
-                if showingIntroAnimation {
-                    VStack {
-                        Spacer()
-                        
-                        // Instructions at bottom
-                        VStack(spacing: 8) {
-                            Text("💡 Swipe Tipp")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                                .fontWeight(.medium)
-                            
-                            HStack(spacing: 16) {
-                                HStack(spacing: 4) {
-                                    Image(systemName: "hand.draw.fill")
-                                        .foregroundColor(.green)
-                                    Text("Links = Nehmen")
-                                        .font(.caption2)
-                                        .foregroundColor(.green)
-                                }
-                                
-                                HStack(spacing: 4) {
-                                    Image(systemName: "hand.draw.fill")
-                                        .foregroundColor(.red)
-                                        .scaleEffect(x: -1, y: 1)
-                                    Text("Rechts = Weiter")
-                                        .font(.caption2)
-                                        .foregroundColor(.red)
-                                }
-                            }
-                        }
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 8)
-                        .background(
-                            RoundedRectangle(cornerRadius: 8)
-                                .fill(.ultraThinMaterial)
-                                .stroke(Color.primary.opacity(0.1), lineWidth: 1)
-                        )
-                        .transition(.opacity.combined(with: .scale))
-                    }
-                }
             }
             
             // Manual action buttons
-            if !availableCards.isEmpty && !showingIntroAnimation {
+            if !availableCards.isEmpty {
                 manualActionButtons
             }
             
@@ -175,9 +142,7 @@ struct RouteEditView: View {
         }
         .padding(.horizontal, 20)
         .padding(.top, 10)
-        .onAppear {
-            startIntroAnimation()
-        }
+        // Intro animation removed - swipe pattern is well known
     }
     
     // MARK: - Original Spot Card
@@ -435,42 +400,90 @@ struct RouteEditView: View {
     
     // MARK: - Animation & Interaction
     
-    private func startIntroAnimation() {
-        // Small delay before starting intro
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            // Hide instructions after demonstration
-            DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
-                withAnimation(.easeInOut(duration: 0.8)) {
-                    showingIntroAnimation = false
-                }
-            }
-        }
-    }
+
     
     private func loadAlternatives() {
         isLoadingCards = true
         
         Task {
-            let (pois, enrichedData) = await editService.loadEnrichedAlternatives(
-                for: editableSpot.originalWaypoint,
-                avoiding: originalRoute,
-                cityName: cityName
-            )
+            // Use ALL discovered POIs instead of filtered subset from RouteEditService
+            let allAvailablePOIs = findAllAvailablePOIs()
+            
+            // Enrich with Wikipedia data (background task)
+            let enrichedData = await editService.enrichAlternativesWithWikipedia(allAvailablePOIs, cityName: cityName)
             
             await MainActor.run {
-                if pois.isEmpty {
+                if allAvailablePOIs.isEmpty {
                     availableCards = []
                 } else {
                     availableCards = editService.createSwipeCards(
-                        from: pois,
+                        from: allAvailablePOIs,
                         enrichedData: enrichedData,
-                        originalWaypoint: editableSpot.originalWaypoint
+                        originalWaypoint: editableSpot.originalWaypoint,
+                        replacedPOIs: editableSpot.replacedPOIs
                     )
                 }
                 
                 isLoadingCards = false
             }
         }
+    }
+    
+    /// Find all available POIs (same logic as RouteBuilderView.findAlternativePOIsWithHistory)
+    private func findAllAvailablePOIs() -> [POI] {
+        // Get previously replaced POIs for this position
+        let replacedPOIs = editableSpot.replacedPOIs
+        
+        // Combine all discovered POIs with replaced POIs
+        let allPossiblePOIs = allDiscoveredPOIs + replacedPOIs
+        
+        return allPossiblePOIs.filter { poi in
+            // Only exclude POIs already in route - NO distance restriction
+            return !isAlreadyInRoute(poi)
+        }
+        .sorted { poi1, poi2 in
+            // Prioritize previously replaced POIs (show them first)
+            let poi1WasReplaced = replacedPOIs.contains { $0.id == poi1.id }
+            let poi2WasReplaced = replacedPOIs.contains { $0.id == poi2.id }
+            
+            if poi1WasReplaced && !poi2WasReplaced {
+                return true
+            } else if !poi1WasReplaced && poi2WasReplaced {
+                return false
+            }
+            
+            // Then sort by category match
+            let categoryMatch1 = poi1.category == editableSpot.originalWaypoint.category
+            let categoryMatch2 = poi2.category == editableSpot.originalWaypoint.category
+            
+            if categoryMatch1 && !categoryMatch2 {
+                return true
+            } else if !categoryMatch1 && categoryMatch2 {
+                return false
+            }
+            
+            // Finally sort by distance
+            let distance1 = calculateDistance(from: poi1.coordinate, to: editableSpot.originalWaypoint.coordinate)
+            let distance2 = calculateDistance(from: poi2.coordinate, to: editableSpot.originalWaypoint.coordinate)
+            return distance1 < distance2
+        }
+        .prefix(50) // Increased limit for maximum alternatives
+        .map { $0 }
+    }
+    
+    /// Check if POI is already in the current route
+    private func isAlreadyInRoute(_ poi: POI) -> Bool {
+        return originalRoute.waypoints.contains { waypoint in
+            poi.name.lowercased() == waypoint.name.lowercased() &&
+            calculateDistance(from: poi.coordinate, to: waypoint.coordinate) < 50 // 50m tolerance
+        }
+    }
+    
+    /// Calculate distance between two coordinates
+    private func calculateDistance(from coord1: CLLocationCoordinate2D, to coord2: CLLocationCoordinate2D) -> Double {
+        let location1 = CLLocation(latitude: coord1.latitude, longitude: coord1.longitude)
+        let location2 = CLLocation(latitude: coord2.latitude, longitude: coord2.longitude)
+        return location1.distance(from: location2)
     }
     
     private func handleCardAction(_ action: SwipeAction) {
@@ -519,19 +532,17 @@ struct RouteEditView: View {
     
     private func handleManualAccept() {
         // Get current top card and accept it
-        guard !availableCards.isEmpty else { return }
+        guard let topCard = currentTopCard else { return }
         
-        let currentCard = availableCards[0]
-        let action = SwipeAction.accept(currentCard.poi)
+        let action = SwipeAction.accept(topCard.poi)
         handleCardAction(action)
     }
     
     private func handleManualReject() {
         // Get current top card and reject it
-        guard !availableCards.isEmpty else { return }
+        guard let topCard = currentTopCard else { return }
         
-        let currentCard = availableCards[0]
-        let action = SwipeAction.reject(currentCard.poi)
+        let action = SwipeAction.reject(topCard.poi)
         handleCardAction(action)
     }
 }
@@ -581,6 +592,7 @@ struct RouteEditView: View {
                 originalRoute: sampleRoute,
                 editableSpot: editableSpot,
                 cityName: "Nürnberg",
+                allDiscoveredPOIs: [], // Empty for preview
                 onSpotChanged: { poi, newRoute in
                     print("Selected POI: \(poi.name)")
                     if let route = newRoute {

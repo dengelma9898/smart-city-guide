@@ -132,11 +132,13 @@ final class RouteEditService: ObservableObject {
     ///   - pois: POIs to create cards from
     ///   - enrichedData: Dictionary of Wikipedia enriched data
     ///   - originalWaypoint: Original waypoint for distance calculation
+    ///   - replacedPOIs: List of POIs that were previously replaced at this position
     /// - Returns: Array of configured swipe cards
     func createSwipeCards(
         from pois: [POI],
         enrichedData: [String: WikipediaEnrichedPOI],
-        originalWaypoint: RoutePoint
+        originalWaypoint: RoutePoint,
+        replacedPOIs: [POI] = []
     ) -> [SwipeCard] {
         
         return pois.map { poi in
@@ -145,11 +147,15 @@ final class RouteEditService: ObservableObject {
                 to: originalWaypoint.coordinate
             )
             
+            // Check if this POI was previously replaced
+            let wasReplaced = replacedPOIs.contains { $0.id == poi.id }
+            
             return SwipeCard(
                 poi: poi,
                 enrichedData: enrichedData[poi.id],
                 distanceFromOriginal: distance,
-                category: poi.category
+                category: poi.category,
+                wasReplaced: wasReplaced
             )
         }
     }
@@ -176,12 +182,29 @@ final class RouteEditService: ObservableObject {
         errorMessage = nil
         
         do {
-            // 1. Create new waypoints array with replacement
-            var newWaypoints = originalRoute.waypoints
             let newWaypoint = RoutePoint(from: newPOI)
-            newWaypoints[waypointIndex] = newWaypoint
+            let originalWaypoint = originalRoute.waypoints[waypointIndex]
             
-            // 2. Recalculate walking routes between all waypoints
+            // Calculate distance between original and new POI
+            let distance = calculateDistance(from: originalWaypoint.coordinate, to: newWaypoint.coordinate)
+            
+            // Decision: Smart re-optimization for distant POIs
+            let newWaypoints: [RoutePoint]
+            if distance > configuration.reoptimizationThreshold {
+                // POI is far away - find optimal position
+                newWaypoints = try await findOptimalPosition(
+                    for: newWaypoint,
+                    in: originalRoute.waypoints,
+                    replacingIndex: waypointIndex
+                )
+            } else {
+                // POI is close - simple replacement
+                var waypoints = originalRoute.waypoints
+                waypoints[waypointIndex] = newWaypoint
+                newWaypoints = waypoints
+            }
+            
+            // Recalculate walking routes between all waypoints
             let newRoutes = try await recalculateWalkingRoutes(for: newWaypoints)
             
             // 3. Calculate new metrics
@@ -236,11 +259,110 @@ final class RouteEditService: ObservableObject {
                 throw RouteEditError.routeGenerationFailed("Routenberechnung fehlgeschlagen: \(error.localizedDescription)")
             }
             
-            // Rate limiting to be respectful to Apple's servers
-            try await Task.sleep(nanoseconds: 200_000_000) // 0.2 seconds
+            // Enhanced rate limiting for optimization scenarios
+            let delayNanoseconds: UInt64 = isGeneratingNewRoute ? 400_000_000 : 200_000_000 // 0.4s during optimization, 0.2s normal
+            try await Task.sleep(nanoseconds: delayNanoseconds)
         }
         
         return routes
+    }
+    
+    /// Find optimal position for a new POI in the route by testing all positions
+    /// Uses hybrid approach: air distance estimation + single MapKit verification
+    /// - Parameters:
+    ///   - newWaypoint: The new waypoint to insert
+    ///   - originalWaypoints: Current waypoints in the route
+    ///   - replacingIndex: Index of waypoint being replaced
+    /// - Returns: Optimized waypoint array with new POI in best position
+    private func findOptimalPosition(
+        for newWaypoint: RoutePoint,
+        in originalWaypoints: [RoutePoint],
+        replacingIndex: Int
+    ) async throws -> [RoutePoint] {
+        
+        // Extract intermediate waypoints (exclude start/end)
+        let startPoint = originalWaypoints.first!
+        let endPoint = originalWaypoints.last!
+        var intermediateWaypoints = Array(originalWaypoints.dropFirst().dropLast())
+        
+        // Remove the original waypoint being replaced
+        let adjustedReplacingIndex = replacingIndex - 1 // Adjust for start point
+        if adjustedReplacingIndex >= 0 && adjustedReplacingIndex < intermediateWaypoints.count {
+            intermediateWaypoints.remove(at: adjustedReplacingIndex)
+        }
+        
+        // Add new waypoint to intermediates
+        intermediateWaypoints.append(newWaypoint)
+        
+        // PHASE 1: Quick air distance estimation to find top candidates
+        var candidates: [(route: [RoutePoint], estimatedDistance: Double)] = []
+        
+        for insertPosition in 0...intermediateWaypoints.count-1 {
+            // Create test arrangement
+            var testIntermediates = intermediateWaypoints
+            let waypoint = testIntermediates.remove(at: testIntermediates.count - 1)
+            testIntermediates.insert(waypoint, at: insertPosition)
+            
+            // Build full route
+            var testRoute = [startPoint]
+            testRoute.append(contentsOf: testIntermediates)
+            testRoute.append(endPoint)
+            
+            // Estimate distance using air distance * realistic walking factor (1.3x)
+            let estimatedDistance = estimateWalkingDistance(for: testRoute)
+            candidates.append((route: testRoute, estimatedDistance: estimatedDistance))
+        }
+        
+        // Sort by estimated distance and take top 2 candidates
+        candidates.sort { $0.estimatedDistance < $1.estimatedDistance }
+        let topCandidates = Array(candidates.prefix(2))
+        
+        // PHASE 2: MapKit verification for top candidates only
+        var bestRoute: [RoutePoint] = []
+        var bestActualDistance: Double = Double.infinity
+        
+        for candidate in topCandidates {
+            do {
+                // Calculate actual walking distance using MapKit (with rate limiting)
+                let actualRoutes = try await recalculateWalkingRoutes(for: candidate.route)
+                let actualDistance = actualRoutes.reduce(0) { $0 + $1.distance }
+                
+                if actualDistance < bestActualDistance {
+                    bestActualDistance = actualDistance
+                    bestRoute = candidate.route
+                }
+            } catch {
+                // If route calculation fails for this candidate, skip it
+                continue
+            }
+        }
+        
+        // Return best verified route, or fall back to simple replacement
+        if !bestRoute.isEmpty {
+            return bestRoute
+        } else {
+            // Fallback: simple replacement
+            var fallbackRoute = originalWaypoints
+            fallbackRoute[replacingIndex] = newWaypoint
+            return fallbackRoute
+        }
+    }
+    
+    /// Estimate walking distance using air distance with realistic factor
+    /// - Parameter waypoints: Route waypoints
+    /// - Returns: Estimated walking distance in meters
+    private func estimateWalkingDistance(for waypoints: [RoutePoint]) -> Double {
+        guard waypoints.count >= 2 else { return 0 }
+        
+        var totalDistance: Double = 0
+        for i in 0..<(waypoints.count - 1) {
+            let startCoord = waypoints[i].coordinate
+            let endCoord = waypoints[i + 1].coordinate
+            let airDistance = calculateDistance(from: startCoord, to: endCoord)
+            // Urban walking typically adds 20-40% to air distance
+            totalDistance += airDistance * 1.3
+        }
+        return totalDistance
     }
     
     // MARK: - Load Enriched Alternatives
@@ -292,7 +414,7 @@ final class RouteEditService: ObservableObject {
     ///   - pois: POIs to enrich
     ///   - cityName: Name of the city for Wikipedia context
     /// - Returns: Dictionary of enriched data by POI ID
-    private func enrichAlternativesWithWikipedia(_ pois: [POI], cityName: String) async -> [String: WikipediaEnrichedPOI] {
+    func enrichAlternativesWithWikipedia(_ pois: [POI], cityName: String) async -> [String: WikipediaEnrichedPOI] {
         
         var enrichedData: [String: WikipediaEnrichedPOI] = [:]
         
@@ -385,6 +507,8 @@ enum RouteEditError: LocalizedError {
         }
     }
 }
+
+
 
 // MARK: - Route Request Helper
 

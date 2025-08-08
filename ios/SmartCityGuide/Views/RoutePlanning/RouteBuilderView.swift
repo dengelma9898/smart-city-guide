@@ -190,6 +190,9 @@ struct RouteBuilderView: View {
   @State private var editingWaypointIndex: Int?
   @State private var editableSpot: EditableRouteSpot?
   
+  // Route Edit History (track replaced POIs by waypoint index)
+  @State private var replacedPOIsHistory: [Int: [POI]] = [:]
+  
   // MARK: - Computed Properties
   
   private var loadingStateText: String {
@@ -642,6 +645,7 @@ struct RouteBuilderView: View {
           originalRoute: routeService.generatedRoute!,
           editableSpot: editableSpot,
           cityName: startingCity,
+          allDiscoveredPOIs: discoveredPOIs,
           onSpotChanged: handleSpotChange,
           onCancel: handleEditCancel
         )
@@ -983,13 +987,14 @@ struct RouteBuilderView: View {
     let waypoint = route.waypoints[index]
     
     // Create editable spot with alternatives from current cache
-    let alternatives = findAlternativePOIs(for: waypoint, from: discoveredPOIs)
+    let alternatives = findAlternativePOIsWithHistory(for: waypoint, at: index, from: discoveredPOIs)
     
     editableSpot = EditableRouteSpot(
       originalWaypoint: waypoint,
       waypointIndex: index,
       alternativePOIs: alternatives,
-      currentPOI: findCurrentPOI(for: waypoint)
+      currentPOI: findCurrentPOI(for: waypoint),
+      replacedPOIs: replacedPOIsHistory[index] ?? []
     )
     
     editingWaypointIndex = index
@@ -998,6 +1003,20 @@ struct RouteBuilderView: View {
   
   /// Handle spot change from route edit
   private func handleSpotChange(_ newPOI: POI, _ newRoute: GeneratedRoute?) {
+    // Track the replaced POI in history
+    if let editableSpot = editableSpot {
+      let waypointIndex = editableSpot.waypointIndex
+      
+      // Add current waypoint's POI to replaced history
+      if let currentPOI = findCurrentPOI(for: editableSpot.originalWaypoint) {
+        var history = replacedPOIsHistory[waypointIndex] ?? []
+        if !history.contains(where: { $0.id == currentPOI.id }) {
+          history.append(currentPOI)
+          replacedPOIsHistory[waypointIndex] = history
+        }
+      }
+    }
+    
     // Use the already generated route from RouteEditService
     if let updatedRoute = newRoute {
       // Apply the new route directly
@@ -1022,20 +1041,30 @@ struct RouteBuilderView: View {
     editingWaypointIndex = nil
   }
   
-  /// Find alternative POIs for a waypoint from the current cache
-  private func findAlternativePOIs(for waypoint: RoutePoint, from cachedPOIs: [POI]) -> [POI] {
-    return cachedPOIs.filter { poi in
-      // Distance constraint (500m radius)
-      let distance = calculateDistance(from: poi.coordinate, to: waypoint.coordinate)
-      guard distance <= 500.0 else { return false }
-      
-      // Not already in route
-      guard !isAlreadyInRoute(poi) else { return false }
-      
-      return true
+  /// Find alternative POIs for a waypoint including replaced POIs from history
+  private func findAlternativePOIsWithHistory(for waypoint: RoutePoint, at waypointIndex: Int, from cachedPOIs: [POI]) -> [POI] {
+    // Get previously replaced POIs for this position
+    let replacedPOIs = replacedPOIsHistory[waypointIndex] ?? []
+    
+    // Combine cached POIs with replaced POIs (excluding current route POIs)
+    let allPossiblePOIs = cachedPOIs + replacedPOIs
+    
+    return allPossiblePOIs.filter { poi in
+      // Only exclude POIs already in route - NO distance restriction
+      return !isAlreadyInRoute(poi)
     }
     .sorted { poi1, poi2 in
-      // Sort by category match, then distance
+      // Prioritize previously replaced POIs (show them first)
+      let poi1WasReplaced = replacedPOIs.contains { $0.id == poi1.id }
+      let poi2WasReplaced = replacedPOIs.contains { $0.id == poi2.id }
+      
+      if poi1WasReplaced && !poi2WasReplaced {
+        return true
+      } else if !poi1WasReplaced && poi2WasReplaced {
+        return false
+      }
+      
+      // Then sort by category match
       let categoryMatch1 = poi1.category == waypoint.category
       let categoryMatch2 = poi2.category == waypoint.category
       
@@ -1045,12 +1074,12 @@ struct RouteBuilderView: View {
         return false
       }
       
-      // Sort by distance
+      // Finally sort by distance
       let distance1 = calculateDistance(from: poi1.coordinate, to: waypoint.coordinate)
       let distance2 = calculateDistance(from: poi2.coordinate, to: waypoint.coordinate)
       return distance1 < distance2
     }
-    .prefix(20) // Limit to 20 alternatives
+    .prefix(30) // Increased limit for more alternatives
     .map { $0 }
   }
   
