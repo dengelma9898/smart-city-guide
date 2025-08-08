@@ -503,6 +503,8 @@ struct RouteEditView: View {
                     onSpotChanged(poi, editService.newRoute)
                 }
             }
+            // Dismiss instantly for immediate feedback
+            onCancel()
             
         case .reject, .skip:
             // For reject/skip, we need to trigger the stack to show next card
