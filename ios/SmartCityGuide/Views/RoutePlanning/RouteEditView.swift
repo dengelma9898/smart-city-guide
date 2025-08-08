@@ -556,8 +556,19 @@ struct RouteEditView: View {
     }
     
     private func simulateCardSwipeCompletion(action: SwipeAction) {
-        // Trigger card removal in SwipeCardStackView via notification
-        NotificationCenter.default.post(name: .manualCardRemoval, object: nil)
+        // Trigger swipe-like exit animation on the top card before removal
+        let direction: String
+        switch action {
+        case .accept:
+            direction = "left" // accept behaves like left swipe
+        case .reject, .skip:
+            direction = "right"
+        }
+        NotificationCenter.default.post(name: .manualCardExit, object: nil, userInfo: ["direction": direction])
+        // Small delay to let the card exit animate, then remove from stack
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.28) {
+            NotificationCenter.default.post(name: .manualCardRemoval, object: nil)
+        }
         
         // Handle the action (route generation for accept, or just progression for reject)  
         handleCardAction(action)

@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import Combine
 import CoreLocation
 
 /// Individual swipe card for POI alternatives in route editing
@@ -52,6 +53,16 @@ struct SpotSwipeCardView: View {
             
             // Swipe direction indicators
             swipeIndicators
+        }
+        // Programmatic exit animation for manual buttons
+        .onReceive(NotificationCenter.default.publisher(for: .manualCardExit)) { note in
+            guard let direction = note.userInfo?["direction"] as? String else { return }
+            let exitDistance: CGFloat = (direction == "left") ? -400 : 400
+            var t = Transaction(); t.disablesAnimations = true
+            withTransaction(t) { /* keep current viewOffset as starting point */ }
+            withAnimation(CardAnimationConfig.removeAnimation) {
+                viewOffset = CGSize(width: exitDistance, height: viewOffset.height)
+            }
         }
         .offset(x: totalOffset.width, y: totalOffset.height * 0.1) // Slight vertical dampening
         .rotationEffect(.degrees(totalOffset.width / 15)) // Rotation based on horizontal drag
@@ -321,6 +332,12 @@ struct SpotSwipeCardView: View {
                 transaction.animation = .spring(response: 0.3, dampingFraction: 0.8)
             }
             .onEnded { value in
+                // Freeze the card at the final drag translation so it doesn't snap back to 0
+                var t = Transaction()
+                t.disablesAnimations = true
+                withTransaction(t) {
+                    viewOffset = value.translation
+                }
                 let swipeGesture = SwipeGesture(
                     translation: value.translation,
                     velocity: value.velocity.width
@@ -377,6 +394,15 @@ struct SpotSwipeCardView: View {
         // No need to manually update card.isAnimating - gesture state handles this
     }
 }
+
+// MARK: - Manual Exit via Notification
+
+extension SpotSwipeCardView {
+    private var manualExitPublisher: some Publisher {
+        NotificationCenter.default.publisher(for: .manualCardExit)
+    }
+}
+
 
 // MARK: - Preview
 

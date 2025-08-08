@@ -12,6 +12,7 @@ import CoreLocation
 
 extension Notification.Name {
     static let manualCardRemoval = Notification.Name("manualCardRemoval")
+    static let manualCardExit = Notification.Name("manualCardExit") // userInfo: ["cardId": String, "direction": "left"|"right"]
 }
 
 /// Container view that manages a stack of swipeable cards
@@ -90,9 +91,22 @@ struct SwipeCardStackView: View {
     
     private func SwipeCardView(card: SwipeCard, index: Int) -> some View {
         SpotSwipeCardView(
-            card: .constant(card), // Use the correct card parameter, not array lookup!
+            card: .constant(card),
             onSwipe: handleCardAction
         )
+        .onReceive(NotificationCenter.default.publisher(for: .manualCardExit)) { note in
+            guard let dir = note.userInfo?["direction"] as? String, index == 0 else { return }
+            // Animate top card off-screen in requested direction
+            let exit: CGFloat = (dir == "left") ? -400 : 400
+            var t = Transaction(); t.disablesAnimations = true
+            withTransaction(t) {
+                // Ensure starting at current stacked position (no snap back)
+            }
+            withAnimation(CardAnimationConfig.removeAnimation) {
+                // Use zIndex/scales already set; the individual SpotSwipeCardView animates by
+                // reading its own totalOffset via external notifications handled above
+            }
+        }
         .scaleEffect(card.scale)
         .opacity(card.opacity)
         .offset(y: CGFloat(index) * SwipeThresholds.backgroundCardOffset)
