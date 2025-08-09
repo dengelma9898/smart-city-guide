@@ -217,7 +217,7 @@ class GeoapifyAPIService: ObservableObject {
         return trimmedInput
     }
     
-    private func searchPOIs(near location: CLLocationCoordinate2D, categories: [PlaceCategory], cityName: String, radius: Double) async throws -> [POI] {
+    private func searchPOIs(near location: CLLocationCoordinate2D, categories: [PlaceCategory], cityName: String, radius: Double, allowFallback: Bool = true) async throws -> [POI] {
         await MainActor.run {
             isLoading = true
         }
@@ -228,20 +228,31 @@ class GeoapifyAPIService: ObservableObject {
         }
         
         // 🚀 GEOAPIFY PLACES API: Category-based search for precise POI filtering
-        let allCategories = categories.flatMap { $0.geoapifyCategories }
+        // Filter to leaf categories only (strings containing a dot), since top-level buckets like
+        // "tourism" or "natural" are not valid for /places and can cause HTTP 400.
+        let allCategories = categories
+            .flatMap { $0.geoapifyCategories }
+            .filter { $0.contains(".") }
         let categoryParams = allCategories.joined(separator: ",")
         
         // DEBUG: Log the actual categories being sent
         secureLogger.logInfo("🌍 Geoapify Categories: \(allCategories)", category: .geoapify)
         secureLogger.logInfo("🗺️ Search Location: \(location.latitude), \(location.longitude) with radius \(radius)m", category: .geoapify)
         
+        // URL encode the category parameters properly
+        guard !categoryParams.isEmpty,
+              let encodedCategories = categoryParams.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) else {
+            throw GeoapifyError.invalidURL
+        }
+        
         // Geoapify Places API with categories filter and German language:
         // GET /places?categories=tourism.attraction&filter=circle:lng,lat,5000&limit=50&lang=de&apiKey=key
-        let urlString = "\(baseURL)/places?categories=\(categoryParams)&filter=circle:\(location.longitude),\(location.latitude),\(Int(radius))&limit=50&lang=de&apiKey=\(apiKey)"
+        let urlString = "\(baseURL)/places?categories=\(encodedCategories)&filter=circle:\(location.longitude),\(location.latitude),\(Int(radius))&limit=50&lang=de&apiKey=\(apiKey)"
         
         secureLogger.logAPIRequest(url: urlString, category: .geoapify)
         
         guard let url = URL(string: urlString) else {
+            secureLogger.logError("🌐 Invalid Geoapify URL: \(urlString)", category: .general)
             throw GeoapifyError.invalidURL
         }
         
@@ -267,6 +278,11 @@ class GeoapifyAPIService: ObservableObject {
                 // Extract error details from API response
                 if let responseString = String(data: data, encoding: .utf8) {
                     secureLogger.logError("🌐 Geoapify API Error \(httpResponse.statusCode)", category: .general)
+                }
+                // Fallback: On 400, retry with a minimal, known-good category set
+                if httpResponse.statusCode == 400 && allowFallback {
+                    secureLogger.logWarning("🌐 Falling back to minimal categories due to 400 - retrying with ['tourism.attraction']", category: .geoapify)
+                    return try await searchPOIs(near: location, categories: [.attraction], cityName: cityName, radius: radius, allowFallback: false)
                 }
                 throw GeoapifyError.invalidResponse(statusCode: httpResponse.statusCode)
             }
