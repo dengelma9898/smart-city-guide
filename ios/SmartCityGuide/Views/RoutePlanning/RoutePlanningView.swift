@@ -11,6 +11,7 @@ struct RoutePlanningView: View {
   @State private var startingCity = ""
   @State private var startingCoordinates: CLLocationCoordinate2D? = nil // NEW: Store coordinates
   @State private var usingCurrentLocation = false // Phase 3: Track if using current location
+  @State private var planningMode: RoutePlanningMode = .automatic // NEW: Planning mode selection
   @State private var maximumStops: MaximumStops = .five
   @State private var endpointOption: EndpointOption = .roundtrip
   @State private var customEndpoint = ""
@@ -18,6 +19,7 @@ struct RoutePlanningView: View {
   @State private var maximumWalkingTime: MaximumWalkingTime = .sixtyMin
   @State private var minimumPOIDistance: MinimumPOIDistance = .twoFifty
   @State private var showingRouteBuilder = false
+  @State private var showingManualPlanning = false // NEW: Show manual planning sheet
   @State private var showingStartPointInfo = false
   @State private var showingStopsInfo = false
   @State private var showingWalkingTimeInfo = false
@@ -138,38 +140,78 @@ struct RoutePlanningView: View {
               }
             }
             
-            // Maximum Stops Section
-            HorizontalFilterChips(
-              title: "Maximale Stopps",
-              icon: "map.fill",
-              options: MaximumStops.allCases,
-              selection: $maximumStops,
-              infoAction: {
-                showingStopsInfo = true
+            // Planning Mode Selection Section
+            VStack(alignment: .leading, spacing: 8) {
+              HStack {
+                Image(systemName: "slider.horizontal.3")
+                  .foregroundColor(.blue)
+                  .font(.system(size: 20))
+                
+                Text("Wie möchtest du planen?")
+                  .font(.headline)
+                  .fontWeight(.semibold)
               }
-            )
+              
+              HStack(spacing: 8) {
+                ForEach(RoutePlanningMode.allCases, id: \.self) { mode in
+                  Button(action: {
+                    planningMode = mode
+                  }) {
+                    Text(mode.rawValue)
+                      .font(.body)
+                      .fontWeight(.medium)
+                      .foregroundColor(planningMode == mode ? .white : .blue)
+                      .padding(.horizontal, 16)
+                      .padding(.vertical, 12)
+                      .frame(maxWidth: .infinity)
+                      .background(
+                        RoundedRectangle(cornerRadius: 10)
+                          .fill(planningMode == mode ? .blue : Color(.systemGray6))
+                      )
+                  }
+                  .accessibilityLabel("\(mode.rawValue) Modus")
+                  .accessibilityAddTraits(planningMode == mode ? .isSelected : [])
+                }
+              }
+              .accessibilityElement(children: .contain)
+              .accessibilityLabel("Planungsmodus wählen")
+            }
             
-            // Maximum Walking Time Section
-            HorizontalFilterChips(
-              title: "Maximale Gehzeit",
-              icon: "clock.fill",
-              options: MaximumWalkingTime.allCases,
-              selection: $maximumWalkingTime,
-              infoAction: {
-                showingWalkingTimeInfo = true
-              }
-            )
-            
-            // Minimum POI Distance Section
-            HorizontalFilterChips(
-              title: "Mindestabstand",
-              icon: "point.3.filled.connected.trianglepath.dotted",
-              options: MinimumPOIDistance.allCases,
-              selection: $minimumPOIDistance,
-              infoAction: {
-                showingPOIDistanceInfo = true
-              }
-            )
+            // Conditional Parameter Display - Show complex parameters only for automatic mode
+            if planningMode == .automatic {
+              // Maximum Stops Section
+              HorizontalFilterChips(
+                title: "Maximale Stopps",
+                icon: "map.fill",
+                options: MaximumStops.allCases,
+                selection: $maximumStops,
+                infoAction: {
+                  showingStopsInfo = true
+                }
+              )
+              
+              // Maximum Walking Time Section
+              HorizontalFilterChips(
+                title: "Maximale Gehzeit",
+                icon: "clock.fill",
+                options: MaximumWalkingTime.allCases,
+                selection: $maximumWalkingTime,
+                infoAction: {
+                  showingWalkingTimeInfo = true
+                }
+              )
+              
+              // Minimum POI Distance Section
+              HorizontalFilterChips(
+                title: "Mindestabstand",
+                icon: "point.3.filled.connected.trianglepath.dotted",
+                options: MinimumPOIDistance.allCases,
+                selection: $minimumPOIDistance,
+                infoAction: {
+                  showingPOIDistanceInfo = true
+                }
+              )
+            }
             
             // Endpoint Section
             VStack(alignment: .leading, spacing: 8) {
@@ -244,14 +286,18 @@ struct RoutePlanningView: View {
         
         // Bottom Button with Safe Area Support
         Button(action: {
-          showingRouteBuilder = true
+          if planningMode == .automatic {
+            showingRouteBuilder = true
+          } else {
+            showingManualPlanning = true
+          }
         }) {
           HStack(spacing: 8) {
-            Text("Los geht's!")
+            Text(planningMode == .automatic ? "Los geht's!" : "POIs entdecken!")
               .font(.headline)
               .fontWeight(.medium)
             
-            Image(systemName: "arrow.right")
+            Image(systemName: planningMode == .automatic ? "arrow.right" : "magnifyingglass")
               .font(.system(size: 16, weight: .medium))
           }
           .foregroundColor(.white)
@@ -266,8 +312,8 @@ struct RoutePlanningView: View {
         .padding(.horizontal, 20)
         .padding(.bottom, 34)
         .background(.regularMaterial.opacity(0.8))
-        .accessibilityLabel("Los geht's!")
-        .accessibilityHint("Startet deine Abenteuer-Tour!")
+        .accessibilityLabel(planningMode == .automatic ? "Los geht's!" : "POIs entdecken!")
+        .accessibilityHint(planningMode == .automatic ? "Startet deine Abenteuer-Tour!" : "Entdecke interessante Orte für deine manuelle Route!")
       }
       .opacity(settingsManager.isLoading ? 0.4 : 1.0)
       .animation(.easeInOut(duration: 0.4), value: settingsManager.isLoading)
@@ -291,6 +337,19 @@ struct RoutePlanningView: View {
           customEndpointCoordinates: customEndpointCoordinates,
           maximumWalkingTime: maximumWalkingTime,
           minimumPOIDistance: minimumPOIDistance,
+          onRouteGenerated: onRouteGenerated
+        )
+      }
+      .sheet(isPresented: $showingManualPlanning) {
+        ManualRoutePlanningView(
+          config: ManualRouteConfig(
+            startingCity: startingCity,
+            startingCoordinates: startingCoordinates,
+            usingCurrentLocation: usingCurrentLocation,
+            endpointOption: endpointOption,
+            customEndpoint: customEndpoint,
+            customEndpointCoordinates: customEndpointCoordinates
+          ),
           onRouteGenerated: onRouteGenerated
         )
       }
