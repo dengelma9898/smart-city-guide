@@ -12,8 +12,12 @@
 		A1234567890ABCDEF012345A /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A1234567890ABCDEF012345B /* Assets.xcassets */; };
 		A1234567890ABCDEF012345C /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A1234567890ABCDEF012345D /* Preview Assets.xcassets */; };
 		E1048AC32E43A94000FD6F70 /* Permissions.xcconfig in Resources */ = {isa = PBXBuildFile; fileRef = E1048AC22E43A94000FD6F70 /* Permissions.xcconfig */; };
-		E1048BB02E4927E500FD6F70 /* SmartCityGuideUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1048BAD2E4927E500FD6F70 /* SmartCityGuideUITests.swift */; };
-		E1048BB12E4927E500FD6F70 /* SmartCityGuideUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1048BAE2E4927E500FD6F70 /* SmartCityGuideUITestsLaunchTests.swift */; };
+		E17F7BDB2E492FDC009D3751 /* ProfilePage.swift in Sources */ = {isa = PBXBuildFile; fileRef = E17F7BD62E492FDC009D3751 /* ProfilePage.swift */; };
+		E17F7BDC2E492FDC009D3751 /* TestApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = E17F7BD42E492FDC009D3751 /* TestApp.swift */; };
+		E17F7BDD2E492FDC009D3751 /* Profile_ChangeName_Tests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E17F7BD12E492FDC009D3751 /* Profile_ChangeName_Tests.swift */; };
+		E17F7BDE2E492FDC009D3751 /* SmartCityGuideUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E17F7BD82E492FDC009D3751 /* SmartCityGuideUITests.swift */; };
+		E17F7BDF2E492FDC009D3751 /* Profile_DefaultName_Tests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E17F7BD22E492FDC009D3751 /* Profile_DefaultName_Tests.swift */; };
+		E17F7BE02E492FDC009D3751 /* SmartCityGuideUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E17F7BD92E492FDC009D3751 /* SmartCityGuideUITestsLaunchTests.swift */; };
 		E1FEF13D2E3FEF1B00C409C6 /* APIKeys.plist in Resources */ = {isa = PBXBuildFile; fileRef = E1FEF13C2E3FEF1B00C409C6 /* APIKeys.plist */; };
 /* End PBXBuildFile section */
 
@@ -37,9 +41,13 @@
 		E1048AC62E447EDA00FD6F70 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		E1048AC72E449AE300FD6F70 /* zeidlerschloss feucht.gpx */ = {isa = PBXFileReference; lastKnownFileType = text.xml; name = "zeidlerschloss feucht.gpx"; path = "../../../../Downloads/zeidlerschloss feucht.gpx"; sourceTree = "<group>"; };
 		E1048B882E4923BF00FD6F70 /* SmartCityGuideUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SmartCityGuideUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		E1048BAD2E4927E500FD6F70 /* SmartCityGuideUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmartCityGuideUITests.swift; sourceTree = "<group>"; };
-		E1048BAE2E4927E500FD6F70 /* SmartCityGuideUITestsLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmartCityGuideUITestsLaunchTests.swift; sourceTree = "<group>"; };
 		E1048BB22E492A5A00FD6F70 /* SmartCityGuide.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = SmartCityGuide.xctestplan; sourceTree = "<group>"; };
+		E17F7BD12E492FDC009D3751 /* Profile_ChangeName_Tests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Profile_ChangeName_Tests.swift; sourceTree = "<group>"; };
+		E17F7BD22E492FDC009D3751 /* Profile_DefaultName_Tests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Profile_DefaultName_Tests.swift; sourceTree = "<group>"; };
+		E17F7BD42E492FDC009D3751 /* TestApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestApp.swift; sourceTree = "<group>"; };
+		E17F7BD62E492FDC009D3751 /* ProfilePage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfilePage.swift; sourceTree = "<group>"; };
+		E17F7BD82E492FDC009D3751 /* SmartCityGuideUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmartCityGuideUITests.swift; sourceTree = "<group>"; };
+		E17F7BD92E492FDC009D3751 /* SmartCityGuideUITestsLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmartCityGuideUITestsLaunchTests.swift; sourceTree = "<group>"; };
 		E1FEF13C2E3FEF1B00C409C6 /* APIKeys.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = APIKeys.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -71,8 +79,8 @@
 		A1234567890ABCDEF0123447 = {
 			isa = PBXGroup;
 			children = (
+				E17F7BDA2E492FDC009D3751 /* SmartCityGuideUITests */,
 				E1048BB22E492A5A00FD6F70 /* SmartCityGuide.xctestplan */,
-				E1048BAF2E4927E500FD6F70 /* SmartCityGuideUITests */,
 				E1048AC72E449AE300FD6F70 /* zeidlerschloss feucht.gpx */,
 				A1234567890ABCDEF0123452 /* SmartCityGuide */,
 				A1234567890ABCDEF0123451 /* Products */,
@@ -114,35 +122,39 @@
 			path = "Preview Content";
 			sourceTree = "<group>";
 		};
-		E1048BAA2E4927E500FD6F70 /* Flows */ = {
+		E17F7BD32E492FDC009D3751 /* Flows */ = {
 			isa = PBXGroup;
 			children = (
+				E17F7BD12E492FDC009D3751 /* Profile_ChangeName_Tests.swift */,
+				E17F7BD22E492FDC009D3751 /* Profile_DefaultName_Tests.swift */,
 			);
 			path = Flows;
 			sourceTree = "<group>";
 		};
-		E1048BAB2E4927E500FD6F70 /* Helpers */ = {
+		E17F7BD52E492FDC009D3751 /* Helpers */ = {
 			isa = PBXGroup;
 			children = (
+				E17F7BD42E492FDC009D3751 /* TestApp.swift */,
 			);
 			path = Helpers;
 			sourceTree = "<group>";
 		};
-		E1048BAC2E4927E500FD6F70 /* Pages */ = {
+		E17F7BD72E492FDC009D3751 /* Pages */ = {
 			isa = PBXGroup;
 			children = (
+				E17F7BD62E492FDC009D3751 /* ProfilePage.swift */,
 			);
 			path = Pages;
 			sourceTree = "<group>";
 		};
-		E1048BAF2E4927E500FD6F70 /* SmartCityGuideUITests */ = {
+		E17F7BDA2E492FDC009D3751 /* SmartCityGuideUITests */ = {
 			isa = PBXGroup;
 			children = (
-				E1048BAA2E4927E500FD6F70 /* Flows */,
-				E1048BAB2E4927E500FD6F70 /* Helpers */,
-				E1048BAC2E4927E500FD6F70 /* Pages */,
-				E1048BAD2E4927E500FD6F70 /* SmartCityGuideUITests.swift */,
-				E1048BAE2E4927E500FD6F70 /* SmartCityGuideUITestsLaunchTests.swift */,
+				E17F7BD32E492FDC009D3751 /* Flows */,
+				E17F7BD52E492FDC009D3751 /* Helpers */,
+				E17F7BD72E492FDC009D3751 /* Pages */,
+				E17F7BD82E492FDC009D3751 /* SmartCityGuideUITests.swift */,
+				E17F7BD92E492FDC009D3751 /* SmartCityGuideUITestsLaunchTests.swift */,
 			);
 			path = SmartCityGuideUITests;
 			sourceTree = "<group>";
@@ -266,8 +278,12 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				E1048BB02E4927E500FD6F70 /* SmartCityGuideUITests.swift in Sources */,
-				E1048BB12E4927E500FD6F70 /* SmartCityGuideUITestsLaunchTests.swift in Sources */,
+				E17F7BDB2E492FDC009D3751 /* ProfilePage.swift in Sources */,
+				E17F7BDC2E492FDC009D3751 /* TestApp.swift in Sources */,
+				E17F7BDD2E492FDC009D3751 /* Profile_ChangeName_Tests.swift in Sources */,
+				E17F7BDE2E492FDC009D3751 /* SmartCityGuideUITests.swift in Sources */,
+				E17F7BDF2E492FDC009D3751 /* Profile_DefaultName_Tests.swift in Sources */,
+				E17F7BE02E492FDC009D3751 /* SmartCityGuideUITestsLaunchTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
