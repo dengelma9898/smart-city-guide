@@ -314,7 +314,23 @@ struct FAQCategory {
                 ),
                 FAQ(
                     question: "Kann ich selbst bestimmen, welche Orte besucht werden?",
-                    answer: "Aktuell schlägt die App automatisch interessante Orte basierend auf deinen Kategorien vor (Sehenswürdigkeiten, Museen, Parks). In zukünftigen Updates wirst du auch eigene Orte hinzufügen können."
+                    answer: "Ja! Wähle im Planungsbildschirm den Modus \"Manuell erstellen\". Dann kannst du mit einem Swipe-Interface (links = übernehmen, rechts = überspringen) deine Lieblings-POIs auswählen. Oben rechts findest du über die drei Punkte eine Übersicht und deine aktuelle Auswahl."
+                ),
+                FAQ(
+                    question: "Was ist der Unterschied zwischen \"Automatisch\" und \"Manuell erstellen\"?",
+                    answer: "Im Modus \"Automatisch\" sucht die App passende Orte und erstellt die komplette Route für dich. Im Modus \"Manuell erstellen\" wählst du die POIs per Swipe selbst aus, und die App optimiert anschließend Reihenfolge und Gehwege (TSP mit echten Gehzeiten)."
+                ),
+                FAQ(
+                    question: "Wie funktioniert die POI-Auswahl (Swipe)?",
+                    answer: "Auf der Karte siehst du POI-Karten: Nach links swipen oder Haken-Button = übernehmen, nach rechts oder X-Button = überspringen. Der Zähler in der Fußleiste zeigt dir jederzeit, wie viele POIs du bereits ausgewählt hast."
+                ),
+                FAQ(
+                    question: "Was passiert bei \"Rückgängig\"?",
+                    answer: "Die letzte Aktion wird zurückgenommen. Der betroffene POI wird direkt wieder vor die aktuelle Karte einsortiert – du kannst ihn sofort neu bewerten. Ein kurzer Hinweis (Toast) zeigt dir zusätzlich, was zurückgenommen wurde und wie viele POIs aktuell ausgewählt sind."
+                ),
+                FAQ(
+                    question: "Wo sehe ich meine aktuelle Auswahl?",
+                    answer: "Tippe oben rechts auf die drei Punkte (⋯) → \"Aktuelle Auswahl\". Dort siehst du eine Liste deiner bisher gewählten POIs. Über dasselbe Menü findest du auch die Übersicht und kannst die Auswahl komplett zurücksetzen."
                 ),
                 FAQ(
                     question: "Warum sind manche Routen länger als gewünscht?",

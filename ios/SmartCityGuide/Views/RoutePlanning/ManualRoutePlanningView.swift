@@ -42,6 +42,9 @@ struct ManualRoutePlanningView: View {
     @State private var generatedRoute: GeneratedRoute?
     @State private var enrichmentProgress: Double = 0.0
     @State private var errorMessage: String?
+    @State private var showingOverviewSheet = false
+    @State private var showingSelectionSheet = false
+    @State private var showingHelpSheet = false
     
     var body: some View {
         NavigationView {
@@ -76,12 +79,32 @@ struct ManualRoutePlanningView: View {
                         .accessibilityLabel("Route erstellen")
                     }
                 }
+                // Options menu (always available)
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button { showingOverviewSheet = true } label: { Image(systemName: "info.circle") }
+                    Menu {
+                        Button { showingOverviewSheet = true } label: {
+                            Label("Übersicht", systemImage: "info.circle")
+                        }
+                        Button { showingSelectionSheet = true } label: {
+                            Label("Aktuelle Auswahl", systemImage: "checkmark.circle")
+                        }
+                        Button { showingHelpSheet = true } label: {
+                            Label("Was passiert bei Rückgängig?", systemImage: "arrow.uturn.left.circle")
+                        }
+                        Divider()
+                        Button(role: .destructive) { poiSelection.reset() } label: {
+                            Label("Auswahl zurücksetzen", systemImage: "trash")
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis.circle")
+                    }
+                    .accessibilityLabel("Optionen")
                 }
                 ToolbarItem(placement: .navigationBarTrailing) { selectionCounterView }
             }
             .sheet(isPresented: $showingOverviewSheet) { overviewSheet }
+            .sheet(isPresented: $showingSelectionSheet) { selectionSheet }
+            .sheet(isPresented: $showingHelpSheet) { undoHelpSheet }
             .fullScreenCover(item: $previewContext) { ctx in
                 RouteBuilderView(
                     manualRoute: ctx.route,
@@ -277,7 +300,6 @@ struct ManualRoutePlanningView: View {
     @State private var finalDiscoveredPOIs: [POI]?
 
     // MARK: - Overview Sheet
-    @State private var showingOverviewSheet = false
     private var overviewSheet: some View {
         NavigationView {
             ScrollView {
@@ -296,6 +318,49 @@ struct ManualRoutePlanningView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) { Button("Fertig") { showingOverviewSheet = false } }
             }
+        }
+    }
+
+    // MARK: - Selection Sheet
+    private var selectionSheet: some View {
+        NavigationView {
+            List {
+                Section(header: Text("Aktuell ausgewählt (\(poiSelection.selectedPOIs.count))")) {
+                    if poiSelection.selectedPOIs.isEmpty {
+                        Text("Noch keine POIs ausgewählt")
+                            .foregroundColor(.secondary)
+                    } else {
+                        ForEach(poiSelection.selectedPOIs, id: \.id) { poi in
+                            VStack(alignment: .leading) {
+                                Text(poi.name).font(.body).fontWeight(.medium)
+                                Text(poi.fullAddress).font(.caption).foregroundColor(.secondary)
+                            }
+                        }
+                    }
+                }
+            }
+            .navigationTitle("Deine Auswahl")
+            .toolbar { ToolbarItem(placement: .navigationBarTrailing) { Button("Fertig") { showingSelectionSheet = false } } }
+        }
+    }
+
+    // MARK: - Undo Help Sheet
+    private var undoHelpSheet: some View {
+        NavigationView {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("So funktioniert \"Rückgängig\"")
+                        .font(.headline)
+                    Text("- Die letzte Aktion (Auswahl oder Ablehnung) wird zurückgenommen.")
+                    Text("- Der betroffene Ort wird direkt wieder vor die aktuelle Karte einsortiert – du kannst ihn sofort neu bewerten.")
+                    Text("- Der Auswahlzähler aktualisiert sich automatisch.")
+                    Text("- Du kannst mehrere Aktionen nacheinander rückgängig machen, solange Verlauf vorhanden ist.")
+                        .foregroundColor(.secondary)
+                }
+                .padding()
+            }
+            .navigationTitle("Rückgängig – Hilfe")
+            .toolbar { ToolbarItem(placement: .navigationBarTrailing) { Button("Fertig") { showingHelpSheet = false } } }
         }
     }
     

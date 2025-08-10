@@ -13,6 +13,8 @@ struct POISelectionStackView: View {
     @State private var swipeCards: [SwipeCard] = []
     @State private var currentCardIndex = 0
     @State private var showingSelectionSummary = false
+    @State private var toastMessage: String? = nil
+    @State private var showToast: Bool = false
     
     var body: some View {
         ZStack {
@@ -46,6 +48,19 @@ struct POISelectionStackView: View {
                 actionBar
             }
         }
+        // Toast overlay (bottom)
+        .overlay(alignment: .bottom) {
+            if showToast, let message = toastMessage {
+                Text(message)
+                    .font(.subheadline)
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
+                    .background(Capsule().fill(Color.black.opacity(0.8)))
+                    .padding(.bottom, 90)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
         .onAppear { setupSwipeCards() }
     }
     
@@ -75,6 +90,17 @@ struct POISelectionStackView: View {
                         enrichedData: enrichedPOIs[card.poi.id],
                         onSwipe: handleCardAction
                     )
+                    .overlay(alignment: .topLeading) {
+                        // Small metrics badge (polish)
+                        if let enriched = enrichedPOIs[card.poi.id], let desc = enriched.shortDescription, !desc.isEmpty {
+                            Text("📖 Wiki")
+                                .font(.caption2)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(Capsule().fill(Color(.systemBackground).opacity(0.8)))
+                                .padding(8)
+                        }
+                    }
                     .scaleEffect(1.0 - CGFloat(index) * 0.05)
                     .opacity(1.0 - Double(index) * 0.3)
                     .offset(y: CGFloat(index) * 10)
@@ -105,6 +131,15 @@ struct POISelectionStackView: View {
     
     private var actionBar: some View {
         HStack(spacing: 28) {
+            // Undo (if possible)
+            if selection.canUndo {
+                Button(action: handleUndo) {
+                    Image(systemName: "arrow.uturn.left.circle")
+                        .font(.system(size: 30, weight: .semibold))
+                        .foregroundColor(.secondary)
+                }
+                .accessibilityLabel("Aktion rückgängig machen")
+            }
             // Reject
             Button(action: rejectCurrentCard) {
                 Image(systemName: "xmark.circle.fill")
@@ -114,6 +149,9 @@ struct POISelectionStackView: View {
             .accessibilityLabel("POI ablehnen")
 
             Spacer()
+
+            // Live selection counter
+            selectionCounter
 
             // Accept
             Button(action: selectCurrentCard) {
@@ -272,6 +310,43 @@ struct POISelectionStackView: View {
     private func advanceToNextCard() {
         withAnimation(.easeInOut(duration: 0.3)) {
             currentCardIndex += 1
+        }
+    }
+
+    private func handleUndo() {
+        guard let last = selection.undoLast() else { return }
+        var message = ""
+        switch last {
+        case .select(let poi):
+            // Re-add the POI just before the current card to re-consider
+            if let idx = availablePOIs.firstIndex(where: { $0.id == poi.id }) {
+                // Ensure there is a card for it
+                let card = SwipeCard(poi: poi, enrichedData: enrichedPOIs[poi.id], distanceFromOriginal: 0, category: poi.category, wasReplaced: false)
+                swipeCards.insert(card, at: max(currentCardIndex, 0))
+                availablePOIs.remove(at: idx)
+            }
+            message = "Zurückgenommen: Auswahl von \(poi.name)."
+        case .reject(let poi):
+            // Make rejected POI available again (insert next)
+            let card = SwipeCard(poi: poi, enrichedData: enrichedPOIs[poi.id], distanceFromOriginal: 0, category: poi.category, wasReplaced: false)
+            swipeCards.insert(card, at: max(currentCardIndex, 0))
+            message = "Zurückgenommen: Ablehnung von \(poi.name)."
+        case .undo:
+            message = "Letzte Aktion zurückgenommen."
+        }
+        toast(message: message + " • Ausgewählt: \(selection.selectedPOIs.count)")
+    }
+
+    private func toast(message: String) {
+        withAnimation {
+            toastMessage = message
+            showToast = true
+        }
+        // auto hide after 1.8s
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) {
+            withAnimation {
+                showToast = false
+            }
         }
     }
     

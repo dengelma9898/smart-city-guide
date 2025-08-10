@@ -310,7 +310,20 @@ struct RouteBuilderView: View {
                       
                       VStack(alignment: .leading, spacing: 4) {
                         HStack(spacing: 6) {
-                          Text(waypoint.name)
+                          // Display-friendly name: show "Ziel" for last waypoint on roundtrip/lastPlace, or custom name when provided
+                          let displayName: String = {
+                            if index == 0 { return "Start" }
+                            if index == route.waypoints.count - 1 {
+                              switch endpointOption {
+                              case .custom:
+                                return customEndpoint.isEmpty ? "Ziel" : customEndpoint
+                              default:
+                                return "Ziel"
+                              }
+                            }
+                            return waypoint.name
+                          }()
+                          Text(displayName)
                             .font(.body)
                             .fontWeight(.medium)
                           
@@ -1201,12 +1214,12 @@ struct RouteBuilderView: View {
       // Recalculate walking routes between waypoints
       let newRoutes = try await recalculateWalkingRoutes(for: newWaypoints)
       
-      // Calculate new metrics
+      // Calculate new metrics (keep units consistent: seconds)
       let newTotalDistance = newRoutes.reduce(0) { $0 + $1.distance }
-      let newTotalTravelTime = newRoutes.reduce(0) { $0 + ($1.expectedTravelTime / 60.0) }
+      let newTotalTravelTime: TimeInterval = newRoutes.reduce(0) { $0 + $1.expectedTravelTime }
       
       // Keep original visit time, update experience time
-      let newTotalExperienceTime = newTotalTravelTime + originalRoute.totalVisitTime
+      let newTotalExperienceTime: TimeInterval = newTotalTravelTime + originalRoute.totalVisitTime
       
       let updatedRoute = GeneratedRoute(
         waypoints: newWaypoints,
