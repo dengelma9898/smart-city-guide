@@ -1,0 +1,29 @@
+{
+  "configurations" : [
+    {
+      "id" : "5D3D5FB1-A9EA-4B01-BDFD-582B3514A453",
+      "name" : "Test Scheme Action",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "targetForVariableExpansion" : {
+      "containerPath" : "container:SmartCityGuide.xcodeproj",
+      "identifier" : "A1234567890ABCDEF012344F",
+      "name" : "SmartCityGuide"
+    }
+  },
+  "testTargets" : [
+    {
+      "parallelizable" : true,
+      "target" : {
+        "containerPath" : "container:SmartCityGuide.xcodeproj",
+        "identifier" : "E1048B872E4923BF00FD6F70",
+        "name" : "SmartCityGuideUITests"
+      }
+    }
+  ],
+  "version" : 1
+}

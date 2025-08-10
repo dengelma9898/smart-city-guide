@@ -12,8 +12,20 @@
 		A1234567890ABCDEF012345A /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A1234567890ABCDEF012345B /* Assets.xcassets */; };
 		A1234567890ABCDEF012345C /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A1234567890ABCDEF012345D /* Preview Assets.xcassets */; };
 		E1048AC32E43A94000FD6F70 /* Permissions.xcconfig in Resources */ = {isa = PBXBuildFile; fileRef = E1048AC22E43A94000FD6F70 /* Permissions.xcconfig */; };
+		E1048BB02E4927E500FD6F70 /* SmartCityGuideUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1048BAD2E4927E500FD6F70 /* SmartCityGuideUITests.swift */; };
+		E1048BB12E4927E500FD6F70 /* SmartCityGuideUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1048BAE2E4927E500FD6F70 /* SmartCityGuideUITestsLaunchTests.swift */; };
 		E1FEF13D2E3FEF1B00C409C6 /* APIKeys.plist in Resources */ = {isa = PBXBuildFile; fileRef = E1FEF13C2E3FEF1B00C409C6 /* APIKeys.plist */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		E1048B8E2E4923BF00FD6F70 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A1234567890ABCDEF0123448 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A1234567890ABCDEF012344F;
+			remoteInfo = SmartCityGuide;
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
 		A1234567890ABCDEF0123450 /* SmartCityGuide.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SmartCityGuide.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -24,6 +36,10 @@
 		E1048AC22E43A94000FD6F70 /* Permissions.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Permissions.xcconfig; sourceTree = "<group>"; };
 		E1048AC62E447EDA00FD6F70 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		E1048AC72E449AE300FD6F70 /* zeidlerschloss feucht.gpx */ = {isa = PBXFileReference; lastKnownFileType = text.xml; name = "zeidlerschloss feucht.gpx"; path = "../../../../Downloads/zeidlerschloss feucht.gpx"; sourceTree = "<group>"; };
+		E1048B882E4923BF00FD6F70 /* SmartCityGuideUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SmartCityGuideUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		E1048BAD2E4927E500FD6F70 /* SmartCityGuideUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmartCityGuideUITests.swift; sourceTree = "<group>"; };
+		E1048BAE2E4927E500FD6F70 /* SmartCityGuideUITestsLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmartCityGuideUITestsLaunchTests.swift; sourceTree = "<group>"; };
+		E1048BB22E492A5A00FD6F70 /* SmartCityGuide.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = SmartCityGuide.xctestplan; sourceTree = "<group>"; };
 		E1FEF13C2E3FEF1B00C409C6 /* APIKeys.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = APIKeys.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -42,12 +58,21 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		E1048B852E4923BF00FD6F70 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
 		A1234567890ABCDEF0123447 = {
 			isa = PBXGroup;
 			children = (
+				E1048BB22E492A5A00FD6F70 /* SmartCityGuide.xctestplan */,
+				E1048BAF2E4927E500FD6F70 /* SmartCityGuideUITests */,
 				E1048AC72E449AE300FD6F70 /* zeidlerschloss feucht.gpx */,
 				A1234567890ABCDEF0123452 /* SmartCityGuide */,
 				A1234567890ABCDEF0123451 /* Products */,
@@ -58,6 +83,7 @@
 			isa = PBXGroup;
 			children = (
 				A1234567890ABCDEF0123450 /* SmartCityGuide.app */,
+				E1048B882E4923BF00FD6F70 /* SmartCityGuideUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -88,6 +114,39 @@
 			path = "Preview Content";
 			sourceTree = "<group>";
 		};
+		E1048BAA2E4927E500FD6F70 /* Flows */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Flows;
+			sourceTree = "<group>";
+		};
+		E1048BAB2E4927E500FD6F70 /* Helpers */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Helpers;
+			sourceTree = "<group>";
+		};
+		E1048BAC2E4927E500FD6F70 /* Pages */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Pages;
+			sourceTree = "<group>";
+		};
+		E1048BAF2E4927E500FD6F70 /* SmartCityGuideUITests */ = {
+			isa = PBXGroup;
+			children = (
+				E1048BAA2E4927E500FD6F70 /* Flows */,
+				E1048BAB2E4927E500FD6F70 /* Helpers */,
+				E1048BAC2E4927E500FD6F70 /* Pages */,
+				E1048BAD2E4927E500FD6F70 /* SmartCityGuideUITests.swift */,
+				E1048BAE2E4927E500FD6F70 /* SmartCityGuideUITestsLaunchTests.swift */,
+			);
+			path = SmartCityGuideUITests;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -114,6 +173,26 @@
 			productReference = A1234567890ABCDEF0123450 /* SmartCityGuide.app */;
 			productType = "com.apple.product-type.application";
 		};
+		E1048B872E4923BF00FD6F70 /* SmartCityGuideUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = E1048B902E4923BF00FD6F70 /* Build configuration list for PBXNativeTarget "SmartCityGuideUITests" */;
+			buildPhases = (
+				E1048B842E4923BF00FD6F70 /* Sources */,
+				E1048B852E4923BF00FD6F70 /* Frameworks */,
+				E1048B862E4923BF00FD6F70 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				E1048B8F2E4923BF00FD6F70 /* PBXTargetDependency */,
+			);
+			name = SmartCityGuideUITests;
+			packageProductDependencies = (
+			);
+			productName = SmartCityGuideUITests;
+			productReference = E1048B882E4923BF00FD6F70 /* SmartCityGuideUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -121,11 +200,15 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 1540;
+				LastSwiftUpdateCheck = 1640;
 				LastUpgradeCheck = 1540;
 				TargetAttributes = {
 					A1234567890ABCDEF012344F = {
 						CreatedOnToolsVersion = 15.4;
+					};
+					E1048B872E4923BF00FD6F70 = {
+						CreatedOnToolsVersion = 16.4;
+						TestTargetID = A1234567890ABCDEF012344F;
 					};
 				};
 			};
@@ -143,6 +226,7 @@
 			projectRoot = "";
 			targets = (
 				A1234567890ABCDEF012344F /* SmartCityGuide */,
+				E1048B872E4923BF00FD6F70 /* SmartCityGuideUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -159,6 +243,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		E1048B862E4923BF00FD6F70 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -171,7 +262,24 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		E1048B842E4923BF00FD6F70 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E1048BB02E4927E500FD6F70 /* SmartCityGuideUITests.swift in Sources */,
+				E1048BB12E4927E500FD6F70 /* SmartCityGuideUITestsLaunchTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		E1048B8F2E4923BF00FD6F70 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A1234567890ABCDEF012344F /* SmartCityGuide */;
+			targetProxy = E1048B8E2E4923BF00FD6F70 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		A1234567890ABCDEF012345F /* Debug */ = {
@@ -363,6 +471,42 @@
 			};
 			name = Release;
 		};
+		E1048B912E4923BF00FD6F70 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 4T9BXP692G;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.5;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = de.dengelma.SmartCityGuideUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = SmartCityGuide;
+			};
+			name = Debug;
+		};
+		E1048B922E4923BF00FD6F70 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 4T9BXP692G;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.5;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = de.dengelma.SmartCityGuideUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = SmartCityGuide;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -380,6 +524,15 @@
 			buildConfigurations = (
 				A1234567890ABCDEF0123462 /* Debug */,
 				A1234567890ABCDEF0123463 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		E1048B902E4923BF00FD6F70 /* Build configuration list for PBXNativeTarget "SmartCityGuideUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E1048B912E4923BF00FD6F70 /* Debug */,
+				E1048B922E4923BF00FD6F70 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

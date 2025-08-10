@@ -37,9 +37,16 @@ class UserProfileManager: ObservableObject {
     private let logger = Logger(subsystem: "de.dengelma.smartcity-guide", category: "UserProfile")
     
     init() {
-        self.profile = UserProfile() // Temporary default
-        Task {
-            await loadProfile()
+        // Wenn im UI-Test-Modus, einfachen Seed verwenden und keine Keychain/FaceID anstoßen
+        if ProcessInfo.processInfo.environment["UITEST"] == "1" {
+            self.profile = UserProfile(name: "Max Mustermann", email: "max.mustermann@email.de")
+            self.isLoading = false
+            self.errorMessage = nil
+        } else {
+            self.profile = UserProfile() // Temporary default
+            Task {
+                await loadProfile()
+            }
         }
     }
     
@@ -88,7 +95,13 @@ class UserProfileManager: ObservableObject {
     /// Speichert UserProfile sicher im Keychain
     func saveProfile() async throws {
         profile.updateLastActive()
-        
+
+        // Im UI-Test-Modus keine Keychain/Biometrics anstoßen
+        if ProcessInfo.processInfo.environment["UITEST"] == "1" {
+            logger.info("🧪 UserProfile: Skipping secure save in UITEST mode")
+            return
+        }
+
         do {
             try secureStorage.save(
                 profile,
@@ -124,9 +137,15 @@ class UserProfileManager: ObservableObject {
     
     /// Löscht UserProfile aus sicherem Storage (für App-Reset)
     func deleteProfile() async throws {
+        // Im UI-Test-Modus: nichts löschen (kein Keychain use)
+        if ProcessInfo.processInfo.environment["UITEST"] == "1" {
+            profile = UserProfile() // Reset to default
+            logger.info("🧪 UserProfile: Skip delete in UITEST mode")
+            return
+        }
         try secureStorage.delete(forKey: secureKey)
         profile = UserProfile() // Reset to default
-                    logger.info("📱 UserProfile: Deleted from secure storage")
+        logger.info("📱 UserProfile: Deleted from secure storage")
     }
 }
 

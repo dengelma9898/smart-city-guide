@@ -85,6 +85,7 @@ struct ContentView: View {
                   .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
               )
           }
+          .accessibilityIdentifier("home.profile.button")
           
           Spacer()
           

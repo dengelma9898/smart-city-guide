@@ -28,6 +28,7 @@ struct ProfileView: View {
                             Text(profileManager.profile.name)
                                 .font(.title2)
                                 .fontWeight(.semibold)
+                                .accessibilityIdentifier("profile.header.name.label")
                             
                             Text(profileManager.profile.email)
                                 .font(.subheadline)
@@ -38,6 +39,7 @@ struct ProfileView: View {
                             }
                             .font(.caption)
                             .foregroundColor(.blue)
+                            .accessibilityIdentifier("profile.open.edit.button")
                         }
                     }
                     .padding(.top, 20)
@@ -331,6 +333,7 @@ struct EditProfileView: View {
             Form {
                 Section("Erzähl uns von dir!") {
                     TextField("Name", text: $name)
+                        .accessibilityIdentifier("profile.name.textfield")
                     TextField("E-Mail", text: $email)
                         .keyboardType(.emailAddress)
                         .autocapitalization(.none)
@@ -356,6 +359,7 @@ struct EditProfileView: View {
                         dismiss()
                     }
                     .disabled(name.isEmpty || email.isEmpty)
+                    .accessibilityIdentifier("profile.save.button")
                 }
             }
         }

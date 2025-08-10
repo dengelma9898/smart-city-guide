@@ -115,6 +115,50 @@ open -a Simulator
 xcodebuild -project SmartCityGuide.xcodeproj -scheme SmartCityGuide -destination 'platform=iOS Simulator,name=iPhone 16' run
 ```
 
+## 🧪 UI-Tests (XCUITest)
+
+Dieser Abschnitt beschreibt den geplanten, schrittweisen UI-Test-Ansatz gemäß `test-implementations/10-08-2025-ui-test-env-and-first-flow.md`.
+
+### Ziele
+- UI-Flow-Tests mit XCUITest (kein Unit-only)
+- Page-Object-Pattern für wartbare Tests
+- Erster Flow: Profil öffnen → Namen ändern → speichern → neuer Name sichtbar
+
+### Schritt 0: UI-Test-Target anlegen
+1. Xcode öffnen → Projekt `SmartCityGuide.xcodeproj`
+2. File → New → Target… → iOS → Testing → "UI Testing Bundle"
+   - Name: `SmartCityGuideUITests`
+   - Host Application: `SmartCityGuide`
+   - Add to Project: `SmartCityGuide`
+3. Scheme prüfen: `Product → Scheme → Manage Schemes…` → `SmartCityGuide` sollte `SmartCityGuideUITests` enthalten
+4. Build verifizieren
+
+Empfohlene (MCP) Build-Verifikation:
+```bash
+# Xcode MCP (gemäß .cursorrules) – führe den Build gegen iPhone 16 Simulator aus
+# Beispiel-Command-Name: mcp_XcodeBuildMCP_build_sim_name_proj (siehe .cursorrules Konfiguration)
+```
+
+Falls MCP lokal nicht verfügbar ist, alternativ:
+```bash
+cd ios
+xcodebuild -project SmartCityGuide.xcodeproj -scheme SmartCityGuide -destination 'platform=iOS Simulator,name=iPhone 16' build
+```
+
+### Nächste Schritte (Kurzüberblick)
+- Helper `TestApp.swift` im UI-Test-Target (Launch-Args/-Env + `waitForExists`)
+- Page Objects (zuerst `ProfilePage.swift`)
+- Accessibility-IDs im App-Code (`profile.name.textfield`, `profile.save.button`, `profile.header.name.label`, `home.profile.button`)
+- Seed/Test-Daten via `launchEnvironment["UITEST"] = "1"`
+- Flow-Test `Profile_ChangeName_Tests.swift`
+
+Weitere Details stehen in `test-implementations/10-08-2025-ui-test-env-and-first-flow.md`.
+
+### Referenzen (Context7)
+- XCTest: `/swiftlang/swift-corelibs-xctest`
+- XCUITest (Beispielprojekt/Pattern): `/dino-su/clean-scalable-xcuitest`
+- SwiftUI Grundlagen: `/zhangyu1818/swiftui.md`
+
 ## 📋 Development Guidelines
 
 ### Code Style
