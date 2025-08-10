@@ -58,13 +58,15 @@ Kurz, schrittweise implementierbar und verifizierbar.
 - Abschnitt 4: Test muss grün laufen.
 
 ## ToDos (konkret)
-- [ ] UI-Test-Target `SmartCityGuideUITests` anlegen (falls fehlt)
-- [ ] Helper `TestApp.swift`
-- [ ] Page `ProfilePage.swift`
-- [ ] Accessibility-IDs im App-Code setzen
-- [ ] Flow-Test `Profile_ChangeName_Tests.swift`
-- [ ] TestPlan (optional)
+- [x] UI-Test-Target `SmartCityGuideUITests` anlegen (falls fehlt)
+- [x] Helper `TestApp.swift`
+- [x] Page `ProfilePage.swift`
+- [x] Accessibility-IDs im App-Code setzen
+- [x] Flow-Test `Profile_ChangeName_Tests.swift`
+- [x] TestPlan (optional)
 - [ ] Snapshot/CI (später)
+
+Hinweis: Falls beim Testlauf mehrere Simulator-"Clones" starten, liegt das an der Parallelisierung im TestPlan. Deaktivieren über Xcode TestPlan (Parallelisierung aus) oder via CLI `-parallel-testing-enabled NO`.
 
 ---
 Quellen/Ideen: Page-Object-Pattern und Snapshot-Tests mit `swift-snapshot-testing` [/pointfreeco/swift-snapshot-testing].
