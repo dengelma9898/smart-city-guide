@@ -304,8 +304,10 @@ extension PlaceCategory {
         }
     }
     
-    /// Essential categories for migration testing - MVP with only tourism
+    /// Essential categories for migration testing - MVP with tested categories
     static let geoapifyEssentialCategories: [PlaceCategory] = [
-        .attraction
+        .attraction,
+        .museum,
+        .park
     ]
 }

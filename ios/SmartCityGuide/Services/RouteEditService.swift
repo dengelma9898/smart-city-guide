@@ -207,12 +207,12 @@ final class RouteEditService: ObservableObject {
             // Recalculate walking routes between all waypoints
             let newRoutes = try await recalculateWalkingRoutes(for: newWaypoints)
             
-            // 3. Calculate new metrics
+            // 3. Calculate new metrics (seconds)
             let newTotalDistance = newRoutes.reduce(0) { $0 + $1.distance }
-            let newTotalTravelTime = newRoutes.reduce(0) { $0 + ($1.expectedTravelTime / 60.0) }
+            let newTotalTravelTime: TimeInterval = newRoutes.reduce(0) { $0 + $1.expectedTravelTime }
             
-            // Keep original visit time, update experience time
-            let newTotalExperienceTime = newTotalTravelTime + originalRoute.totalVisitTime
+            // Keep original visit time, update experience time (seconds)
+            let newTotalExperienceTime: TimeInterval = newTotalTravelTime + originalRoute.totalVisitTime
             
             // 4. Create updated route
             let updatedRoute = GeneratedRoute(

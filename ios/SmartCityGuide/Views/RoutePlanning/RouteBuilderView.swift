@@ -4,6 +4,11 @@ import MapKit
 // MARK: - Route Builder View (Next Step)
 struct RouteBuilderView: View {
   @Environment(\.dismiss) private var dismiss
+  // Source indicates if we show an already generated manual route or generate automatically
+  let routeSource: RouteSource
+  // When manual: we receive a ready route and optionally discovered POIs to power the edit flow
+  let manualInitialRoute: GeneratedRoute?
+  let initialDiscoveredPOIs: [POI]?
   let startingCity: String
   let startingCoordinates: CLLocationCoordinate2D?
   let usingCurrentLocation: Bool // Phase 3: Current Location flag
@@ -34,6 +39,9 @@ struct RouteBuilderView: View {
     minimumPOIDistance: MinimumPOIDistance,
     onRouteGenerated: @escaping (GeneratedRoute) -> Void
   ) {
+    self.routeSource = .automatic
+    self.manualInitialRoute = nil
+    self.initialDiscoveredPOIs = nil
     self.startingCity = startingCity
     self.startingCoordinates = startingCoordinates
     self.usingCurrentLocation = usingCurrentLocation
@@ -63,6 +71,9 @@ struct RouteBuilderView: View {
     routeLength: RouteLength,
     onRouteGenerated: @escaping (GeneratedRoute) -> Void
   ) {
+    self.routeSource = .automatic
+    self.manualInitialRoute = nil
+    self.initialDiscoveredPOIs = nil
     self.startingCity = startingCity
     self.startingCoordinates = startingCoordinates
     self.usingCurrentLocation = false // Legacy initializer defaults to false
@@ -79,6 +90,32 @@ struct RouteBuilderView: View {
     self.maximumStops = MaximumStops.allCases.first { $0.intValue == numberOfPlaces } ?? .five
     self.maximumWalkingTime = Self.convertLegacyRouteLength(routeLength)
     self.minimumPOIDistance = .twoFifty // Default value
+  }
+
+  // MARK: - Manual Initializer
+  init(
+    manualRoute: GeneratedRoute,
+    config: ManualRouteConfig,
+    discoveredPOIs: [POI],
+    onRouteGenerated: @escaping (GeneratedRoute) -> Void
+  ) {
+    self.routeSource = .manual(config)
+    self.manualInitialRoute = manualRoute
+    self.initialDiscoveredPOIs = discoveredPOIs
+    // Map shared inputs for UI context
+    self.startingCity = config.startingCity
+    self.startingCoordinates = config.startingCoordinates
+    self.usingCurrentLocation = config.usingCurrentLocation
+    self.endpointOption = config.endpointOption
+    self.customEndpoint = config.customEndpoint
+    self.customEndpointCoordinates = config.customEndpointCoordinates
+    self.onRouteGenerated = onRouteGenerated
+    // No generation needed
+    self.maximumStops = nil
+    self.maximumWalkingTime = nil
+    self.minimumPOIDistance = nil
+    self.numberOfPlaces = nil
+    self.routeLength = nil
   }
   
   // MARK: - Helper Functions
@@ -211,7 +248,7 @@ struct RouteBuilderView: View {
     NavigationView {
       ScrollView {
         VStack(spacing: 24) {
-          if isLoadingPOIs || routeService.isGenerating || isEnrichingRoutePOIs {
+          if (routeSource.isManual && routeService.generatedRoute == nil) || isLoadingPOIs || routeService.isGenerating || isEnrichingRoutePOIs {
             // Header - only show during generation
             VStack(spacing: 12) {
               Text("Wir basteln deine Route!")
@@ -273,7 +310,20 @@ struct RouteBuilderView: View {
                       
                       VStack(alignment: .leading, spacing: 4) {
                         HStack(spacing: 6) {
-                          Text(waypoint.name)
+                          // Display-friendly name: show "Ziel" for last waypoint on roundtrip/lastPlace, or custom name when provided
+                          let displayName: String = {
+                            if index == 0 { return "Start" }
+                            if index == route.waypoints.count - 1 {
+                              switch endpointOption {
+                              case .custom:
+                                return customEndpoint.isEmpty ? "Ziel" : customEndpoint
+                              default:
+                                return "Ziel"
+                              }
+                            }
+                            return waypoint.name
+                          }()
+                          Text(displayName)
                             .font(.body)
                             .fontWeight(.medium)
                           
@@ -615,7 +665,7 @@ struct RouteBuilderView: View {
         }
         .padding(.horizontal, 20)
       }
-      .navigationTitle("Deine Tour entsteht!")
+      .navigationTitle(routeSource.isManual ? "Deine manuelle Route!" : "Deine Tour entsteht!")
       .navigationBarTitleDisplayMode(.large)
       .toolbar {
         ToolbarItem(placement: .navigationBarTrailing) {
@@ -627,9 +677,33 @@ struct RouteBuilderView: View {
     }
     .onAppear {
       routeService.setHistoryManager(historyManager)
+      // Manual source: seed the route and POIs so we show preview immediately
+      if case .manual = routeSource {
+        print("🟦 RouteBuilderView.onAppear: routeSource=manual, seeding data…")
+        if let r = manualInitialRoute {
+          routeService.generatedRoute = r
+          print("🟩 RouteBuilderView: seeded generatedRoute with \(r.waypoints.count) waypoints")
+        } else {
+          print("🟥 RouteBuilderView: manualInitialRoute is nil")
+        }
+        if let pois = initialDiscoveredPOIs {
+          discoveredPOIs = pois
+          print("🟩 RouteBuilderView: seeded discoveredPOIs = \(pois.count)")
+        } else {
+          discoveredPOIs = []
+          print("🟥 RouteBuilderView: initialDiscoveredPOIs is nil, using []")
+        }
+        // trigger a small refresh to ensure body re-evaluates after seeding
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+          withAnimation(.easeInOut(duration: 0.1)) { }
+        }
+      }
     }
     .task {
-      await loadPOIsAndGenerateRoute()
+      // Skip auto-generation when manual route is provided
+      if case .automatic = routeSource {
+        await loadPOIsAndGenerateRoute()
+      }
     }
     .fullScreenCover(isPresented: $showFullScreenImage) {
       FullScreenImageView(
@@ -1140,12 +1214,12 @@ struct RouteBuilderView: View {
       // Recalculate walking routes between waypoints
       let newRoutes = try await recalculateWalkingRoutes(for: newWaypoints)
       
-      // Calculate new metrics
+      // Calculate new metrics (keep units consistent: seconds)
       let newTotalDistance = newRoutes.reduce(0) { $0 + $1.distance }
-      let newTotalTravelTime = newRoutes.reduce(0) { $0 + ($1.expectedTravelTime / 60.0) }
+      let newTotalTravelTime: TimeInterval = newRoutes.reduce(0) { $0 + $1.expectedTravelTime }
       
       // Keep original visit time, update experience time
-      let newTotalExperienceTime = newTotalTravelTime + originalRoute.totalVisitTime
+      let newTotalExperienceTime: TimeInterval = newTotalTravelTime + originalRoute.totalVisitTime
       
       let updatedRoute = GeneratedRoute(
         waypoints: newWaypoints,

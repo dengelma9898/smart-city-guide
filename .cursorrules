@@ -110,3 +110,11 @@ ios/SmartCityGuide/
 - `testing-instructions-phase-1.md`: Testing procedures
 - `current.md`: MapKit implementation status
 - `CLAUDE.md`: Complete context documentation
+
+## Markdown Ablage-Regeln
+- Wenn ich eine Bug-Markdown anlegen soll, lege ich sie in den Ordner `known_bugs/` an.
+- Feature-Spezifikationen kommen in `feature/`.
+- Ideen/Brainstorming-Dokumente kommen in `brainstorming/`.
+- Interne Dokumentationen kommen in `docs/`.
+- Alle Markdown-Dateien werden mit Datum (Format `DD-MM-YYYY-…`) vorangestellt, z. B. `10-08-2025-manual-route-bugs.md`.
+ - Test-Implementierungspläne und UI-Test-Schritte kommen in `test-implementations/` (ebenfalls mit Datumspräfix), damit wir sie referenzieren und iterativ abarbeiten können.
