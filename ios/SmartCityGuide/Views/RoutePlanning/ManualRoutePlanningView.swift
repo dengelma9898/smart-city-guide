@@ -23,6 +23,7 @@ struct ManualRoutePlanningView: View {
     @StateObject private var geoapifyService = GeoapifyAPIService.shared
     @StateObject private var wikipediaService = WikipediaService.shared
     @StateObject private var poiSelection = ManualPOISelection()
+    @StateObject private var manualService = ManualRouteService()
     
     // STATE
     @State private var currentPhase: ManualPlanningPhase = .loading
@@ -30,6 +31,14 @@ struct ManualRoutePlanningView: View {
     @State private var enrichedPOIs: [String: WikipediaEnrichedPOI] = [:]
     @State private var showingPOISelection = false
     @State private var showingRouteBuilder = false
+    // Robust cover trigger tied to data availability
+    struct ManualPreviewContext: Identifiable {
+        let id = UUID()
+        let route: GeneratedRoute
+        let pois: [POI]
+        let config: ManualRouteConfig
+    }
+    @State private var previewContext: ManualPreviewContext?
     @State private var generatedRoute: GeneratedRoute?
     @State private var enrichmentProgress: Double = 0.0
     @State private var errorMessage: String?
@@ -57,17 +66,30 @@ struct ManualRoutePlanningView: View {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Fertig") { dismiss() }
                 }
+                // Generate button (visible when at least 1 POI gewählt)
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    HStack(spacing: 8) {
-                        // Info opens overview sheet from within the stack
-                        Button {
-                            showingOverviewSheet = true
-                        } label: { Image(systemName: "info.circle") }
-                        selectionCounterView
+                    if poiSelection.canGenerateRoute {
+                        Button("Route erstellen") {
+                            currentPhase = .generating
+                            generateRoute()
+                        }
+                        .accessibilityLabel("Route erstellen")
                     }
                 }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button { showingOverviewSheet = true } label: { Image(systemName: "info.circle") }
+                }
+                ToolbarItem(placement: .navigationBarTrailing) { selectionCounterView }
             }
             .sheet(isPresented: $showingOverviewSheet) { overviewSheet }
+            .fullScreenCover(item: $previewContext) { ctx in
+                RouteBuilderView(
+                    manualRoute: ctx.route,
+                    config: ctx.config,
+                    discoveredPOIs: ctx.pois,
+                    onRouteGenerated: onRouteGenerated
+                )
+            }
             .onAppear {
                 startPOIDiscovery()
             }
@@ -186,6 +208,11 @@ struct ManualRoutePlanningView: View {
                     .font(.body)
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
+                
+                // Debug hint for long-running operations
+                Text("Sollte das länger als 15s dauern, breche ich automatisch ab.")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
             }
             
             Spacer()
@@ -215,8 +242,7 @@ struct ManualRoutePlanningView: View {
             
             Button(action: {
                 if let route = generatedRoute {
-                    onRouteGenerated(route)
-                    dismiss()
+                    showingRouteBuilder = true
                 }
             }) {
                 Text("Route anzeigen")
@@ -235,7 +261,20 @@ struct ManualRoutePlanningView: View {
             Spacer()
         }
         .padding()
+        .fullScreenCover(isPresented: $showingRouteBuilder) {
+            if let route = finalManualRoute, let pois = finalDiscoveredPOIs {
+                RouteBuilderView(
+                    manualRoute: route,
+                    config: config,
+                    discoveredPOIs: pois,
+                    onRouteGenerated: onRouteGenerated
+                )
+            }
+        }
     }
+
+    @State private var finalManualRoute: GeneratedRoute?
+    @State private var finalDiscoveredPOIs: [POI]?
 
     // MARK: - Overview Sheet
     @State private var showingOverviewSheet = false
@@ -357,19 +396,28 @@ struct ManualRoutePlanningView: View {
     }
     
     private func generateRoute() {
-        // Placeholder for Phase 3 - will be implemented with ManualRouteService
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-            // Mock route for now
-            let mockRoute = GeneratedRoute(
-                waypoints: [],
-                routes: [],
-                totalDistance: 0,
-                totalTravelTime: 0,
-                totalVisitTime: 0,
-                totalExperienceTime: 0
+        Task {
+            print("🟦 ManualRoutePlanningView.generateRoute: start (selected=\(poiSelection.selectedPOIs.count))")
+            let request = ManualRouteRequest(
+                config: config,
+                selectedPOIs: poiSelection.selectedPOIs,
+                allDiscoveredPOIs: discoveredPOIs
             )
-            generatedRoute = mockRoute
-            currentPhase = .completed
+            await manualService.generateRoute(request: request)
+            await MainActor.run {
+                if let route = manualService.generatedRoute {
+                    print("🟩 ManualRoutePlanningView.generateRoute: route ready, presenting builder…")
+                    self.finalManualRoute = route
+                    self.finalDiscoveredPOIs = self.discoveredPOIs
+                    self.generatedRoute = route
+                    // Use item-based cover to avoid race conditions
+                    self.previewContext = ManualPreviewContext(route: route, pois: self.discoveredPOIs, config: self.config)
+                } else {
+                    print("🟥 ManualRoutePlanningView.generateRoute: route generation failed: \(manualService.errorMessage ?? "unknown")")
+                    // Fallback: show completion with error handling
+                    self.currentPhase = .completed
+                }
+            }
         }
     }
 }

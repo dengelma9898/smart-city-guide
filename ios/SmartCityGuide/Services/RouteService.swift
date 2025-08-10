@@ -995,6 +995,67 @@ class RouteService: ObservableObject {
     
     return [startPoint] + optimizedPOIs + [endPoint]
   }
+
+  // MARK: - Manual Route API
+  /// Generate route from manually selected POIs (TSP-style ordering with start/end fixed)
+  func generateManualRoute(
+    selectedPOIs: [POI],
+    startLocation: CLLocationCoordinate2D,
+    endpointOption: EndpointOption,
+    customEndpoint: String = "",
+    customEndpointCoordinates: CLLocationCoordinate2D? = nil
+  ) async throws -> GeneratedRoute {
+    isGenerating = true
+    errorMessage = nil
+    defer { isGenerating = false }
+
+    // Build initial waypoints
+    var waypoints: [RoutePoint] = []
+    let start = RoutePoint(name: "Start", coordinate: startLocation, address: "Startpunkt", category: .attraction)
+    waypoints.append(start)
+    for poi in selectedPOIs { waypoints.append(RoutePoint(from: poi)) }
+    let end: RoutePoint
+    switch endpointOption {
+    case .roundtrip:
+      end = start
+    case .lastPlace:
+      end = waypoints.last ?? start
+    case .custom:
+      let coord = customEndpointCoordinates ?? startLocation
+      end = RoutePoint(name: customEndpoint.isEmpty ? "Ziel" : customEndpoint, coordinate: coord, address: customEndpoint, category: .attraction)
+    }
+    if end.coordinate.latitude != start.coordinate.latitude || end.coordinate.longitude != start.coordinate.longitude {
+      waypoints.append(end)
+    } else {
+      waypoints.append(start)
+    }
+
+    // Optimize order (start/end fixed)
+    if waypoints.count > 3 { waypoints = optimizeWaypointOrder(waypoints) }
+
+    // Calculate routes
+    let routes = try await generateRoutesBetweenWaypoints(waypoints)
+    let totalDistance = routes.reduce(0) { $0 + $1.distance }
+    let totalTravelTime = routes.reduce(0) { $0 + $1.expectedTravelTime }
+    let stops = max(0, waypoints.count - 2)
+    let totalVisitTime = TimeInterval(stops * 45 * 60)
+    let totalExperienceTime = totalTravelTime + totalVisitTime
+
+    let route = GeneratedRoute(
+      waypoints: waypoints,
+      routes: routes,
+      totalDistance: totalDistance,
+      totalTravelTime: totalTravelTime,
+      totalVisitTime: totalVisitTime,
+      totalExperienceTime: totalExperienceTime
+    )
+
+    // Persist with default meta (best-effort). Use medium + endpointOption as current conventions
+    let defaultLength: RouteLength = .medium
+    historyManager?.saveRoute(route, routeLength: defaultLength, endpointOption: endpointOption)
+    generatedRoute = route
+    return route
+  }
   
   // MARK: - New Filter Helper Functions
   
