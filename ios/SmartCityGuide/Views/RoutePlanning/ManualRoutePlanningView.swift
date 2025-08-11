@@ -466,12 +466,9 @@ struct ManualRoutePlanningView: View {
                     self.finalManualRoute = route
                     self.finalDiscoveredPOIs = self.discoveredPOIs
                     self.generatedRoute = route
-                    // Present builder via item-based fullScreenCover. Delay by one runloop to avoid race.
-                    self.previewContext = nil
+                    // Present builder immediately via item-based fullScreenCover
+                    self.previewContext = ManualPreviewContext(route: route, pois: self.discoveredPOIs, config: self.config)
                     self.currentPhase = .completed
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                        self.previewContext = ManualPreviewContext(route: route, pois: self.discoveredPOIs, config: self.config)
-                    }
                 } else {
                     print("🟥 ManualRoutePlanningView.generateRoute: route generation failed: \(manualService.errorMessage ?? "unknown")")
                     // Fallback: show completion with error handling
