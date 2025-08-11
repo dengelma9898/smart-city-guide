@@ -139,6 +139,7 @@ struct POISelectionStackView: View {
                         .foregroundColor(.secondary)
                 }
                 .accessibilityLabel("Aktion rückgängig machen")
+                .accessibilityIdentifier("manual.undo.button")
             }
             // Reject
             Button(action: rejectCurrentCard) {
@@ -147,6 +148,7 @@ struct POISelectionStackView: View {
                     .foregroundColor(.red)
             }
             .accessibilityLabel("POI ablehnen")
+            .accessibilityIdentifier("manual.reject.button")
 
             Spacer()
 
@@ -160,6 +162,7 @@ struct POISelectionStackView: View {
                     .foregroundColor(.green)
             }
             .accessibilityLabel("POI auswählen")
+            .accessibilityIdentifier("manual.select.button")
         }
         .padding(.horizontal, 28)
         .padding(.vertical, 12)

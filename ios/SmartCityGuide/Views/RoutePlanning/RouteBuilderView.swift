@@ -632,6 +632,7 @@ struct RouteBuilderView: View {
                     .fill(.blue)
                 )
               }
+              .accessibilityIdentifier("route.start.button")
             }
             
           } else if let error = routeService.errorMessage {
