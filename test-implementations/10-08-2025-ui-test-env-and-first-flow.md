@@ -46,12 +46,8 @@ Kurz, schrittweise implementierbar und verifizierbar.
   - z. B. `profile.name.textfield`, `profile.save.button`, `profile.header.name.label`.
 - Page-Objects sind die einzige Stelle mit Selektoren.
 
-## 6) Snapshot (später)
-- Für visuelle Regression optional `swift-snapshot-testing` integrieren (`/pointfreeco/swift-snapshot-testing`).
-- Erste Snapshots vom Profil-Header nach Save erstellen.
-
-## 7) CI (später)
-- Fastlane oder Xcode Cloud Job für `xcodebuild test -scheme SmartCityGuide -destination 'platform=iOS Simulator,name=iPhone 16'`.
+## 6) Snapshot/CI (ausgelagert)
+Die Inhalte zu Snapshot-Tests und CI wurden ausgelagert nach `feature/11-08-2025-snapshot-ci-plan.md`.
 
 ## Verifikation je Schritt
 - Nach jedem Abschnitt „Build verifizieren“ (Cmd+B oder MCP Build).
@@ -64,7 +60,7 @@ Kurz, schrittweise implementierbar und verifizierbar.
 - [x] Accessibility-IDs im App-Code setzen
 - [x] Flow-Test `Profile_ChangeName_Tests.swift`
 - [x] TestPlan (optional)
-- [ ] Snapshot/CI (später)
+- [x] Snapshot/CI ausgelagert → `feature/11-08-2025-snapshot-ci-plan.md`
 
 Hinweis: Falls beim Testlauf mehrere Simulator-"Clones" starten, liegt das an der Parallelisierung im TestPlan. Deaktivieren über Xcode TestPlan (Parallelisierung aus) oder via CLI `-parallel-testing-enabled NO`.
 
