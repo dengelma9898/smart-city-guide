@@ -7,6 +7,9 @@ Smart City Guide ist eine iOS SwiftUI-App für intelligente Multi-Stop-Walking-R
 
 ## Development Guidelines
 
+### Collaboration & Commit Policy
+- NIEMALS automatisch committen. Commits erfolgen ausschließlich auf ausdrückliche Anweisung des Users.
+
 ### Language & Communication
 - Alle Antworten und Kommentare auf Deutsch
 - Freundlicher, conversational Ton verwenden ("du" statt "Sie")
