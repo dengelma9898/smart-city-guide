@@ -666,6 +666,7 @@ struct RouteBuilderView: View {
         }
         .padding(.horizontal, 20)
       }
+      .accessibilityIdentifier("route.builder.screen")
       .navigationTitle(routeSource.isManual ? "Deine manuelle Route!" : "Deine Tour entsteht!")
       .navigationBarTitleDisplayMode(.large)
       .toolbar {

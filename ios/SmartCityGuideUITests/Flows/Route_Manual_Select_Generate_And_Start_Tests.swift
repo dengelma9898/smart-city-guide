@@ -59,7 +59,10 @@ final class Route_Manual_Select_Generate_And_Start_Tests: XCTestCase {
             // Falls der Builder nicht direkt erscheint, über Completion-CTA öffnen
             XCTAssertTrue(routeAnzeigen.waitForExists(timeout: 60), "Completion CTA 'Route anzeigen' not found")
             routeAnzeigen.tap()
-            XCTAssertTrue(builderNav.waitForExists(timeout: 60), "RouteBuilder did not appear after tapping 'Route anzeigen'")
+            // Warte alternativ auf Builder-Screen-Anker
+            let builderScreen = app.otherElements["route.builder.screen"]
+            let appeared = builderNav.waitForExists(timeout: 60) || builderScreen.waitForExists(timeout: 60)
+            XCTAssertTrue(appeared, "RouteBuilder did not appear after tapping 'Route anzeigen'")
         }
 
         // 8) Im RouteBuilder "Zeig mir die Tour!" starten
