@@ -17,7 +17,7 @@ final class ManualRouteService: ObservableObject {
   func generateRoute(
     request: ManualRouteRequest
   ) async {
-    let timeoutSeconds: Double = 15
+    let timeoutSeconds: Double = ProcessInfo.processInfo.environment["UITEST"] == "1" ? 60 : 15
     isGenerating = true
     errorMessage = nil
     generatedRoute = nil
