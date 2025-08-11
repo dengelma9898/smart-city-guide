@@ -418,10 +418,10 @@ struct ManualRoutePlanningView: View {
             // Use starting coordinates if available, otherwise get from city name
             let coordinates: CLLocationCoordinate2D
             if let startCoords = config.startingCoordinates {
-                print("🌍 Manual Route: Using provided coordinates: \(startCoords.latitude), \(startCoords.longitude)")
+                SecureLogger.shared.logDebug("🌍 Manual Route: Using provided coordinates: \(startCoords.latitude), \(startCoords.longitude)", category: .ui)
                 coordinates = startCoords
             } else {
-                print("🌍 Manual Route: No coordinates provided, using fallback for city: \(config.startingCity)")
+                SecureLogger.shared.logDebug("🌍 Manual Route: No coordinates provided, using fallback for city: \(config.startingCity)", category: .ui)
                 // For now, use GeoapifyAPIService to geocode the city
                 let pois = try await geoapifyService.fetchPOIs(
                     for: config.startingCity,
@@ -484,7 +484,7 @@ struct ManualRoutePlanningView: View {
                 enrichedData[poi.id] = enriched
             } catch {
                 // Continue with other POIs even if one fails
-                print("Failed to enrich POI \(poi.name): \(error)")
+                SecureLogger.shared.logWarning("Failed to enrich POI \(poi.name): \(error.localizedDescription)", category: .data)
             }
             
             // Update progress
@@ -503,7 +503,7 @@ struct ManualRoutePlanningView: View {
     private func generateRoute() {
         // Deterministische, synchrone Erzeugung im UITEST-Modus
         if ProcessInfo.processInfo.environment["UITEST"] == "1" {
-            print("🟦 ManualRoutePlanningView.generateRoute(UITEST-fast): start (selected=\(poiSelection.selectedPOIs.count))")
+            SecureLogger.shared.logDebug("🟦 ManualRoutePlanningView.generateRoute(UITEST-fast): start (selected=\(poiSelection.selectedPOIs.count))", category: .ui)
             let startCoord = config.startingCoordinates ?? CLLocationCoordinate2D(latitude: 49.4521, longitude: 11.0767)
             let start = RoutePoint(name: "Start", coordinate: startCoord, address: config.startingCity, category: .attraction)
             let poiPoint: RoutePoint = poiSelection.selectedPOIs.first.map { RoutePoint(from: $0) } ?? RoutePoint(name: "Altstadt", coordinate: startCoord, address: config.startingCity)
@@ -520,7 +520,7 @@ struct ManualRoutePlanningView: View {
             return
         }
         Task {
-            print("🟦 ManualRoutePlanningView.generateRoute: start (selected=\(poiSelection.selectedPOIs.count))")
+            SecureLogger.shared.logDebug("🟦 ManualRoutePlanningView.generateRoute: start (selected=\(poiSelection.selectedPOIs.count))", category: .ui)
             let request = ManualRouteRequest(
                 config: config,
                 selectedPOIs: poiSelection.selectedPOIs,
@@ -529,7 +529,7 @@ struct ManualRoutePlanningView: View {
             await manualService.generateRoute(request: request)
             await MainActor.run {
                 if let route = manualService.generatedRoute {
-                    print("🟩 ManualRoutePlanningView.generateRoute: route ready, presenting builder…")
+                    SecureLogger.shared.logDebug("🟩 ManualRoutePlanningView.generateRoute: route ready, presenting builder…", category: .ui)
                     self.finalManualRoute = route
                     self.finalDiscoveredPOIs = self.discoveredPOIs
                     self.generatedRoute = route
@@ -539,7 +539,7 @@ struct ManualRoutePlanningView: View {
                     self.forcePresentBuilder = true
                     self.pushBuilder = true
                 } else {
-                    print("🟥 ManualRoutePlanningView.generateRoute: route generation failed: \(manualService.errorMessage ?? "unknown")")
+                    SecureLogger.shared.logWarning("🟥 ManualRoutePlanningView.generateRoute: route generation failed: \(manualService.errorMessage ?? "unknown")", category: .ui)
                     self.currentPhase = .completed
                 }
             }

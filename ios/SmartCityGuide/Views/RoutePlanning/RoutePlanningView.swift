@@ -426,6 +426,6 @@ struct RoutePlanningView: View {
     // Mark as loaded to prevent reloading
     hasLoadedDefaults = true
     
-    print("📱 RoutePlanningView: Loaded settings defaults - Stops: \(maximumStops.rawValue), Time: \(maximumWalkingTime.rawValue), Distance: \(minimumPOIDistance.rawValue)")
+    SecureLogger.shared.logDebug("📱 RoutePlanningView: Loaded settings defaults - Stops: \(maximumStops.rawValue), Time: \(maximumWalkingTime.rawValue), Distance: \(minimumPOIDistance.rawValue)", category: .ui)
   }
 }

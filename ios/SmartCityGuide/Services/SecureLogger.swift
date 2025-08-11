@@ -164,6 +164,14 @@ class SecureLogger {
         generalLogger.error("\(category.emoji) ❌ \(message)")
     }
     
+    /// Loggt Debug-Nachrichten nur in Debug/UITEST-Umgebungen
+    func logDebug(_ message: String, category: LogCategory = .general) {
+        let isUITest = ProcessInfo.processInfo.environment["UITEST"] == "1"
+        if isDebugMode || isUITest {
+            generalLogger.debug("\(category.emoji) \(message)")
+        }
+    }
+    
     // MARK: - Private Helper Methods
     
     /// Maskiert URLs um API-Keys und sensitive Parameter zu verstecken

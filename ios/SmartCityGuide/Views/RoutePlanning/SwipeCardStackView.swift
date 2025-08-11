@@ -416,7 +416,7 @@ extension SwipeCardStackView {
     SwipeCardStackView(
         initialCards: [],
         onCardAction: { _ in },
-        onStackEmpty: { print("Empty!") },
+            onStackEmpty: { SecureLogger.shared.logDebug("SwipeCardStackView Preview: Empty!", category: .ui) },
         onTopCardChanged: nil
     )
     .frame(height: 500)
