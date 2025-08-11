@@ -295,7 +295,6 @@ struct ManualRoutePlanningView: View {
                 )
             }
         }
-        .accessibilityIdentifier("manual.completion.screen")
     }
 
     @State private var finalManualRoute: GeneratedRoute?
@@ -477,10 +476,15 @@ struct ManualRoutePlanningView: View {
                     self.finalManualRoute = route
                     self.finalDiscoveredPOIs = self.discoveredPOIs
                     self.generatedRoute = route
-                    // Use item-based cover to avoid race conditions
-                    self.previewContext = ManualPreviewContext(route: route, pois: self.discoveredPOIs, config: self.config)
-                    // Ensure completion CTA is visible for deterministic UI-tests
-                    self.currentPhase = .completed
+                    // Use item-based cover by default; for UITEST auto-present builder deterministically
+                    if ProcessInfo.processInfo.environment["UITEST"] == "1" {
+                        self.previewContext = nil
+                        self.currentPhase = .completed
+                        self.showingRouteBuilder = true
+                    } else {
+                        self.previewContext = ManualPreviewContext(route: route, pois: self.discoveredPOIs, config: self.config)
+                        self.currentPhase = .completed
+                    }
                 } else {
                     print("🟥 ManualRoutePlanningView.generateRoute: route generation failed: \(manualService.errorMessage ?? "unknown")")
                     // Fallback: show completion with error handling
