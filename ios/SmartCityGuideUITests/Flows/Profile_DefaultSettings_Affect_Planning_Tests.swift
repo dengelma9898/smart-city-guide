@@ -41,6 +41,9 @@ final class Profile_DefaultSettings_Affect_Planning_Tests: XCTestCase {
         if autoMode.waitForExists(timeout: 5) && !autoMode.isSelected { autoMode.tap() }
 
         // 7) Prüfe, dass Defaults übernommen wurden (Buttons mit isSelected)
+        // Kurze Wartezeit, bis Defaults aus dem SettingsManager animiert angewendet sind
+        _ = app.staticTexts.containing(NSPredicate(format: "label CONTAINS[c] 'Gehzeit'"))
+            .firstMatch.waitForExists(timeout: 2)
         assertSelected(app, id: "Maximale Stopps.8")
         assertSelected(app, id: "Maximale Gehzeit.90min")
         assertSelected(app, id: "Mindestabstand.750m")
