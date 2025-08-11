@@ -52,24 +52,7 @@ struct ManualRoutePlanningView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                // Hidden link to push RouteBuilder deterministically
-                NavigationLink(isActive: $pushBuilder) {
-                    Group {
-                        if let route = finalManualRoute, let pois = finalDiscoveredPOIs {
-                            RouteBuilderView(
-                                manualRoute: route,
-                                config: config,
-                                discoveredPOIs: pois,
-                                onRouteGenerated: onRouteGenerated
-                            )
-                        } else {
-                            EmptyView()
-                        }
-                    }
-                } label: {
-                    EmptyView()
-                }
-                .hidden()
+                // Hidden link removed; replaced with navigationDestination modifier on container
                 switch currentPhase {
                 case .loading:
                     loadingPOIsView
@@ -82,6 +65,18 @@ struct ManualRoutePlanningView: View {
                     generatingRouteView
                 case .completed:
                     routeCompletedView
+                }
+            }
+            .navigationDestination(isPresented: $pushBuilder) {
+                if let route = finalManualRoute, let pois = finalDiscoveredPOIs {
+                    RouteBuilderView(
+                        manualRoute: route,
+                        config: config,
+                        discoveredPOIs: pois,
+                        onRouteGenerated: onRouteGenerated
+                    )
+                } else {
+                    EmptyView()
                 }
             }
             .navigationTitle("POI Auswahl")
