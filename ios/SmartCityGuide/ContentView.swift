@@ -205,6 +205,7 @@ struct ContentView: View {
                     .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
                 )
               }
+              .accessibilityIdentifier("route.edit.button")
             }
           }
           .padding(.bottom, 50)
