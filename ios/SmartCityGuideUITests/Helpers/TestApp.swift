@@ -8,28 +8,18 @@ struct TestApp {
         app.launchArguments += ["-ui-tests"] + extraArgs
         app.launch()
 
-        // Handle first-launch system alerts (e.g., location permission)
-        let _ = addUIInterruptionMonitor(withDescription: "System Alerts") { alert in
-            if alert.buttons["Beim Verwenden der App erlauben"].exists {
-                alert.buttons["Beim Verwenden der App erlauben"].tap()
-                return true
-            }
-            if alert.buttons["Allow While Using App"].exists {
-                alert.buttons["Allow While Using App"].tap()
-                return true
-            }
-            if alert.buttons["Einmal erlauben"].exists {
-                alert.buttons["Einmal erlauben"].tap()
-                return true
-            }
-            if alert.buttons["Allow Once"].exists {
-                alert.buttons["Allow Once"].tap()
-                return true
-            }
-            return false
+        // Handle first-launch system alerts (e.g., location permission) via SpringBoard
+        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+        // Short waits to avoid slowing down happy-path runs
+        if springboard.buttons["Beim Verwenden der App erlauben"].waitForExists(timeout: 2) {
+            springboard.buttons["Beim Verwenden der App erlauben"].tap()
+        } else if springboard.buttons["Allow While Using App"].waitForExists(timeout: 2) {
+            springboard.buttons["Allow While Using App"].tap()
+        } else if springboard.buttons["Einmal erlauben"].waitForExists(timeout: 2) {
+            springboard.buttons["Einmal erlauben"].tap()
+        } else if springboard.buttons["Allow Once"].waitForExists(timeout: 2) {
+            springboard.buttons["Allow Once"].tap()
         }
-        // Trigger the interruption monitor
-        app.activate()
         return app
     }
 }
