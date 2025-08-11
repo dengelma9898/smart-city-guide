@@ -39,6 +39,9 @@ struct ManualRoutePlanningView: View {
     }
     @State private var previewContext: ManualPreviewContext?
     @State private var generatedRoute: GeneratedRoute?
+    // Fallback-Präsentation falls item-based Cover nicht greift
+    @State private var forcePresentBuilder: Bool = false
+    @State private var forceBuilderRoute: GeneratedRoute?
     @State private var enrichmentProgress: Double = 0.0
     @State private var errorMessage: String?
     @State private var showingOverviewSheet = false
@@ -111,6 +114,16 @@ struct ManualRoutePlanningView: View {
                     discoveredPOIs: ctx.pois,
                     onRouteGenerated: onRouteGenerated
                 )
+            }
+            .fullScreenCover(isPresented: $forcePresentBuilder) {
+                if let route = forceBuilderRoute, let pois = finalDiscoveredPOIs {
+                    RouteBuilderView(
+                        manualRoute: route,
+                        config: config,
+                        discoveredPOIs: pois,
+                        onRouteGenerated: onRouteGenerated
+                    )
+                }
             }
             .onAppear {
                 startPOIDiscovery()
@@ -485,6 +498,9 @@ struct ManualRoutePlanningView: View {
                     // Present builder immediately via item-based fullScreenCover
                     self.previewContext = ManualPreviewContext(route: route, pois: self.discoveredPOIs, config: self.config)
                     self.currentPhase = .completed
+                    // Fallback: boolean-basiert präsentieren, falls item-based nicht greift
+                    self.forceBuilderRoute = route
+                    self.forcePresentBuilder = true
                 } else {
                     print("🟥 ManualRoutePlanningView.generateRoute: route generation failed: \(manualService.errorMessage ?? "unknown")")
                     // Fallback: show completion with error handling
