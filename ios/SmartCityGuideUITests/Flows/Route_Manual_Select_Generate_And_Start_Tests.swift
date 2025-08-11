@@ -54,7 +54,7 @@ final class Route_Manual_Select_Generate_And_Start_Tests: XCTestCase {
 
         // 7) RouteBuilder oder Completion-CTA abwarten
         let builderNav = app.navigationBars["Deine manuelle Route!"]
-        let routeAnzeigen = app.buttons["Route anzeigen"]
+        let routeAnzeigen = app.buttons["manual.route.show.builder.button"]
         if !builderNav.waitForExists(timeout: 8) {
             // Falls der Builder nicht direkt erscheint, über Completion-CTA öffnen
             XCTAssertTrue(routeAnzeigen.waitForExists(timeout: 60), "Completion CTA 'Route anzeigen' not found")

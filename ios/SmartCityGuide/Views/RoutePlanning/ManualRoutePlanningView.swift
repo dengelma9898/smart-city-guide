@@ -279,6 +279,7 @@ struct ManualRoutePlanningView: View {
                             .fill(.blue)
                     )
             }
+            .accessibilityIdentifier("manual.route.show.builder.button")
             .padding(.horizontal)
             
             Spacer()
