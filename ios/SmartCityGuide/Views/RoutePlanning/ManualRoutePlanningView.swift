@@ -264,8 +264,8 @@ struct ManualRoutePlanningView: View {
             }
             
             Button(action: {
-                if let route = generatedRoute {
-                    showingRouteBuilder = true
+                if let route = finalManualRoute, let pois = finalDiscoveredPOIs {
+                    previewContext = ManualPreviewContext(route: route, pois: pois, config: config)
                 }
             }) {
                 Text("Route anzeigen")
@@ -285,16 +285,6 @@ struct ManualRoutePlanningView: View {
             Spacer()
         }
         .padding()
-        .fullScreenCover(isPresented: $showingRouteBuilder) {
-            if let route = finalManualRoute, let pois = finalDiscoveredPOIs {
-                RouteBuilderView(
-                    manualRoute: route,
-                    config: config,
-                    discoveredPOIs: pois,
-                    onRouteGenerated: onRouteGenerated
-                )
-            }
-        }
     }
 
     @State private var finalManualRoute: GeneratedRoute?
