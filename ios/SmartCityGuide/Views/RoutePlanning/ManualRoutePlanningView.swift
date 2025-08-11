@@ -48,9 +48,24 @@ struct ManualRoutePlanningView: View {
     @State private var showingSelectionSheet = false
     @State private var showingHelpSheet = false
     
+    @State private var pushBuilder: Bool = false
     var body: some View {
         NavigationView {
             ZStack {
+                // Hidden link to push RouteBuilder deterministically
+                NavigationLink(destination: {
+                    if let route = finalManualRoute, let pois = finalDiscoveredPOIs {
+                        RouteBuilderView(
+                            manualRoute: route,
+                            config: config,
+                            discoveredPOIs: pois,
+                            onRouteGenerated: onRouteGenerated
+                        )
+                    }
+                }, isActive: $pushBuilder) {
+                    EmptyView()
+                }
+                .hidden()
                 switch currentPhase {
                 case .loading:
                     loadingPOIsView
@@ -501,6 +516,8 @@ struct ManualRoutePlanningView: View {
                     // Fallback: boolean-basiert präsentieren, falls item-based nicht greift
                     self.forceBuilderRoute = route
                     self.forcePresentBuilder = true
+                    // Push NavigationLink als dritte Absicherung
+                    self.pushBuilder = true
                 } else {
                     print("🟥 ManualRoutePlanningView.generateRoute: route generation failed: \(manualService.errorMessage ?? "unknown")")
                     // Fallback: show completion with error handling
