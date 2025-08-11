@@ -433,6 +433,8 @@ struct RouteBuilderView: View {
                             .foregroundColor(.blue)
                         }
                         .accessibilityIdentifier("route.edit.button")
+                        .accessibilityLabel("Stopp bearbeiten")
+                        .accessibilityValue("index_\(index)")
                         .buttonStyle(PlainButtonStyle())
                       }
                     }
@@ -634,6 +636,7 @@ struct RouteBuilderView: View {
                 )
               }
               .accessibilityIdentifier("route.start.button")
+              .accessibilityLabel("Zeig mir die Tour!")
             }
             
           } else if let error = routeService.errorMessage {

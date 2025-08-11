@@ -94,6 +94,7 @@ struct ManualRoutePlanningView: View {
                         }
                         .accessibilityLabel("Route erstellen")
                         .accessibilityIdentifier("manual.create.button")
+                        .accessibilityValue(currentPhase == .generating ? "in-progress" : "ready")
                     }
                 }
                 // Options menu (always available)

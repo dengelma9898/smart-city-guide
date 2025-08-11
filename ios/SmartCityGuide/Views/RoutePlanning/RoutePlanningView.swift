@@ -154,23 +154,7 @@ struct RoutePlanningView: View {
               
               HStack(spacing: 8) {
                 ForEach(RoutePlanningMode.allCases, id: \.self) { mode in
-                  Button(action: {
-                    planningMode = mode
-                  }) {
-                    Text(mode.rawValue)
-                      .font(.body)
-                      .fontWeight(.medium)
-                      .foregroundColor(planningMode == mode ? .white : .blue)
-                      .padding(.horizontal, 16)
-                      .padding(.vertical, 12)
-                      .frame(maxWidth: .infinity)
-                      .background(
-                        RoundedRectangle(cornerRadius: 10)
-                          .fill(planningMode == mode ? .blue : Color(.systemGray6))
-                      )
-                  }
-                  .accessibilityLabel("\(mode.rawValue) Modus")
-                  .accessibilityAddTraits(planningMode == mode ? .isSelected : [])
+                  planningModeButton(mode)
                 }
               }
               .accessibilityElement(children: .contain)
@@ -241,23 +225,7 @@ struct RoutePlanningView: View {
               
               HStack(spacing: 8) {
                 ForEach(EndpointOption.allCases, id: \.self) { option in
-                  Button(action: {
-                    endpointOption = option
-                  }) {
-                    Text(option.rawValue)
-                      .font(.body)
-                      .fontWeight(.medium)
-                      .foregroundColor(endpointOption == option ? .white : .blue)
-                      .padding(.horizontal, 16)
-                      .padding(.vertical, 12)
-                      .frame(maxWidth: .infinity)
-                      .background(
-                        RoundedRectangle(cornerRadius: 10)
-                          .fill(endpointOption == option ? .blue : Color(.systemGray6))
-                      )
-                  }
-                  .accessibilityLabel("\(option.rawValue) Ziel")
-                  .accessibilityAddTraits(endpointOption == option ? .isSelected : [])
+                  endpointOptionButton(option)
                 }
               }
               .accessibilityElement(children: .contain)
@@ -402,6 +370,52 @@ struct RoutePlanningView: View {
     }
   }
   
+  // MARK: - Subviews to help type-checker
+  @ViewBuilder
+  private func planningModeButton(_ mode: RoutePlanningMode) -> some View {
+    Button(action: {
+      planningMode = mode
+    }) {
+      Text(mode.rawValue)
+        .font(.body)
+        .fontWeight(.medium)
+        .foregroundColor(planningMode == mode ? .white : .blue)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .frame(maxWidth: .infinity)
+        .background(
+          RoundedRectangle(cornerRadius: 10)
+            .fill(planningMode == mode ? .blue : Color(.systemGray6))
+        )
+    }
+    .accessibilityLabel("\(mode.rawValue) Modus")
+    .accessibilityIdentifier("Planungsmodus.\(mode.rawValue)")
+    .accessibilityValue(planningMode == mode ? "selected" : "not-selected")
+    .accessibilityAddTraits(planningMode == mode ? .isSelected : [])
+  }
+
+  @ViewBuilder
+  private func endpointOptionButton(_ option: EndpointOption) -> some View {
+    Button(action: {
+      endpointOption = option
+    }) {
+      Text(option.rawValue)
+        .font(.body)
+        .fontWeight(.medium)
+        .foregroundColor(endpointOption == option ? .white : .blue)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .frame(maxWidth: .infinity)
+        .background(
+          RoundedRectangle(cornerRadius: 10)
+            .fill(endpointOption == option ? .blue : Color(.systemGray6))
+        )
+    }
+    .accessibilityLabel("\(option.rawValue) Ziel")
+    .accessibilityIdentifier("Ziel.\(option.rawValue)")
+    .accessibilityValue(endpointOption == option ? "selected" : "not-selected")
+    .accessibilityAddTraits(endpointOption == option ? .isSelected : [])
+  }
   private func loadDefaultSettings() {
     // Don't apply while settings are still loading
     guard !settingsManager.isLoading else {
