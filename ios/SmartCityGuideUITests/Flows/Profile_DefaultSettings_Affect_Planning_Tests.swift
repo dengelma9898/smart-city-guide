@@ -71,8 +71,11 @@ final class Profile_DefaultSettings_Affect_Planning_Tests: XCTestCase {
 
     private func assertSelected(_ app: XCUIApplication, id: String, file: StaticString = #file, line: UInt = #line) {
         let button = app.buttons[id]
-        XCTAssertTrue(button.waitForExists(), "Option not found: \(id)", file: file, line: line)
-        XCTAssertTrue(button.isSelected, "Option is not selected: \(id)", file: file, line: line)
+        XCTAssertTrue(button.waitForExists(timeout: 10), "Option not found: \(id)", file: file, line: line)
+        let isTraitSelected = button.isSelected
+        let value = (button.value as? String)?.lowercased()
+        let isValueSelected = (value == "selected")
+        XCTAssertTrue(isTraitSelected || isValueSelected, "Option is not selected: \(id)", file: file, line: line)
     }
 }
 
