@@ -272,6 +272,7 @@ struct ManualRoutePlanningView: View {
                 Text("Route erstellt!")
                     .font(.title2)
                     .fontWeight(.semibold)
+                    .accessibilityIdentifier("manual.completion.anchor")
                 
                 Text("Deine manuelle Route ist bereit")
                     .font(.body)
