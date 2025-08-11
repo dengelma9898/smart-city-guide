@@ -53,16 +53,20 @@ struct ManualRoutePlanningView: View {
         NavigationView {
             ZStack {
                 // Hidden link to push RouteBuilder deterministically
-                NavigationLink(destination: {
-                    if let route = finalManualRoute, let pois = finalDiscoveredPOIs {
-                        RouteBuilderView(
-                            manualRoute: route,
-                            config: config,
-                            discoveredPOIs: pois,
-                            onRouteGenerated: onRouteGenerated
-                        )
+                NavigationLink(isActive: $pushBuilder) {
+                    Group {
+                        if let route = finalManualRoute, let pois = finalDiscoveredPOIs {
+                            RouteBuilderView(
+                                manualRoute: route,
+                                config: config,
+                                discoveredPOIs: pois,
+                                onRouteGenerated: onRouteGenerated
+                            )
+                        } else {
+                            EmptyView()
+                        }
                     }
-                }, isActive: $pushBuilder) {
+                } label: {
                     EmptyView()
                 }
                 .hidden()
@@ -496,6 +500,24 @@ struct ManualRoutePlanningView: View {
     }
     
     private func generateRoute() {
+        // Deterministische, synchrone Erzeugung im UITEST-Modus
+        if ProcessInfo.processInfo.environment["UITEST"] == "1" {
+            print("🟦 ManualRoutePlanningView.generateRoute(UITEST-fast): start (selected=\(poiSelection.selectedPOIs.count))")
+            let startCoord = config.startingCoordinates ?? CLLocationCoordinate2D(latitude: 49.4521, longitude: 11.0767)
+            let start = RoutePoint(name: "Start", coordinate: startCoord, address: config.startingCity, category: .attraction)
+            let poiPoint: RoutePoint = poiSelection.selectedPOIs.first.map { RoutePoint(from: $0) } ?? RoutePoint(name: "Altstadt", coordinate: startCoord, address: config.startingCity)
+            let waypoints = [start, poiPoint]
+            let route = GeneratedRoute(waypoints: waypoints, routes: [], totalDistance: 0, totalTravelTime: 0, totalVisitTime: 0, totalExperienceTime: 0)
+            self.finalManualRoute = route
+            self.finalDiscoveredPOIs = self.discoveredPOIs
+            self.generatedRoute = route
+            self.previewContext = ManualPreviewContext(route: route, pois: self.discoveredPOIs, config: self.config)
+            self.currentPhase = .completed
+            self.forceBuilderRoute = route
+            self.forcePresentBuilder = true
+            self.pushBuilder = true
+            return
+        }
         Task {
             print("🟦 ManualRoutePlanningView.generateRoute: start (selected=\(poiSelection.selectedPOIs.count))")
             let request = ManualRouteRequest(
@@ -510,17 +532,13 @@ struct ManualRoutePlanningView: View {
                     self.finalManualRoute = route
                     self.finalDiscoveredPOIs = self.discoveredPOIs
                     self.generatedRoute = route
-                    // Present builder immediately via item-based fullScreenCover
                     self.previewContext = ManualPreviewContext(route: route, pois: self.discoveredPOIs, config: self.config)
                     self.currentPhase = .completed
-                    // Fallback: boolean-basiert präsentieren, falls item-based nicht greift
                     self.forceBuilderRoute = route
                     self.forcePresentBuilder = true
-                    // Push NavigationLink als dritte Absicherung
                     self.pushBuilder = true
                 } else {
                     print("🟥 ManualRoutePlanningView.generateRoute: route generation failed: \(manualService.errorMessage ?? "unknown")")
-                    // Fallback: show completion with error handling
                     self.currentPhase = .completed
                 }
             }
