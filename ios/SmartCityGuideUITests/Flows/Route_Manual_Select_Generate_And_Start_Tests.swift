@@ -9,15 +9,17 @@ final class Route_Manual_Select_Generate_And_Start_Tests: XCTestCase {
         XCTAssertTrue(planButton.waitForExists(), "Plan button not found on home")
         planButton.tap()
 
-        // 2) Stadt setzen (wenn nicht bereits durch Seed)
+        // 2) Stadt setzen nur wenn das Feld leer ist (vermeidet ScrollToVisible-Probleme)
         let cityField = app.textFields["route.city.textfield"]
         if cityField.waitForExists() {
-            cityField.tap()
-            cityField.clearAndType(text: "Nürnberg")
-            if app.keyboards.buttons["Return"].waitForExists() {
-                app.keyboards.buttons["Return"].tap()
-            } else if app.keyboards.buttons["Fertig"].waitForExists() {
-                app.keyboards.buttons["Fertig"].tap()
+            if let val = cityField.value as? String, val.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                cityField.tap()
+                cityField.clearAndType(text: "Nürnberg")
+                if app.keyboards.buttons["Return"].waitForExists() {
+                    app.keyboards.buttons["Return"].tap()
+                } else if app.keyboards.buttons["Fertig"].waitForExists() {
+                    app.keyboards.buttons["Fertig"].tap()
+                }
             }
         }
 
