@@ -355,6 +355,17 @@ struct RoutePlanningView: View {
       }
       .onAppear {
         loadDefaultSettings()
+        // UITEST autopilot: drive manual flow end-to-end for simulator verification
+        if ProcessInfo.processInfo.arguments.contains("-UITEST_AUTOPILOT_MANUAL") {
+          // Provide a deterministic city and open manual planning automatically
+          if startingCity.isEmpty {
+            startingCity = "Nürnberg"
+          }
+          planningMode = .manual
+          DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+            showingManualPlanning = true
+          }
+        }
       }
       .onChange(of: settingsManager.isLoading) { _, isLoading in
         if !isLoading {

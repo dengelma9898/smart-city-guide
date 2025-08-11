@@ -5,7 +5,12 @@ struct TestApp {
         let app = XCUIApplication()
         if uitest { app.launchEnvironment["UITEST"] = "1" }
         extraEnv.forEach { key, value in app.launchEnvironment[key] = value }
-        app.launchArguments += ["-ui-tests"] + extraArgs
+        var args = ["-ui-tests"] + extraArgs
+        // Auto-pilot flag to allow productive app to drive manual flow for simulator verification
+        if !args.contains("-UITEST_AUTOPILOT_MANUAL") {
+            args.append("-UITEST_AUTOPILOT_MANUAL")
+        }
+        app.launchArguments += args
         app.launch()
         return app
     }

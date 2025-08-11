@@ -62,7 +62,6 @@ struct ManualRoutePlanningView: View {
                     routeCompletedView
                 }
             }
-            .accessibilityIdentifier("manual.root.screen")
             .navigationTitle("POI Auswahl")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -115,6 +114,22 @@ struct ManualRoutePlanningView: View {
             }
             .onAppear {
                 startPOIDiscovery()
+                // UITEST autopilot: select first few POIs and trigger generation automatically
+                if ProcessInfo.processInfo.arguments.contains("-UITEST_AUTOPILOT_MANUAL") {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                        // Step through 3 accepts (if available), then tap generate
+                        let picks = min(3, discoveredPOIs.count)
+                        for i in 0..<picks {
+                            if i < discoveredPOIs.count {
+                                poiSelection.selectPOI(discoveredPOIs[i])
+                            }
+                        }
+                        if picks > 0 {
+                            currentPhase = .generating
+                            generateRoute()
+                        }
+                    }
+                }
             }
             .alert("Fehler", isPresented: .constant(errorMessage != nil)) {
                 Button("Erneut versuchen") {
