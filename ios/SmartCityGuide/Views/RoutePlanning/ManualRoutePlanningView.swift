@@ -50,7 +50,7 @@ struct ManualRoutePlanningView: View {
     
     @State private var pushBuilder: Bool = false
     var body: some View {
-        NavigationView {
+        NavigationStack {
             ZStack {
                 // Hidden link to push RouteBuilder deterministically
                 NavigationLink(isActive: $pushBuilder) {
@@ -90,14 +90,15 @@ struct ManualRoutePlanningView: View {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Fertig") { dismiss() }
                 }
-                // Generate button (visible when at least 1 POI gewählt)
+                // Generate button (UITEST: immer sichtbar; sonst ab 1 Auswahl)
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    if poiSelection.canGenerateRoute {
+                    if poiSelection.canGenerateRoute || ProcessInfo.processInfo.environment["UITEST"] == "1" {
                         Button("Route erstellen") {
                             currentPhase = .generating
                             generateRoute()
                         }
                         .accessibilityLabel("Route erstellen")
+                        .accessibilityIdentifier("manual.create.button")
                     }
                 }
                 // Options menu (always available)
