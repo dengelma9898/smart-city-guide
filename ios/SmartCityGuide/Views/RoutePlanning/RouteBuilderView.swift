@@ -432,6 +432,7 @@ struct RouteBuilderView: View {
                             .font(.system(size: 24))
                             .foregroundColor(.blue)
                         }
+                        .accessibilityIdentifier("route.edit.button")
                         .buttonStyle(PlainButtonStyle())
                       }
                     }
