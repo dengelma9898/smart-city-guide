@@ -53,6 +53,7 @@ struct HorizontalFilterChips<T: CaseIterable & RawRepresentable & Hashable>: Vie
                         }
                         .accessibilityLabel("\(option.rawValue)")
                         .accessibilityIdentifier("\(title).\(option.rawValue)")
+                        .accessibilityValue(selection == option ? "selected" : "not-selected")
                         .accessibilityAddTraits(selection == option ? .isSelected : [])
                     }
                 }
