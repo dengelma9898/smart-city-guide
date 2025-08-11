@@ -21,9 +21,13 @@ final class Route_Edit_Single_POI_Tests: XCTestCase {
         let summaryStops = app.staticTexts.matching(NSPredicate(format: "label CONTAINS[c] 'Stops' OR label CONTAINS[c] 'Stopps'"))
         XCTAssertTrue(summaryStops.firstMatch.waitForExists(timeout: 60), "Route summary not shown")
 
-        // 3) Edit öffnen
-        let editButton = app.buttons["route.edit.button"]
-        XCTAssertTrue(editButton.waitForExists(timeout: 10), "Edit button not found")
+        // 3) Edit öffnen (Scroll-Fallback, firstMatch)
+        if !app.buttons["route.edit.button"].waitForExists(timeout: 5) {
+            app.swipeUp()
+        }
+        let editButton = app.buttons["route.edit.button"].firstMatch
+        XCTAssertTrue(editButton.waitForExists(timeout: 15), "Edit button not found")
+        if !editButton.isHittable { app.swipeUp() }
         editButton.tap()
 
         // 4) In Edit-View: Alternativen laden, Top‑Card annehmen
