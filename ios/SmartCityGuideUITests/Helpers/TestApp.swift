@@ -7,6 +7,29 @@ struct TestApp {
         extraEnv.forEach { key, value in app.launchEnvironment[key] = value }
         app.launchArguments += ["-ui-tests"] + extraArgs
         app.launch()
+
+        // Handle first-launch system alerts (e.g., location permission)
+        let _ = addUIInterruptionMonitor(withDescription: "System Alerts") { alert in
+            if alert.buttons["Beim Verwenden der App erlauben"].exists {
+                alert.buttons["Beim Verwenden der App erlauben"].tap()
+                return true
+            }
+            if alert.buttons["Allow While Using App"].exists {
+                alert.buttons["Allow While Using App"].tap()
+                return true
+            }
+            if alert.buttons["Einmal erlauben"].exists {
+                alert.buttons["Einmal erlauben"].tap()
+                return true
+            }
+            if alert.buttons["Allow Once"].exists {
+                alert.buttons["Allow Once"].tap()
+                return true
+            }
+            return false
+        }
+        // Trigger the interruption monitor
+        app.activate()
         return app
     }
 }
