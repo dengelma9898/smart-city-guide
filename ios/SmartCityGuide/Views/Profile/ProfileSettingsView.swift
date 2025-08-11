@@ -90,6 +90,7 @@ struct ProfileSettingsView: View {
                                                     .fill(settingsManager.settings.defaultMaximumStops == stops ? .blue : Color(.systemGray6))
                                             )
                                     }
+                                    .accessibilityIdentifier("settings.stops.\(stops.rawValue)")
                                 }
                             }
                             .padding(.horizontal, 4)
@@ -147,6 +148,7 @@ struct ProfileSettingsView: View {
                                     )
                                 }
                                 .buttonStyle(PlainButtonStyle())
+                                .accessibilityIdentifier("settings.walktime.\(time.rawValue)")
                             }
                         }
                     }
@@ -184,6 +186,7 @@ struct ProfileSettingsView: View {
                                                     .fill(settingsManager.settings.defaultMinimumPOIDistance == distance ? .blue : Color(.systemGray6))
                                             )
                                     }
+                                    .accessibilityIdentifier("settings.distance.\(distance.rawValue)")
                                 }
                             }
                             .padding(.horizontal, 4)
@@ -245,6 +248,7 @@ struct ProfileSettingsView: View {
                                     )
                                 }
                                 .buttonStyle(PlainButtonStyle())
+                                .accessibilityIdentifier("settings.endpoint.\(option.rawValue)")
                             }
                         }
                         

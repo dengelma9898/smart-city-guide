@@ -155,6 +155,7 @@ struct ProfileView: View {
                                 subtitle: "So wie du's magst!"
                             )
                         }
+                        .accessibilityIdentifier("profile.open.settings.button")
                         .buttonStyle(PlainButtonStyle())
                         
                         Divider().padding(.horizontal, 16)
