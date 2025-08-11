@@ -30,7 +30,6 @@ struct ManualRoutePlanningView: View {
     @State private var discoveredPOIs: [POI] = []
     @State private var enrichedPOIs: [String: WikipediaEnrichedPOI] = [:]
     @State private var showingPOISelection = false
-    @State private var showingRouteBuilder = false
     // Robust cover trigger tied to data availability
     struct ManualPreviewContext: Identifiable {
         let id = UUID()
@@ -63,6 +62,7 @@ struct ManualRoutePlanningView: View {
                     routeCompletedView
                 }
             }
+            .accessibilityIdentifier("manual.root.screen")
             .navigationTitle("POI Auswahl")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
