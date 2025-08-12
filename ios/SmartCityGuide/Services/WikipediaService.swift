@@ -22,11 +22,15 @@ class WikipediaService: ObservableObject {
     @Published var isLoading = false
     @Published var errorMessage: String?
     
-    // Cache für Wikipedia-Daten
+    // Cache für Wikipedia-Daten (Requests)
     private var searchCache: [String: WikipediaOpenSearchResponse] = [:]
     private var summaryCache: [String: WikipediaSummary] = [:]
     private let cacheTimeout: TimeInterval = 24 * 60 * 60 // 24 Stunden
     private var cacheTimestamps: [String: Date] = [:]
+    
+    // Cache für bereits angereicherte POIs (Ergebnis-Cache auf POI-Ebene)
+    private var enrichedPOICache: [String: WikipediaEnrichedPOI] = [:] // key: poi.id
+    private var enrichedTimestamps: [String: Date] = [:]
     
     init(urlSession: URLSession? = nil) {
         self.urlSession = urlSession ?? NetworkSecurityManager.shared.secureSession
@@ -38,6 +42,14 @@ class WikipediaService: ObservableObject {
       /// Reichert einen POI mit Wikipedia-Daten an (optimiert mit Geoapify-Daten)
   func enrichPOI(_ poi: POI, cityName: String) async throws -> WikipediaEnrichedPOI {
     let enrichmentStart = Date()
+    // 🔄 Ergebnis-Cache: Wenn wir diesen POI kürzlich angereichert haben, sofort zurückgeben
+    if let cached = enrichedPOICache[poi.id],
+       let ts = enrichedTimestamps[poi.id],
+       Date().timeIntervalSince(ts) < cacheTimeout {
+      // bewusst nur Debug, um Log-Noise zu vermeiden
+      secureLogger.logDebug("📚 Enrichment cache hit for POI id=\(poi.id)", category: .data)
+      return cached
+    }
     
     // 🚀 OPTIMIZATION: Check if Geoapify already provided Wikipedia data
     if let geoapifyWikiData = poi.geoapifyWikiData,
@@ -59,7 +71,10 @@ class WikipediaService: ObservableObject {
         status: "ok",
         startedAt: enrichmentStart
       )
-      return enriched
+       // Ergebnis cachen
+       enrichedPOICache[poi.id] = enriched
+       enrichedTimestamps[poi.id] = Date()
+       return enriched
     }
     
     // Fallback: Traditional OpenSearch approach for POIs without Geoapify Wikipedia data
@@ -140,13 +155,17 @@ class WikipediaService: ObservableObject {
           startedAt: enrichmentStart
         )
         
-        return WikipediaEnrichedPOI(
+        let enriched = WikipediaEnrichedPOI(
             basePOI: poi,
             wikipediaData: summaryData,
             searchResult: bestMatch,
             enrichmentTimestamp: Date(),
             relevanceScore: relevanceScore
         )
+        // Ergebnis cachen
+        enrichedPOICache[poi.id] = enriched
+        enrichedTimestamps[poi.id] = Date()
+        return enriched
     }
     
     /// Reichert mehrere POIs parallel an
@@ -416,13 +435,17 @@ class WikipediaService: ObservableObject {
     
     // Removed verbose debug log for direct enrichment result
     
-    return WikipediaEnrichedPOI(
+    let enriched = WikipediaEnrichedPOI(
       basePOI: poi,
       wikipediaData: summaryData,
       searchResult: searchResult,
       enrichmentTimestamp: Date(),
       relevanceScore: relevanceScore
     )
+    // Ergebnis cachen
+    enrichedPOICache[poi.id] = enriched
+    enrichedTimestamps[poi.id] = Date()
+    return enriched
   }
 
   // MARK: - Consolidated Logging
@@ -509,6 +532,14 @@ class WikipediaService: ObservableObject {
         if !expiredKeys.isEmpty {
             secureLogger.logInfo("📚 Cleaned up \(expiredKeys.count) expired cache entries", category: .data)
         }
+        // Clean enriched cache as well
+        let enrichedExpired = enrichedTimestamps.compactMap { key, ts in
+            now.timeIntervalSince(ts) > cacheTimeout ? key : nil
+        }
+        for key in enrichedExpired { enrichedPOICache.removeValue(forKey: key); enrichedTimestamps.removeValue(forKey: key) }
+        if !enrichedExpired.isEmpty {
+            secureLogger.logInfo("📚 Cleaned up \(enrichedExpired.count) expired enriched entries", category: .data)
+        }
     }
     
     /// Löscht kompletten Cache
@@ -516,6 +547,8 @@ class WikipediaService: ObservableObject {
         searchCache.removeAll()
         summaryCache.removeAll()
         cacheTimestamps.removeAll()
+        enrichedPOICache.removeAll()
+        enrichedTimestamps.removeAll()
         secureLogger.logInfo("📚 Wikipedia cache cleared", category: .data)
     }
     
@@ -526,7 +559,7 @@ class WikipediaService: ObservableObject {
         return (
             searchEntries: searchCache.count,
             summaryEntries: summaryCache.count,
-            totalSize: searchCache.count + summaryCache.count
+            totalSize: searchCache.count + summaryCache.count + enrichedPOICache.count
         )
     }
 }
