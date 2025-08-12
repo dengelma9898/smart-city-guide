@@ -60,6 +60,302 @@ struct RouteBuilderView: View {
     self.routeLength = nil
   }
   
+  // MARK: - Generated Route List View
+  @ViewBuilder
+  private func generatedRouteListView(_ route: GeneratedRoute) -> some View {
+    List {
+      // Waypoints Section
+      Section {
+        ForEach(Array(route.waypoints.enumerated()), id: \.offset) { index, waypoint in
+          Group {
+            waypointRow(route: route, index: index, waypoint: waypoint)
+              .listRowBackground(Color(.systemGray6))
+              .listRowInsets(EdgeInsets(top: 6, leading: 12, bottom: 6, trailing: 12))
+              .listRowSeparator(.hidden)
+              .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                if index > 0 && index < route.waypoints.count - 1 {
+                  Button("Bearbeiten") { editWaypoint(at: index) }
+                    .tint(.blue)
+                }
+              }
+            if index < route.waypoints.count - 1 {
+              walkingRow(route: route, index: index)
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
+            }
+          }
+        }
+      }
+
+      // Route Summary Section
+      Section {
+        VStack(spacing: 12) {
+          HStack(spacing: 24) {
+            VStack {
+              Text("\(Int(route.totalDistance / 1000)) km").font(.title3).fontWeight(.semibold)
+              Text("Deine Strecke").font(.caption).foregroundColor(.secondary)
+            }
+            VStack {
+              Text(formatExperienceTime(route.totalExperienceTime)).font(.title3).fontWeight(.semibold)
+              Text("Deine Zeit").font(.caption).foregroundColor(.secondary)
+            }
+            VStack {
+              Text("\(route.numberOfStops)").font(.title3).fontWeight(.semibold)
+              Text("Coole Stopps").font(.caption).foregroundColor(.secondary)
+            }
+          }
+        }
+        .listRowBackground(Color(.systemGray6))
+      }
+
+      // Time Breakdown Section
+      Section {
+        VStack(alignment: .leading, spacing: 12) {
+          Text("So sieht's aus").font(.headline).fontWeight(.semibold)
+          HStack {
+            VStack(alignment: .leading, spacing: 4) {
+              Text("🚶‍♂️ Laufen").font(.subheadline).fontWeight(.medium)
+              Text(formatExperienceTime(route.totalTravelTime)).font(.title3).fontWeight(.semibold).foregroundColor(.blue)
+            }
+            Spacer()
+            VStack(alignment: .leading, spacing: 4) {
+              Text("📍 Entdecken").font(.subheadline).fontWeight(.medium)
+              Text(formatExperienceTime(route.totalVisitTime)).font(.title3).fontWeight(.semibold).foregroundColor(.orange)
+            }
+          }
+          HStack {
+            Text("⏱️ Dein ganzes Abenteuer:").font(.subheadline).fontWeight(.medium)
+            Spacer()
+            Text(formatExperienceTime(route.totalExperienceTime)).font(.title2).fontWeight(.bold).foregroundColor(.green)
+          }
+          .padding(.top, 8)
+          .padding(.horizontal, 12)
+          .padding(.vertical, 8)
+          .background(RoundedRectangle(cornerRadius: 8).fill(Color.green.opacity(0.1)))
+          Text("💡 Rechnen mit 30-60 Min pro Stopp - ohne Start und Ziel").font(.caption).foregroundColor(.secondary).padding(.top, 4)
+        }
+        .listRowBackground(Color(.systemGray6))
+      }
+
+      // Background Enrichment Status Section
+      if isEnrichingAllPOIs {
+        Section {
+          VStack(spacing: 8) {
+            HStack(spacing: 8) {
+              ProgressView().scaleEffect(0.8)
+              Text("Wikipedia-Daten für weitere POIs werden im Hintergrund geladen...").font(.caption).foregroundColor(.secondary)
+              Spacer()
+            }
+            ProgressView(value: enrichmentProgress).tint(.blue).scaleEffect(y: 0.8)
+            Text("\(Int(enrichmentProgress * 100))% abgeschlossen").font(.caption2).foregroundColor(.secondary)
+          }
+        }
+      }
+
+      // Action Section
+      Section {
+        Button(action: {
+          onRouteGenerated(route)
+          Task { await ProximityService.shared.startProximityMonitoring(for: route) }
+          dismiss()
+        }) {
+          HStack(spacing: 8) {
+            Image(systemName: "map").font(.system(size: 18, weight: .medium))
+            Text("Zeig mir die Tour!").font(.headline).fontWeight(.medium)
+          }
+          .foregroundColor(.white)
+          .frame(maxWidth: .infinity)
+          .padding(.vertical, 16)
+          .background(RoundedRectangle(cornerRadius: 12).fill(.blue))
+        }
+        .accessibilityIdentifier("route.start.button")
+        .accessibilityLabel("Zeig mir die Tour!")
+        .listRowBackground(Color.clear)
+      }
+    }
+    .listStyle(.insetGrouped)
+    .scrollContentBackground(.hidden)
+  }
+
+  // MARK: - Waypoint Row (reuses existing row layout)
+  @ViewBuilder
+  private func waypointRow(route: GeneratedRoute, index: Int, waypoint: RoutePoint) -> some View {
+    VStack(spacing: 0) {
+      // Reuse previous row content
+      HStack(spacing: 8) {
+        ZStack {
+          Circle()
+            .fill(index == 0 ? .green : (index == route.waypoints.count - 1 ? .red : waypoint.category.color))
+            .frame(width: 28, height: 28)
+          if index == 0 {
+            Image(systemName: "figure.walk").font(.system(size: 12, weight: .bold)).foregroundColor(.white)
+          } else if index == route.waypoints.count - 1 {
+            Image(systemName: "flag.fill").font(.system(size: 12, weight: .bold)).foregroundColor(.white)
+          } else {
+            Image(systemName: waypoint.category.icon).font(.system(size: 12, weight: .bold)).foregroundColor(.white)
+          }
+        }
+        VStack(alignment: .leading, spacing: 4) {
+          HStack(spacing: 6) {
+            let displayName: String = {
+              if index == 0 { return "Start" }
+              if index == route.waypoints.count - 1 {
+                switch endpointOption { case .custom: return customEndpoint.isEmpty ? "Ziel" : customEndpoint; default: return "Ziel" }
+              }
+              return waypoint.name
+            }()
+            Text(displayName).font(.body).fontWeight(.medium)
+          }
+          Text(waypoint.address).font(.caption).foregroundColor(.secondary).lineLimit(2)
+          if let phoneNumber = waypoint.phoneNumber {
+            Button(action: { if let u = URL(string: "tel:\(phoneNumber.replacingOccurrences(of: " ", with: ""))") { UIApplication.shared.open(u) } }) {
+              HStack(spacing: 4) {
+                Image(systemName: "phone.fill").font(.system(size: 10)).foregroundColor(.blue)
+                Text(phoneNumber).font(.caption).foregroundColor(.blue)
+              }
+            }
+          }
+          if let url = waypoint.url {
+            Button(action: { UIApplication.shared.open(url) }) {
+              HStack(spacing: 4) {
+                Image(systemName: "link").font(.system(size: 10)).foregroundColor(.blue)
+                Text(url.host ?? url.absoluteString).font(.caption).foregroundColor(.blue).lineLimit(1)
+              }
+            }
+          }
+          if let email = waypoint.emailAddress {
+            Button(action: { if let u = URL(string: "mailto:\(email)") { UIApplication.shared.open(u) } }) {
+              HStack(spacing: 4) {
+                Image(systemName: "envelope.fill").font(.system(size: 10)).foregroundColor(.blue)
+                Text(email).font(.caption).foregroundColor(.blue).lineLimit(1)
+              }
+            }
+          }
+          if let hours = waypoint.operatingHours, !hours.isEmpty {
+            HStack(spacing: 4) {
+              Image(systemName: "clock.fill").font(.system(size: 10)).foregroundColor(.orange)
+              Text(hours).font(.caption).foregroundColor(.secondary).lineLimit(2)
+            }
+          }
+          if index > 0 && index < route.waypoints.count - 1 {
+            wikipediaInfoView(for: waypoint)
+          }
+        }
+        Spacer()
+        if index > 0 && index < route.waypoints.count - 1 {
+          Button(action: { editWaypoint(at: index) }) {
+            Image(systemName: "pencil.circle.fill").font(.system(size: 24)).foregroundColor(.blue)
+          }
+          .accessibilityIdentifier("route.edit.button")
+          .accessibilityLabel("Stopp bearbeiten")
+          .accessibilityValue("index_\(index)")
+          .buttonStyle(PlainButtonStyle())
+        }
+      }
+      .padding(.vertical, 12)
+      .padding(.horizontal, 8)
+      .background(RoundedRectangle(cornerRadius: 12).fill(Color(.systemGray6)))
+    }
+  }
+
+  // MARK: - Walking Segment Row
+  @ViewBuilder
+  private func walkingRow(route: GeneratedRoute, index: Int) -> some View {
+    VStack(spacing: 4) {
+      Rectangle().fill(Color(.systemGray4)).frame(width: 2, height: 20)
+      HStack(spacing: 6) {
+        Image(systemName: "figure.walk").font(.system(size: 12)).foregroundColor(.secondary)
+        let walkingTime = route.walkingTimes[index]
+        let walkingDistance = route.walkingDistances[index]
+        Text("\(Int(walkingTime / 60)) min • \(Int(walkingDistance)) m").font(.caption2).foregroundColor(.secondary).fontWeight(.medium)
+      }
+      .padding(.horizontal, 8)
+      .padding(.vertical, 4)
+      .background(Capsule().fill(Color(.systemGray5)))
+      Rectangle().fill(Color(.systemGray4)).frame(width: 2, height: 20)
+    }
+    .frame(maxWidth: .infinity)
+    .padding(.vertical, 2)
+  }
+
+  // MARK: - Zoom Overlay for Photos-like image transition
+  @ViewBuilder
+  private var zoomOverlay: some View {
+    if showFullScreenImage, let url = URL(string: fullScreenImageURL) {
+      ZStack {
+        Color.black.opacity(max(0.0, 0.95 - Double(abs(zoomDragOffset.height) / 800)))
+          .ignoresSafeArea()
+          .onTapGesture {
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+              showFullScreenImage = false
+            }
+          }
+
+        VStack(spacing: 16) {
+          AsyncImage(url: url) { phase in
+            switch phase {
+            case .success(let image):
+              image
+                .resizable()
+                .scaledToFit()
+                .matchedGeometryEffect(id: fullScreenImageURL, in: imageZoomNamespace, isSource: true)
+                .cornerRadius(8)
+                .scaleEffect(zoomScale)
+                .offset(zoomDragOffset)
+                .highPriorityGesture(
+                  DragGesture()
+                    .onChanged { value in
+                      zoomDragOffset = value.translation
+                      let progress = 1 - min(0.5, abs(value.translation.height) / 600)
+                      zoomScale = max(0.85, progress)
+                    }
+                    .onEnded { value in
+                      let shouldDismiss = abs(value.translation.height) > 140
+                      withAnimation(.spring(response: 0.45, dampingFraction: 0.9)) {
+                        if shouldDismiss {
+                          showFullScreenImage = false
+                        }
+                        zoomDragOffset = .zero
+                        zoomScale = 1.0
+                      }
+                    }
+                )
+            default:
+              ProgressView()
+            }
+          }
+
+          if !fullScreenImageTitle.isEmpty {
+            Text(fullScreenImageTitle)
+              .font(.footnote)
+              .foregroundColor(.white.opacity(0.9))
+          }
+
+          HStack(spacing: 20) {
+            Button {
+              withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                showFullScreenImage = false
+              }
+            } label: {
+              Image(systemName: "xmark.circle.fill")
+                .font(.system(size: 28))
+                .foregroundColor(.white.opacity(0.95))
+            }
+
+            if let page = URL(string: fullScreenWikipediaURL), !fullScreenWikipediaURL.isEmpty {
+              Button { UIApplication.shared.open(page) } label: {
+                Image(systemName: "safari")
+                  .font(.system(size: 24))
+                  .foregroundColor(.white.opacity(0.95))
+              }
+            }
+          }
+        }
+        .padding(.horizontal, 16)
+      }
+      .transition(.opacity)
+    }
+  }
   // MARK: - Legacy Initializer (for backwards compatibility)
   init(
     startingCity: String,
@@ -221,6 +517,9 @@ struct RouteBuilderView: View {
   @State private var fullScreenImageURL: String = ""
   @State private var fullScreenImageTitle: String = ""
   @State private var fullScreenWikipediaURL: String = ""
+  @Namespace private var imageZoomNamespace
+  @State private var zoomDragOffset: CGSize = .zero
+  @State private var zoomScale: CGFloat = 1.0
   
   // Route Edit States
   @State private var showingEditView = false
@@ -246,420 +545,60 @@ struct RouteBuilderView: View {
   
   var body: some View {
     NavigationView {
-      ScrollView {
-        VStack(spacing: 24) {
-          if (routeSource.isManual && routeService.generatedRoute == nil) || isLoadingPOIs || routeService.isGenerating || isEnrichingRoutePOIs {
-            // Header - only show during generation
-            VStack(spacing: 12) {
-              Text("Wir basteln deine Route!")
-                .font(.title2)
-                .fontWeight(.semibold)
-              
-              Text("Suchen die coolsten \(maximumStops?.intValue ?? 5) Stopps in \(startingCity) für dich!")
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal)
-            }
-            .padding(.top, 20)
-            
-            // Loading State
-            VStack(spacing: 16) {
-              ProgressView()
-                .scaleEffect(1.2)
-              
-              Text(loadingStateText)
-                .font(.body)
-                .foregroundColor(.secondary)
-            }
-            .padding(.vertical, 40)
-            
-          } else if let route = routeService.generatedRoute {
-            // Success State - Show Generated Route
-            VStack(spacing: 20) {
-              
-              // Waypoints List
-              VStack(alignment: .leading, spacing: 12) {
-                ForEach(Array(route.waypoints.enumerated()), id: \.offset) { index, waypoint in
-                  VStack(spacing: 0) {
-                    // Waypoint info
-                    HStack(spacing: 8) {
-                      ZStack {
-                        Circle()
-                          .fill(index == 0 ? .green : (index == route.waypoints.count - 1 ? .red : waypoint.category.color))
-                          .frame(width: 28, height: 28)
-                        
-                        if index == 0 {
-                          Image(systemName: "figure.walk")
-                            .font(.system(size: 12, weight: .bold))
-                            .foregroundColor(.white)
-                        } else if index == route.waypoints.count - 1 {
-                          Image(systemName: "flag.fill")
-                            .font(.system(size: 12, weight: .bold))
-                            .foregroundColor(.white)
-                        } else {
-                          Image(systemName: waypoint.category.icon)
-                            .font(.system(size: 12, weight: .bold))
-                            .foregroundColor(.white)
-                        }
-                      }
-                      
-                      VStack(alignment: .leading, spacing: 4) {
-                        HStack(spacing: 6) {
-                          // Display-friendly name: show "Ziel" for last waypoint on roundtrip/lastPlace, or custom name when provided
-                          let displayName: String = {
-                            if index == 0 { return "Start" }
-                            if index == route.waypoints.count - 1 {
-                              switch endpointOption {
-                              case .custom:
-                                return customEndpoint.isEmpty ? "Ziel" : customEndpoint
-                              default:
-                                return "Ziel"
-                              }
-                            }
-                            return waypoint.name
-                          }()
-                          Text(displayName)
-                            .font(.body)
-                            .fontWeight(.medium)
-                          
-                          // Category pill removed to save horizontal space
-                        }
-                        
-                        Text(waypoint.address)
-                          .font(.caption)
-                          .foregroundColor(.secondary)
-                          .lineLimit(2)
-                        
-                        // Additional information if available
-                        if let phoneNumber = waypoint.phoneNumber {
-                          Button(action: {
-                            if let phoneURL = URL(string: "tel:\(phoneNumber.replacingOccurrences(of: " ", with: ""))") {
-                              UIApplication.shared.open(phoneURL)
-                            }
-                          }) {
-                            HStack(spacing: 4) {
-                              Image(systemName: "phone.fill")
-                                .font(.system(size: 10))
-                                .foregroundColor(.blue)
-                              Text(phoneNumber)
-                                .font(.caption)
-                                .foregroundColor(.blue)
-                            }
-                          }
-                        }
-                        
-                        if let url = waypoint.url {
-                          Button(action: {
-                            UIApplication.shared.open(url)
-                          }) {
-                            HStack(spacing: 4) {
-                              Image(systemName: "link")
-                                .font(.system(size: 10))
-                                .foregroundColor(.blue)
-                              Text(url.host ?? url.absoluteString)
-                                .font(.caption)
-                                .foregroundColor(.blue)
-                                .lineLimit(1)
-                            }
-                          }
-                        }
-                        
-                        // E-Mail-Adresse
-                        if let email = waypoint.emailAddress {
-                          Button(action: {
-                            if let emailURL = URL(string: "mailto:\(email)") {
-                              UIApplication.shared.open(emailURL)
-                            }
-                          }) {
-                            HStack(spacing: 4) {
-                              Image(systemName: "envelope.fill")
-                                .font(.system(size: 10))
-                                .foregroundColor(.blue)
-                              Text(email)
-                                .font(.caption)
-                                .foregroundColor(.blue)
-                                .lineLimit(1)
-                            }
-                          }
-                        }
-                        
-                        // Öffnungszeiten
-                        if let hours = waypoint.operatingHours, !hours.isEmpty {
-                          HStack(spacing: 4) {
-                            Image(systemName: "clock.fill")
-                              .font(.system(size: 10))
-                              .foregroundColor(.orange)
-                            Text(hours)
-                              .font(.caption)
-                              .foregroundColor(.secondary)
-                              .lineLimit(2)
-                          }
-                        }
-                        
-                        // Wikipedia-Informationen (nur für POI-Waypoints)
-                        if index > 0 && index < route.waypoints.count - 1 {
-                          wikipediaInfoView(for: waypoint)
-                        }
-                      }
-                      
-                      Spacer()
-                      
-                      // Edit button (only for intermediate waypoints)
-                      if index > 0 && index < route.waypoints.count - 1 {
-                        Button(action: {
-                          editWaypoint(at: index)
-                        }) {
-                          Image(systemName: "pencil.circle.fill")
-                            .font(.system(size: 24))
-                            .foregroundColor(.blue)
-                        }
-                        .accessibilityIdentifier("route.edit.button")
-                        .accessibilityLabel("Stopp bearbeiten")
-                        .accessibilityValue("index_\(index)")
-                        .buttonStyle(PlainButtonStyle())
-                      }
-                    }
-                    .padding(.vertical, 12)
-                    .padding(.horizontal, 8)
-                    .background(
-                      RoundedRectangle(cornerRadius: 12)
-                        .fill(Color(.systemGray6))
-                    )
-                    
-                    // Walking time indicator (if not the last waypoint)
-                    if index < route.waypoints.count - 1 {
-                      VStack(spacing: 4) {
-                        Rectangle()
-                          .fill(Color(.systemGray4))
-                          .frame(width: 2, height: 20)
-                        
-                        HStack(spacing: 6) {
-                          Image(systemName: "figure.walk")
-                            .font(.system(size: 12))
-                            .foregroundColor(.secondary)
-                          
-                          let walkingTime = route.walkingTimes[index]
-                          let walkingDistance = route.walkingDistances[index]
-                          
-                          Text("\(Int(walkingTime / 60)) min • \(Int(walkingDistance)) m")
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
-                            .fontWeight(.medium)
-                        }
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(
-                          Capsule()
-                            .fill(Color(.systemGray5))
-                        )
-                        
-                        Rectangle()
-                          .fill(Color(.systemGray4))
-                          .frame(width: 2, height: 20)
-                      }
-                    }
-                  }
-                }
-              }
-              .padding()
-              .background(
-                RoundedRectangle(cornerRadius: 12)
-                  .fill(Color(.systemGray6))
-              )
-              
-              // Route Summary
+      Group {
+        if (routeSource.isManual && routeService.generatedRoute == nil) || isLoadingPOIs || routeService.isGenerating || isEnrichingRoutePOIs {
+          // Loading/Generating State
+          ScrollView {
+            VStack(spacing: 24) {
+              // Header - only show during generation
               VStack(spacing: 12) {
-                HStack(spacing: 24) {
-                  VStack {
-                    Text("\(Int(route.totalDistance / 1000)) km")
-                      .font(.title3)
-                      .fontWeight(.semibold)
-                    Text("Deine Strecke")
-                      .font(.caption)
-                      .foregroundColor(.secondary)
-                  }
-                  
-                  VStack {
-                    Text(formatExperienceTime(route.totalExperienceTime))
-                      .font(.title3)
-                      .fontWeight(.semibold)
-                    Text("Deine Zeit")
-                      .font(.caption)
-                      .foregroundColor(.secondary)
-                  }
-                  
-                  VStack {
-                    Text("\(route.numberOfStops)")
-                      .font(.title3)
-                      .fontWeight(.semibold)
-                    Text("Coole Stopps")
-                      .font(.caption)
-                      .foregroundColor(.secondary)
-                  }
-                }
-              }
-              .padding()
-              .background(
-                RoundedRectangle(cornerRadius: 12)
-                  .fill(Color(.systemGray6))
-              )
-              
-              // Time Breakdown
-              VStack(alignment: .leading, spacing: 12) {
-                Text("So sieht's aus")
-                  .font(.headline)
+                Text("Wir basteln deine Route!")
+                  .font(.title2)
                   .fontWeight(.semibold)
-                
-                HStack {
-                  VStack(alignment: .leading, spacing: 4) {
-                    Text("🚶‍♂️ Laufen")
-                      .font(.subheadline)
-                      .fontWeight(.medium)
-                    Text(formatExperienceTime(route.totalTravelTime))
-                      .font(.title3)
-                      .fontWeight(.semibold)
-                      .foregroundColor(.blue)
-                  }
-                  
-                  Spacer()
-                  
-                  VStack(alignment: .leading, spacing: 4) {
-                    Text("📍 Entdecken")
-                      .font(.subheadline)
-                      .fontWeight(.medium)
-                    Text(formatExperienceTime(route.totalVisitTime))
-                      .font(.title3)
-                      .fontWeight(.semibold)
-                      .foregroundColor(.orange)
-                  }
-                }
-                
-                HStack {
-                  Text("⏱️ Dein ganzes Abenteuer:")
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-                  Spacer()
-                  Text(formatExperienceTime(route.totalExperienceTime))
-                    .font(.title2)
-                    .fontWeight(.bold)
-                    .foregroundColor(.green)
-                }
-                .padding(.top, 8)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .background(
-                  RoundedRectangle(cornerRadius: 8)
-                    .fill(Color.green.opacity(0.1))
-                )
-                
-                Text("💡 Rechnen mit 30-60 Min pro Stopp - ohne Start und Ziel")
-                  .font(.caption)
+                Text("Suchen die coolsten \(maximumStops?.intValue ?? 5) Stopps in \(startingCity) für dich!")
+                  .font(.subheadline)
                   .foregroundColor(.secondary)
-                  .padding(.top, 4)
+                  .multilineTextAlignment(.center)
+                  .padding(.horizontal)
               }
-              .padding()
-              .background(
-                RoundedRectangle(cornerRadius: 12)
-                  .fill(Color(.systemGray6))
-              )
-              
-              // Background Enrichment Status
-              if isEnrichingAllPOIs {
-                VStack(spacing: 8) {
-                  HStack(spacing: 8) {
-                    ProgressView()
-                      .scaleEffect(0.8)
-                    Text("Wikipedia-Daten für weitere POIs werden im Hintergrund geladen...")
-                      .font(.caption)
-                      .foregroundColor(.secondary)
-                    Spacer()
-                  }
-                  
-                  ProgressView(value: enrichmentProgress)
-                    .tint(.blue)
-                    .scaleEffect(y: 0.8)
-                  
-                  Text("\(Int(enrichmentProgress * 100))% abgeschlossen")
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
-                }
-                .padding()
-                .background(
-                  RoundedRectangle(cornerRadius: 12)
-                    .fill(Color(.systemBlue).opacity(0.1))
-                )
+              .padding(.top, 20)
+              // Loading State
+              VStack(spacing: 16) {
+                ProgressView().scaleEffect(1.2)
+                Text(loadingStateText).font(.body).foregroundColor(.secondary)
               }
-              
-              // Use Route Button
-              Button(action: {
-                onRouteGenerated(route)
-                
-                // Phase 4: Start proximity monitoring for the active route
-                Task {
-                  await ProximityService.shared.startProximityMonitoring(for: route)
-                }
-                
-                dismiss()
-              }) {
-                HStack(spacing: 8) {
-                  Image(systemName: "map")
-                    .font(.system(size: 18, weight: .medium))
-                  Text("Zeig mir die Tour!")
-                    .font(.headline)
-                    .fontWeight(.medium)
-                }
-                .foregroundColor(.white)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 16)
-                .background(
-                  RoundedRectangle(cornerRadius: 12)
-                    .fill(.blue)
-                )
-              }
-              .accessibilityIdentifier("route.start.button")
-              .accessibilityLabel("Zeig mir die Tour!")
+              .padding(.vertical, 40)
+              Spacer(minLength: 20)
             }
-            
-          } else if let error = routeService.errorMessage {
-            // Error State
+            .padding(.horizontal, 12)
+          }
+        } else if let route = routeService.generatedRoute {
+          // Generated Route - List with swipe actions
+          generatedRouteListView(route)
+        } else if let error = routeService.errorMessage {
+          // Error State
+          ScrollView {
             VStack(spacing: 16) {
-              Image(systemName: "exclamationmark.triangle.fill")
-                .font(.system(size: 40))
-                .foregroundColor(.orange)
-              
-              Text("Ups, da lief was schief!")
-                .font(.headline)
-                .fontWeight(.semibold)
-              
-              Text(error)
-                .font(.body)
-                .foregroundColor(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal)
-              
+              Image(systemName: "exclamationmark.triangle.fill").font(.system(size: 40)).foregroundColor(.orange)
+              Text("Ups, da lief was schief!").font(.headline).fontWeight(.semibold)
+              Text(error).font(.body).foregroundColor(.secondary).multilineTextAlignment(.center).padding(.horizontal)
               Button("Nochmal probieren!") {
-                Task {
-                  await generateOptimalRoute()
-                }
+                Task { await generateOptimalRoute() }
               }
               .buttonStyle(.borderedProminent)
+              Spacer(minLength: 20)
             }
             .padding(.vertical, 40)
+            .padding(.horizontal, 12)
           }
-          
-          Spacer(minLength: 20)
         }
-        .padding(.horizontal, 12)
       }
       .accessibilityIdentifier("route.builder.screen")
       .navigationTitle(navigationTitle)
       .navigationBarTitleDisplayMode(.large)
       .toolbar {
         ToolbarItem(placement: .navigationBarTrailing) {
-          Button("Fertig") {
-            dismiss()
-          }
+          Button("Fertig") { dismiss() }
         }
       }
     }
@@ -693,14 +632,7 @@ struct RouteBuilderView: View {
         await loadPOIsAndGenerateRoute()
       }
     }
-    .fullScreenCover(isPresented: $showFullScreenImage) {
-      FullScreenImageView(
-        imageURL: fullScreenImageURL,
-        title: fullScreenImageTitle,
-        wikipediaURL: fullScreenWikipediaURL.isEmpty ? nil : fullScreenWikipediaURL,
-        isPresented: $showFullScreenImage
-      )
-    }
+    .overlay(zoomOverlay)
     .sheet(isPresented: $showingEditView) {
       if let editableSpot = editableSpot {
         RouteEditView(
@@ -948,10 +880,11 @@ struct RouteBuilderView: View {
                 case .success(let image):
                   image
                     .resizable()
-                    .aspectRatio(contentMode: .fit) // Zeige ganzes Bild
-                    .frame(width: 80, height: 50) // Kompakte Größe
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 80, height: 50)
                     .cornerRadius(6)
                     .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
+                    .matchedGeometryEffect(id: imageURL, in: imageZoomNamespace, isSource: !showFullScreenImage)
                 case .failure(_), .empty:
                   RoundedRectangle(cornerRadius: 6)
                     .fill(Color(.systemGray5))
@@ -984,13 +917,17 @@ struct RouteBuilderView: View {
               
               Spacer()
             }
-            .contentShape(Rectangle()) // Gesamte Fläche anklickbar
+            .contentShape(Rectangle())
             .onTapGesture {
-              // ✅ In-App Vollbild statt Browser
+              // Prepare state before animation to ensure matchedGeometryEffect animates on appear
               fullScreenImageURL = imageURL
               fullScreenImageTitle = enrichedPOI.wikipediaData?.title ?? enrichedPOI.basePOI.name
               fullScreenWikipediaURL = enrichedPOI.wikipediaURL ?? ""
-              showFullScreenImage = true
+              zoomDragOffset = .zero
+              zoomScale = 1.0
+              withAnimation(.spring(response: 0.45, dampingFraction: 0.9)) {
+                showFullScreenImage = true
+              }
             }
           }
           
