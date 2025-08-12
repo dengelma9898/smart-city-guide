@@ -390,7 +390,23 @@ extension SwipeCard {
         // Fallback: Wenn nur technische/irrelevante Infos vorhanden sind, dem Nutzer klar sagen,
         // dass wir keine weiteren Details gefunden haben.
         let text = poi.displayDescription.trimmingCharacters(in: .whitespacesAndNewlines)
-        if text.isEmpty || text == poi.category.rawValue || text.lowercased().contains("leisure") {
+        let lower = text.lowercased()
+        // Heuristik: technische Geoapify-Tags erkennen und ausblenden
+        let technicalTokens = [
+            "leisure",
+            "details",
+            "place_of_worship",
+            "wiki",
+            "heritage",
+            "facilities",
+            "opening_hours",
+            "amenity",
+            "shop",
+            "addr:",
+            "addr.",
+            "contact:"
+        ]
+        if text.isEmpty || text == poi.category.rawValue || technicalTokens.contains(where: { lower.contains($0) }) {
             return "Zu diesem Ort haben wir leider keine weiteren Infos gefunden."
         }
         return text
