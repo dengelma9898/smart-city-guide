@@ -148,16 +148,9 @@ enum MaximumStops: String, CaseIterable, Codable {
     case three = "3"
     case five = "5" 
     case eight = "8"
-    case ten = "10"
-    case fifteen = "15"
-    case twenty = "20"
-    case unlimited = "Unbegrenzt"
-    
-    var intValue: Int? {
-        switch self {
-        case .unlimited: return nil
-        default: return Int(rawValue)
-        }
+
+    var intValue: Int {
+        return Int(rawValue) ?? 5
     }
 }
 
