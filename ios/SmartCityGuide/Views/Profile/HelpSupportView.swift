@@ -341,6 +341,10 @@ struct FAQCategory {
                     answer: "Du kannst zwischen Sehenswürdigkeiten, Museen, Parks und Nationalparks wählen. Die App findet automatisch die besten Orte in deiner gewählten Stadt für diese Kategorien."
                 ),
                 FAQ(
+                    question: "Warum ändert sich der Titel nach der Planung?",
+                    answer: "Sobald deine Route fertig ist, wechselt der Titel automatisch zu \"Deine Tour im Detail\". Daran erkennst du direkt, dass die Planung abgeschlossen ist und du dir nun die Route im Detail anschauen kannst."
+                ),
+                FAQ(
                     question: "Wie kann ich einzelne Stopps in meiner Route ändern?",
                     answer: """
                     Du kannst jeden Stopp deiner generierten Route bearbeiten:

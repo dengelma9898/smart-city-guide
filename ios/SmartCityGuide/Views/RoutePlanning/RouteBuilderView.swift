@@ -280,14 +280,10 @@ struct RouteBuilderView: View {
               
               // Waypoints List
               VStack(alignment: .leading, spacing: 12) {
-                Text("Deine Tour im Detail")
-                  .font(.headline)
-                  .fontWeight(.semibold)
-                
                 ForEach(Array(route.waypoints.enumerated()), id: \.offset) { index, waypoint in
                   VStack(spacing: 0) {
                     // Waypoint info
-                    HStack(spacing: 12) {
+                    HStack(spacing: 8) {
                       ZStack {
                         Circle()
                           .fill(index == 0 ? .green : (index == route.waypoints.count - 1 ? .red : waypoint.category.color))
@@ -327,21 +323,7 @@ struct RouteBuilderView: View {
                             .font(.body)
                             .fontWeight(.medium)
                           
-                          // Category indicator (only for intermediate stops)
-                          if index > 0 && index < route.waypoints.count - 1 {
-                            HStack(spacing: 4) {
-                              Text(waypoint.category.rawValue)
-                                .font(.system(size: 10))
-                                .foregroundColor(.white)
-                                .fontWeight(.medium)
-                            }
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 3)
-                            .background(
-                              Capsule()
-                                .fill(waypoint.category.color)
-                            )
-                          }
+                          // Category pill removed to save horizontal space
                         }
                         
                         Text(waypoint.address)
@@ -439,7 +421,7 @@ struct RouteBuilderView: View {
                       }
                     }
                     .padding(.vertical, 12)
-                    .padding(.horizontal, 16)
+                    .padding(.horizontal, 8)
                     .background(
                       RoundedRectangle(cornerRadius: 12)
                         .fill(Color(.systemGray6))
@@ -668,10 +650,10 @@ struct RouteBuilderView: View {
           
           Spacer(minLength: 20)
         }
-        .padding(.horizontal, 20)
+        .padding(.horizontal, 12)
       }
       .accessibilityIdentifier("route.builder.screen")
-      .navigationTitle(routeSource.isManual ? "Deine manuelle Route!" : "Deine Tour entsteht!")
+      .navigationTitle(navigationTitle)
       .navigationBarTitleDisplayMode(.large)
       .toolbar {
         ToolbarItem(placement: .navigationBarTrailing) {
@@ -731,6 +713,14 @@ struct RouteBuilderView: View {
         )
       }
     }
+  }
+
+  // MARK: - Navigation Title
+  private var navigationTitle: String {
+    if routeService.generatedRoute != nil {
+      return "Deine Tour im Detail"
+    }
+    return routeSource.isManual ? "Deine manuelle Route!" : "Deine Tour entsteht!"
   }
   
   // MARK: - POI Loading and Route Generation

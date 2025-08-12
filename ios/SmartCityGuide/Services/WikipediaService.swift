@@ -37,26 +37,49 @@ class WikipediaService: ObservableObject {
     
       /// Reichert einen POI mit Wikipedia-Daten an (optimiert mit Geoapify-Daten)
   func enrichPOI(_ poi: POI, cityName: String) async throws -> WikipediaEnrichedPOI {
-    secureLogger.logInfo("📚 Starting Wikipedia enrichment for: \(poi.name) in \(cityName)", category: .data)
+    let enrichmentStart = Date()
     
     // 🚀 OPTIMIZATION: Check if Geoapify already provided Wikipedia data
     if let geoapifyWikiData = poi.geoapifyWikiData,
        let wikipediaTitle = geoapifyWikiData.germanWikipediaTitle {
       
-      secureLogger.logInfo("🚀 Fast-track: Using Geoapify Wikipedia title '\(wikipediaTitle)' for \(poi.name)", category: .data)
+      // Removed verbose debug log
       
       // Skip OpenSearch - directly fetch summary with known title
-      return try await enrichPOIWithDirectTitle(poi, wikipediaTitle: wikipediaTitle, geoapifyWikiData: geoapifyWikiData)
+      let enriched = try await enrichPOIWithDirectTitle(poi, wikipediaTitle: wikipediaTitle, geoapifyWikiData: geoapifyWikiData)
+      logConsolidatedEnrichment(
+        poi: poi,
+        cityName: cityName,
+        mode: "direct",
+        title: wikipediaTitle,
+        bestMatchTitle: nil,
+        bestMatchScore: nil,
+        summary: enriched.wikipediaData,
+        finalScore: enriched.relevanceScore,
+        status: "ok",
+        startedAt: enrichmentStart
+      )
+      return enriched
     }
     
     // Fallback: Traditional OpenSearch approach for POIs without Geoapify Wikipedia data
-    secureLogger.logInfo("📚 Fallback: Using OpenSearch for \(poi.name) (no Geoapify wiki data)", category: .data)
     
     // Schritt 1: OpenSearch für Wikipedia-Artikel (POI-Name + Stadt für bessere Genauigkeit)
     let searchResponse = try await searchWikipedia(for: poi.name, city: cityName)
         
         guard !searchResponse.searchResults.isEmpty else {
-            secureLogger.logInfo("📚 No Wikipedia results for: \(poi.name)", category: .data)
+            logConsolidatedEnrichment(
+              poi: poi,
+              cityName: cityName,
+              mode: "opensearch",
+              title: nil,
+              bestMatchTitle: nil,
+              bestMatchScore: nil,
+              summary: nil,
+              finalScore: 0.0,
+              status: "noResults",
+              startedAt: enrichmentStart
+            )
             return WikipediaEnrichedPOI(
                 basePOI: poi,
                 wikipediaData: nil,
@@ -68,7 +91,18 @@ class WikipediaService: ObservableObject {
         
         // Schritt 2: Beste Übereinstimmung finden
         guard let bestMatch = findBestMatch(searchResults: searchResponse.searchResults, for: poi) else {
-            secureLogger.logInfo("📚 No valid Wikipedia match found for: \(poi.name)", category: .data)
+            logConsolidatedEnrichment(
+              poi: poi,
+              cityName: cityName,
+              mode: "opensearch",
+              title: nil,
+              bestMatchTitle: nil,
+              bestMatchScore: nil,
+              summary: nil,
+              finalScore: 0.0,
+              status: "noMatch",
+              startedAt: enrichmentStart
+            )
             return WikipediaEnrichedPOI(
                 basePOI: poi,
                 wikipediaData: nil,
@@ -78,7 +112,7 @@ class WikipediaService: ObservableObject {
             )
         }
         
-        secureLogger.logInfo("📚 Best match for '\(poi.name)': '\(bestMatch.title)' (score: \(String(format: "%.3f", bestMatch.relevanceScore(for: poi.name))))", category: .data)
+        // Removed verbose debug log for best-match
         
         // Schritt 3: Detaillierte Summary-Daten abrufen
         let summaryData = try await fetchWikipediaSummary(title: bestMatch.title)
@@ -90,7 +124,21 @@ class WikipediaService: ObservableObject {
             originalPOI: poi
         )
         
-        secureLogger.logInfo("📚 Final relevance score for '\(poi.name)': \(String(format: "%.2f", relevanceScore))", category: .data)
+        // Removed verbose debug log for final score
+        
+        // Konsolidierte Ergebniszeile
+        logConsolidatedEnrichment(
+          poi: poi,
+          cityName: cityName,
+          mode: "opensearch",
+          title: bestMatch.title,
+          bestMatchTitle: bestMatch.title,
+          bestMatchScore: bestMatch.relevanceScore(for: poi.name),
+          summary: summaryData,
+          finalScore: relevanceScore,
+          status: "ok",
+          startedAt: enrichmentStart
+        )
         
         return WikipediaEnrichedPOI(
             basePOI: poi,
@@ -158,7 +206,7 @@ class WikipediaService: ObservableObject {
         if let cached = searchCache[cacheKey],
            let timestamp = cacheTimestamps[cacheKey],
            Date().timeIntervalSince(timestamp) < cacheTimeout {
-            secureLogger.logInfo("📚 Cache hit for search: \(searchQuery)", category: .data)
+            // Removed verbose debug log for cache hit (search)
             return cached
         }
         
@@ -166,7 +214,7 @@ class WikipediaService: ObservableObject {
         let encodedQuery = searchQuery.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? searchQuery
         let urlString = "\(baseURL)\(apiPath)?action=opensearch&search=\(encodedQuery)&limit=5&namespace=0&format=json"
         
-        secureLogger.logInfo("🌐 Wikipedia OpenSearch: \(poiName) + \(city) = \(searchQuery)", category: .data)
+        // Removed verbose debug log for OpenSearch query
         
         guard let url = URL(string: urlString) else {
             throw WikipediaError.invalidURL
@@ -201,7 +249,7 @@ class WikipediaService: ObservableObject {
             searchCache[cacheKey] = searchResponse
             cacheTimestamps[cacheKey] = Date()
             
-            secureLogger.logInfo("📚 OpenSearch results for '\(searchQuery)': \(searchResponse.titles.count) found", category: .data)
+            // Removed verbose debug log for OpenSearch results count
             
             return searchResponse
             
@@ -220,7 +268,7 @@ class WikipediaService: ObservableObject {
         if let cached = summaryCache[cacheKey],
            let timestamp = cacheTimestamps[cacheKey],
            Date().timeIntervalSince(timestamp) < cacheTimeout {
-            secureLogger.logInfo("📚 Cache hit for summary: \(title)", category: .data)
+            // Removed verbose debug log for cache hit (summary)
             return cached
         }
         
@@ -228,7 +276,7 @@ class WikipediaService: ObservableObject {
         let encodedTitle = title.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? title
         let urlString = "\(baseURL)\(restAPIPath)/\(encodedTitle)"
         
-        secureLogger.logInfo("🌐 Wikipedia Summary: \(title)", category: .data)
+        // Removed verbose debug log for Summary request
         
         guard let url = URL(string: urlString) else {
             throw WikipediaError.invalidURL
@@ -264,7 +312,7 @@ class WikipediaService: ObservableObject {
             summaryCache[cacheKey] = summary
             cacheTimestamps[cacheKey] = Date()
             
-            secureLogger.logInfo("📚 Summary fetched for '\(title)': \(summary.extract?.count ?? 0) chars", category: .data)
+            // Removed verbose debug log for summary length
             
             return summary
             
@@ -292,12 +340,7 @@ class WikipediaService: ObservableObject {
         // Sortiere nach Score (höchster zuerst)
         let sortedResults = scoredResults.sorted { $0.1 > $1.1 }
         
-        // Debug: Zeige alle Scores
-        secureLogger.logInfo("📚 🔍 Matching candidates for '\(poi.name)':", category: .data)
-        for (result, score) in sortedResults {
-            let scoreEmoji = score >= 0.7 ? "✅" : (score >= 0.5 ? "⚠️" : "❌")
-            secureLogger.logInfo("📚   \(scoreEmoji) '\(result.title)' - Score: \(String(format: "%.3f", score))", category: .data)
-        }
+        // Debug-Logging der Kandidaten entfernt, um Log-Noise zu reduzieren
         
         let bestMatch = sortedResults.first!
         let bestScore = bestMatch.1
@@ -308,7 +351,7 @@ class WikipediaService: ObservableObject {
             return nil
         }
         
-        secureLogger.logInfo("📚 ✅ ACCEPTED: '\(bestMatch.0.title)' with score \(String(format: "%.3f", bestScore)) for '\(poi.name)'", category: .data)
+        // Removed verbose debug log for accepted match
         return bestMatch.0
     }
     
@@ -371,7 +414,7 @@ class WikipediaService: ObservableObject {
       geoapifyWikiData: geoapifyWikiData
     )
     
-    secureLogger.logInfo("🚀 Direct enrichment for '\(poi.name)' with title '\(wikipediaTitle)': score \(String(format: "%.2f", relevanceScore))", category: .data)
+    // Removed verbose debug log for direct enrichment result
     
     return WikipediaEnrichedPOI(
       basePOI: poi,
@@ -380,6 +423,36 @@ class WikipediaService: ObservableObject {
       enrichmentTimestamp: Date(),
       relevanceScore: relevanceScore
     )
+  }
+
+  // MARK: - Consolidated Logging
+  private func logConsolidatedEnrichment(
+    poi: POI,
+    cityName: String,
+    mode: String, // "direct" | "opensearch"
+    title: String?,
+    bestMatchTitle: String?,
+    bestMatchScore: Double?,
+    summary: WikipediaSummary?,
+    finalScore: Double?,
+    status: String, // "ok" | "noResults" | "noMatch"
+    startedAt: Date
+  ) {
+    let durationMs = Int(Date().timeIntervalSince(startedAt) * 1000)
+    let extractLen = summary?.extract?.count ?? 0
+    let hasImage = summary?.thumbnail != nil
+    var parts: [String] = []
+    parts.append("Wikipedia | POI='\(poi.name)' city='\(cityName)'")
+    parts.append("mode=\(mode)")
+    parts.append("status=\(status)")
+    if let t = title { parts.append("title='\(t)'") }
+    if let bt = bestMatchTitle { parts.append("best='\(bt)'") }
+    if let bs = bestMatchScore { parts.append("matchScore=\(String(format: "%.2f", bs))") }
+    parts.append("summaryChars=\(extractLen)")
+    parts.append("image=\(hasImage ? "yes" : "no")")
+    if let fs = finalScore { parts.append("finalScore=\(String(format: "%.2f", fs))") }
+    parts.append("durationMs=\(durationMs)")
+    secureLogger.logInfo(parts.joined(separator: " | "), category: .data)
   }
   
   /// Berechnet Relevanz-Score für direkte Geoapify-Wikipedia-Matches
