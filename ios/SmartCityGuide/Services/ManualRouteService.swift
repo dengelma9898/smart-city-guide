@@ -177,7 +177,7 @@ final class ManualRouteService: ObservableObject {
       let dir = MKDirections(request: req)
       let resp = try await dir.calculate()
       if let route = resp.routes.first { routes.append(route) }
-      try await Task.sleep(nanoseconds: 200_000_000) // 0.2s rate limit
+      try await RateLimiter.awaitRouteCalculationTick()
     }
     return routes
   }

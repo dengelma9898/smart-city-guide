@@ -238,6 +238,7 @@ final class RouteEditService: ObservableObject {
         var routes: [MKRoute] = []
         
         for i in 0..<(waypoints.count - 1) {
+            if Task.isCancelled { throw CancellationError() }
             let startPoint = waypoints[i]
             let endPoint = waypoints[i + 1]
             
@@ -259,9 +260,9 @@ final class RouteEditService: ObservableObject {
                 throw RouteEditError.routeGenerationFailed("Routenberechnung fehlgeschlagen: \(error.localizedDescription)")
             }
             
-            // Enhanced rate limiting for optimization scenarios
-            let delayNanoseconds: UInt64 = isGeneratingNewRoute ? 400_000_000 : 200_000_000 // 0.4s during optimization, 0.2s normal
-            try await Task.sleep(nanoseconds: delayNanoseconds)
+            // Enhanced rate limiting for optimization scenarios (centralized)
+            let multiplier: Double = isGeneratingNewRoute ? 2.0 : 1.0
+            try await RateLimiter.awaitRouteCalculationTick(multiplier: multiplier)
         }
         
         return routes

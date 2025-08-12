@@ -714,8 +714,8 @@ class RouteService: ObservableObject {
       )
       routes.append(route)
       
-      // Small delay to avoid rate limiting
-      try await Task.sleep(nanoseconds: 200_000_000) // 0.2 seconds
+      // Small delay to avoid rate limiting (centralized)
+      try await RateLimiter.awaitRouteCalculationTick()
     }
     
     return routes
