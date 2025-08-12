@@ -267,16 +267,16 @@ class GeoapifyAPIService: ObservableObject {
             }
             
             if httpResponse.statusCode == 429 {
-                // Extract more details from rate limiting response
-                if let responseString = String(data: data, encoding: .utf8) {
+                // Extract more details from rate limiting response (no unused vars)
+                if String(data: data, encoding: .utf8) != nil {
                     secureLogger.logWarning("🌐 Geoapify API rate limit hit", category: .general)
                 }
                 throw GeoapifyError.rateLimitExceeded
             }
             
             guard httpResponse.statusCode == 200 else {
-                // Extract error details from API response
-                if let responseString = String(data: data, encoding: .utf8) {
+                // Extract error details from API response (no unused vars)
+                if String(data: data, encoding: .utf8) != nil {
                     secureLogger.logError("🌐 Geoapify API Error \(httpResponse.statusCode)", category: .general)
                 }
                 // Fallback: On 400, retry with a minimal, known-good category set

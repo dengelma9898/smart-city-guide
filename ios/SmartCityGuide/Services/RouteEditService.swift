@@ -383,29 +383,22 @@ final class RouteEditService: ObservableObject {
         isLoadingAlternatives = true
         errorMessage = nil
         
-        do {
-            // 1. Get cached POIs
-            let cachedPOIs = poiCacheService.getCachedPOIs(for: cityName) ?? []
-            
-            // 2. Find suitable alternatives
-            let alternatives = findAlternativePOIs(
-                for: waypoint,
-                from: cachedPOIs,
-                avoiding: currentRoute
-            )
-            
-            // 3. Enrich with Wikipedia data (background task)
-            let enrichedData = await enrichAlternativesWithWikipedia(alternatives, cityName: cityName)
-            
-            isLoadingAlternatives = false
-            
-            return (pois: alternatives, enrichedData: enrichedData)
-            
-        } catch {
-            setError("Fehler beim Laden der Alternativen: \(error.localizedDescription)")
-            isLoadingAlternatives = false
-            return (pois: [], enrichedData: [:])
-        }
+        // 1. Get cached POIs
+        let cachedPOIs = poiCacheService.getCachedPOIs(for: cityName) ?? []
+        
+        // 2. Find suitable alternatives
+        let alternatives = findAlternativePOIs(
+            for: waypoint,
+            from: cachedPOIs,
+            avoiding: currentRoute
+        )
+        
+        // 3. Enrich with Wikipedia data (background task)
+        let enrichedData = await enrichAlternativesWithWikipedia(alternatives, cityName: cityName)
+        
+        isLoadingAlternatives = false
+        
+        return (pois: alternatives, enrichedData: enrichedData)
     }
     
     // MARK: - Wikipedia Enrichment
