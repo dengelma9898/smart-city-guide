@@ -660,14 +660,14 @@ struct RouteEditView: View {
                 cityName: "Nürnberg",
                 allDiscoveredPOIs: [], // Empty for preview
                 onSpotChanged: { poi, newRoute in
-                    print("Selected POI: \(poi.name)")
+                    SecureLogger.shared.logDebug("Selected POI: \(poi.name)", category: .ui)
                     if let route = newRoute {
-                        print("New route has \(route.waypoints.count) waypoints")
+                        SecureLogger.shared.logDebug("New route has \(route.waypoints.count) waypoints", category: .ui)
                     }
                     showingEdit = false
                 },
                 onCancel: {
-                    print("Cancelled")
+                    SecureLogger.shared.logDebug("Cancelled", category: .ui)
                     showingEdit = false
                 }
             )

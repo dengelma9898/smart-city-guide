@@ -441,7 +441,7 @@ extension SpotSwipeCardView {
     
     VStack {
         SpotSwipeCardView(card: $sampleCard) { action in
-            print("Swipe action: \(action)")
+            SecureLogger.shared.logDebug("Swipe action: \(action)", category: .ui)
         }
         .padding()
         
@@ -490,7 +490,7 @@ extension SpotSwipeCardView {
     )
     
     SpotSwipeCardView(card: $sampleCard) { action in
-        print("Swipe action: \(action)")
+        SecureLogger.shared.logDebug("Swipe action: \(action)", category: .ui)
     }
     .padding()
     .background(Color(.systemGray6))

@@ -428,7 +428,8 @@ struct POISwipeCardView: View {
                         .foregroundColor(.secondary)
                         .lineLimit(4)
                 } else {
-                    Text("Interessanter Ort in \(card.poi.address)")
+                    let addr = card.poi.address?.fullAddress ?? ""
+                    Text("Interessanter Ort in \(addr)")
                         .font(.body)
                         .foregroundColor(.secondary)
                         .lineLimit(2)

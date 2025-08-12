@@ -16,7 +16,7 @@ struct LocationSearchField: View {
         .textFieldStyle(RoundedBorderTextFieldStyle())
         .focused($isFocused)
         .accessibilityIdentifier("route.city.textfield")
-        .onChange(of: text) { newValue in
+        .onChange(of: text) { oldValue, newValue in
           if !newValue.isEmpty {
             searchLocations(query: newValue)
           } else {

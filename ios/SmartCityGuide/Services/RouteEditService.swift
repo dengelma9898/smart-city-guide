@@ -238,6 +238,7 @@ final class RouteEditService: ObservableObject {
         var routes: [MKRoute] = []
         
         for i in 0..<(waypoints.count - 1) {
+            if Task.isCancelled { throw CancellationError() }
             let startPoint = waypoints[i]
             let endPoint = waypoints[i + 1]
             
@@ -259,9 +260,9 @@ final class RouteEditService: ObservableObject {
                 throw RouteEditError.routeGenerationFailed("Routenberechnung fehlgeschlagen: \(error.localizedDescription)")
             }
             
-            // Enhanced rate limiting for optimization scenarios
-            let delayNanoseconds: UInt64 = isGeneratingNewRoute ? 400_000_000 : 200_000_000 // 0.4s during optimization, 0.2s normal
-            try await Task.sleep(nanoseconds: delayNanoseconds)
+            // Enhanced rate limiting for optimization scenarios (centralized)
+            let multiplier: Double = isGeneratingNewRoute ? 2.0 : 1.0
+            try await RateLimiter.awaitRouteCalculationTick(multiplier: multiplier)
         }
         
         return routes
@@ -294,7 +295,7 @@ final class RouteEditService: ObservableObject {
         // Add new waypoint to intermediates
         intermediateWaypoints.append(newWaypoint)
         
-        // PHASE 1: Quick air distance estimation to find top candidates
+        // Quick air distance estimation to find top candidates
         var candidates: [(route: [RoutePoint], estimatedDistance: Double)] = []
         
         for insertPosition in 0...intermediateWaypoints.count-1 {
@@ -317,7 +318,7 @@ final class RouteEditService: ObservableObject {
         candidates.sort { $0.estimatedDistance < $1.estimatedDistance }
         let topCandidates = Array(candidates.prefix(2))
         
-        // PHASE 2: MapKit verification for top candidates only
+        // MapKit verification for top candidates only
         var bestRoute: [RoutePoint] = []
         var bestActualDistance: Double = Double.infinity
         
@@ -382,29 +383,22 @@ final class RouteEditService: ObservableObject {
         isLoadingAlternatives = true
         errorMessage = nil
         
-        do {
-            // 1. Get cached POIs
-            let cachedPOIs = poiCacheService.getCachedPOIs(for: cityName) ?? []
-            
-            // 2. Find suitable alternatives
-            let alternatives = findAlternativePOIs(
-                for: waypoint,
-                from: cachedPOIs,
-                avoiding: currentRoute
-            )
-            
-            // 3. Enrich with Wikipedia data (background task)
-            let enrichedData = await enrichAlternativesWithWikipedia(alternatives, cityName: cityName)
-            
-            isLoadingAlternatives = false
-            
-            return (pois: alternatives, enrichedData: enrichedData)
-            
-        } catch {
-            setError("Fehler beim Laden der Alternativen: \(error.localizedDescription)")
-            isLoadingAlternatives = false
-            return (pois: [], enrichedData: [:])
-        }
+        // 1. Get cached POIs
+        let cachedPOIs = poiCacheService.getCachedPOIs(for: cityName) ?? []
+        
+        // 2. Find suitable alternatives
+        let alternatives = findAlternativePOIs(
+            for: waypoint,
+            from: cachedPOIs,
+            avoiding: currentRoute
+        )
+        
+        // 3. Enrich with Wikipedia data (background task)
+        let enrichedData = await enrichAlternativesWithWikipedia(alternatives, cityName: cityName)
+        
+        isLoadingAlternatives = false
+        
+        return (pois: alternatives, enrichedData: enrichedData)
     }
     
     // MARK: - Wikipedia Enrichment

@@ -72,7 +72,7 @@ struct ContentView: View {
         // Top overlay - Profile button (top-left like Apple Maps)
         HStack {
           // Profile Button
-          Button(action: {
+            Button(action: {
             showingProfile = true
           }) {
             Image(systemName: "person.circle.fill")
@@ -86,6 +86,7 @@ struct ContentView: View {
               )
           }
           .accessibilityIdentifier("home.profile.button")
+          .accessibilityLabel("Profil öffnen")
           
           Spacer()
           
@@ -124,6 +125,8 @@ struct ContentView: View {
                   .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
               )
           }
+          .accessibilityIdentifier("home.location.button")
+          .accessibilityLabel("Mein Standort")
         }
         .padding(.horizontal, 20)
         .padding(.top, 16)
@@ -233,6 +236,8 @@ struct ContentView: View {
                   .shadow(color: .black.opacity(0.2), radius: 8, x: 0, y: 4)
               )
             }
+            .accessibilityIdentifier("home.plan.button")
+            .accessibilityLabel("Los, planen wir!")
           }
           .padding(.bottom, 50)
         }

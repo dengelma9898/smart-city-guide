@@ -109,13 +109,13 @@ extension POICacheService {
         
         var filteredPOIs = allPOIs
         
-        // 🏙️ STADT-FILTERUNG: DEAKTIVIERT für Migration Testing (Nürnberg vs Nuremberg Problem)
+        // 🏙️ City filtering intentionally disabled to accept all POIs within radius
         let cityFilteredPOIs = filteredPOIs.filter { poi in
             // MIGRATION: Skip city filtering completely - accept all POIs in radius
             return true
         }
         
-        logger.info("🏙️ City filtering: DISABLED - keeping all \(allPOIs.count) POIs in radius for '\(startingCity)'")
+        logger.info("🏙️ City filtering: disabled - keeping all \(allPOIs.count) POIs in radius for '\(startingCity)'")
         filteredPOIs = cityFilteredPOIs
         
         // Filter by categories if specified

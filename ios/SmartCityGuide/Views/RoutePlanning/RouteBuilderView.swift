@@ -433,6 +433,8 @@ struct RouteBuilderView: View {
                             .foregroundColor(.blue)
                         }
                         .accessibilityIdentifier("route.edit.button")
+                        .accessibilityLabel("Stopp bearbeiten")
+                        .accessibilityValue("index_\(index)")
                         .buttonStyle(PlainButtonStyle())
                       }
                     }
@@ -634,6 +636,7 @@ struct RouteBuilderView: View {
                 )
               }
               .accessibilityIdentifier("route.start.button")
+              .accessibilityLabel("Zeig mir die Tour!")
             }
             
           } else if let error = routeService.errorMessage {
@@ -682,19 +685,19 @@ struct RouteBuilderView: View {
       routeService.setHistoryManager(historyManager)
       // Manual source: seed the route and POIs so we show preview immediately
       if case .manual = routeSource {
-        print("🟦 RouteBuilderView.onAppear: routeSource=manual, seeding data…")
+        SecureLogger.shared.logDebug("🟦 RouteBuilderView.onAppear: routeSource=manual, seeding data…", category: .ui)
         if let r = manualInitialRoute {
           routeService.generatedRoute = r
-          print("🟩 RouteBuilderView: seeded generatedRoute with \(r.waypoints.count) waypoints")
+          SecureLogger.shared.logDebug("🟩 RouteBuilderView: seeded generatedRoute with \(r.waypoints.count) waypoints", category: .ui)
         } else {
-          print("🟥 RouteBuilderView: manualInitialRoute is nil")
+          SecureLogger.shared.logWarning("🟥 RouteBuilderView: manualInitialRoute is nil", category: .ui)
         }
         if let pois = initialDiscoveredPOIs {
           discoveredPOIs = pois
-          print("🟩 RouteBuilderView: seeded discoveredPOIs = \(pois.count)")
+          SecureLogger.shared.logDebug("🟩 RouteBuilderView: seeded discoveredPOIs = \(pois.count)", category: .ui)
         } else {
           discoveredPOIs = []
-          print("🟥 RouteBuilderView: initialDiscoveredPOIs is nil, using []")
+          SecureLogger.shared.logWarning("🟥 RouteBuilderView: initialDiscoveredPOIs is nil, using []", category: .ui)
         }
         // trigger a small refresh to ensure body re-evaluates after seeding
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
@@ -734,7 +737,7 @@ struct RouteBuilderView: View {
   
   private func loadPOIsAndGenerateRoute() async {
     do {
-      // Step 1: Load POIs from Geoapify API (MIGRATION TESTING: Distance filtering disabled)
+      // Step 1: Load POIs from Geoapify API
       isLoadingPOIs = true
       
       // 🚀 USE DIRECT COORDINATES if available (eliminates geocoding!)
@@ -783,11 +786,11 @@ struct RouteBuilderView: View {
       // Extrahiere die POIs aus den Route-Waypoints (ohne Start/End)
       let routePOIs = extractPOIsFromRoute(route: route)
       
-      print("📚 [Phase 1] Enriching \(routePOIs.count) route POIs with Wikipedia...")
+      SecureLogger.shared.logDebug("📚 [Phase 1] Enriching \(routePOIs.count) route POIs with Wikipedia...", category: .data)
       
       // Enriche nur die Route-POIs
       let cityName = extractCityName(from: startingCity)
-      print("📚 Using extracted city name '\(cityName)' from '\(startingCity)' for Wikipedia enrichment")
+      SecureLogger.shared.logDebug("📚 Using extracted city name '\(cityName)' from '\(startingCity)' for Wikipedia enrichment", category: .data)
       let enrichedRoutePOIs = try await wikipediaService.enrichPOIs(routePOIs, cityName: cityName)
       
       // Speichere enriched POIs in Dictionary für schnellen Zugriff
@@ -799,14 +802,14 @@ struct RouteBuilderView: View {
       }
       
       let successCount = enrichedRoutePOIs.filter { $0.wikipediaData != nil }.count
-      print("📚 [Phase 1] Route enrichment completed: \(successCount)/\(routePOIs.count) successful")
+      SecureLogger.shared.logInfo("📚 [Phase 1] Route enrichment completed: \(successCount)/\(routePOIs.count) successful", category: .data)
       
       // Phase 2: Enriche alle anderen POIs im Hintergrund
       await enrichAllPOIsInBackground()
       
     } catch {
       isEnrichingRoutePOIs = false
-      print("📚 [Phase 1] Route enrichment failed: \(error.localizedDescription)")
+      SecureLogger.shared.logWarning("📚 [Phase 1] Route enrichment failed: \(error.localizedDescription)", category: .data)
       
       // Starte trotzdem Phase 2
       await enrichAllPOIsInBackground()
@@ -828,11 +831,11 @@ struct RouteBuilderView: View {
       await MainActor.run {
         isEnrichingAllPOIs = false
       }
-      print("📚 [Phase 2] All POIs already enriched")
+      SecureLogger.shared.logDebug("📚 [Phase 2] All POIs already enriched", category: .data)
       return
     }
     
-    print("📚 [Phase 2] Background enriching \(unenrichedPOIs.count) additional POIs...")
+    SecureLogger.shared.logDebug("📚 [Phase 2] Background enriching \(unenrichedPOIs.count) additional POIs...", category: .data)
     
     // Enriche im Hintergrund (mit langsamerer Rate für bessere UX)
     let cityName = extractCityName(from: startingCity)
@@ -851,7 +854,7 @@ struct RouteBuilderView: View {
         try await Task.sleep(nanoseconds: 200_000_000) // 200ms
         
       } catch {
-        print("📚 [Phase 2] Failed to enrich POI '\(poi.name)': \(error.localizedDescription)")
+        SecureLogger.shared.logWarning("📚 [Phase 2] Failed to enrich POI '\(poi.name)': \(error.localizedDescription)", category: .data)
       }
     }
     
@@ -861,7 +864,7 @@ struct RouteBuilderView: View {
     }
     
     let totalEnriched = enrichedPOIs.values.filter { $0.wikipediaData != nil }.count
-    print("📚 [Phase 2] Background enrichment completed: \(totalEnriched)/\(discoveredPOIs.count) total enriched")
+    SecureLogger.shared.logInfo("📚 [Phase 2] Background enrichment completed: \(totalEnriched)/\(discoveredPOIs.count) total enriched", category: .data)
   }
   
   /// Extrahiert POI-Objekte aus den Route-Waypoints
