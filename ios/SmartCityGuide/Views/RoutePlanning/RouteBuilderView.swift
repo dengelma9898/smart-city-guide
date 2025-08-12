@@ -961,18 +961,17 @@ struct RouteBuilderView: View {
   
   /// Findet die enriched POI für einen gegebenen Waypoint
   private func findEnrichedPOI(for waypoint: RoutePoint) -> WikipediaEnrichedPOI? {
-    // Suche über POI-ID (effizienteste Methode)
-    for (_, enrichedPOI) in enrichedPOIs {
-      let nameMatch = enrichedPOI.basePOI.name.lowercased() == waypoint.name.lowercased()
-      let coordinateMatch = abs(enrichedPOI.basePOI.coordinate.latitude - waypoint.coordinate.latitude) < 0.001 &&
-                            abs(enrichedPOI.basePOI.coordinate.longitude - waypoint.coordinate.longitude) < 0.001
-      
-      if nameMatch || coordinateMatch {
-        return enrichedPOI
-      }
+    // 1) Primär über eindeutige POI-ID
+    if let id = waypoint.poiId, let enriched = enrichedPOIs[id] {
+      return enriched
     }
-    
-    return nil
+    // 2) Fallback (Safety): kein Fuzzy-Match mehr, sondern nur noch exakte Koordinate UND exakt gleicher Name
+    //    (reduziert Verwechslungen, falls alte Routen noch keine poiId tragen)
+    return enrichedPOIs.values.first { enriched in
+      enriched.basePOI.name.caseInsensitiveCompare(waypoint.name) == .orderedSame &&
+      abs(enriched.basePOI.coordinate.latitude - waypoint.coordinate.latitude) < 0.0001 &&
+      abs(enriched.basePOI.coordinate.longitude - waypoint.coordinate.longitude) < 0.0001
+    }
   }
   
   // MARK: - Route Edit Methods

@@ -4,6 +4,8 @@ import CoreLocation
 
 // MARK: - Route Models
 struct RoutePoint {
+  /// Eindeutige Zuordnung zum ursprünglichen POI (falls vorhanden)
+  let poiId: String?
   let name: String
   let coordinate: CLLocationCoordinate2D
   let address: String
@@ -15,6 +17,7 @@ struct RoutePoint {
   let emailAddress: String?
   
   init(from mapItem: MKMapItem) {
+    self.poiId = nil
     self.name = mapItem.name ?? "Unbekannter Ort"
     self.coordinate = mapItem.placemark.coordinate
     self.address = mapItem.placemark.title ?? ""
@@ -26,7 +29,8 @@ struct RoutePoint {
     self.emailAddress = nil    // MKMapItem doesn't provide this
   }
   
-  init(name: String, coordinate: CLLocationCoordinate2D, address: String, category: PlaceCategory = .attraction, phoneNumber: String? = nil, url: URL? = nil, operatingHours: String? = nil, emailAddress: String? = nil) {
+  init(name: String, coordinate: CLLocationCoordinate2D, address: String, category: PlaceCategory = .attraction, phoneNumber: String? = nil, url: URL? = nil, operatingHours: String? = nil, emailAddress: String? = nil, poiId: String? = nil) {
+    self.poiId = poiId
     self.name = name
     self.coordinate = coordinate
     self.address = address
@@ -40,6 +44,7 @@ struct RoutePoint {
   
   /// Erstelle RoutePoint aus POI mit Kontakt- und Öffnungszeiten-Informationen
   init(from poi: POI) {
+    self.poiId = poi.id
     self.name = poi.name
     self.coordinate = poi.coordinate
     self.address = poi.fullAddress
