@@ -387,8 +387,13 @@ extension SwipeCard {
             return enrichedData.enhancedDescription
         }
         
-        // Fallback to POI description or category
-        return poi.displayDescription
+        // Fallback: Wenn nur technische/irrelevante Infos vorhanden sind, dem Nutzer klar sagen,
+        // dass wir keine weiteren Details gefunden haben.
+        let text = poi.displayDescription.trimmingCharacters(in: .whitespacesAndNewlines)
+        if text.isEmpty || text == poi.category.rawValue || text.lowercased().contains("leisure") {
+            return "Zu diesem Ort haben wir leider keine weiteren Infos gefunden."
+        }
+        return text
     }
     
     /// Whether the card has quality content (images + description)
