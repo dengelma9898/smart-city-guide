@@ -129,12 +129,10 @@ struct ProfileView: View {
                             .fill(Color(.systemGray6))
                     )
                     
-                    // Enhanced Profile Options
+                    // Enhanced Profile Options (use NavigationLink for platform-consistent UX)
                     VStack(spacing: 0) {
                         // Route History
-                        Button(action: {
-                            showingRouteHistory = true
-                        }) {
+                        NavigationLink(destination: RouteHistoryView().environmentObject(historyManager)) {
                             ProfileRow(
                                 icon: "clock.fill",
                                 title: "Deine Abenteuer",
@@ -146,9 +144,7 @@ struct ProfileView: View {
                         Divider().padding(.horizontal, 16)
                         
                         // Settings
-                        Button(action: {
-                            showingSettings = true
-                        }) {
+                        NavigationLink(destination: ProfileSettingsView().environmentObject(settingsManager)) {
                             ProfileRow(
                                 icon: "gearshape.fill",
                                 title: "Deine Präferenzen",
@@ -160,10 +156,8 @@ struct ProfileView: View {
                         
                         Divider().padding(.horizontal, 16)
                         
-                        // Saved Places (Placeholder)
-                        Button(action: {
-                            // TODO: Implement saved places
-                        }) {
+                        // Saved Places (placeholder)
+                        NavigationLink(destination: Text("Bald verfügbar").padding()) {
                             ProfileRow(
                                 icon: "location.fill",
                                 title: "Deine Lieblingsorte",
@@ -175,9 +169,7 @@ struct ProfileView: View {
                         Divider().padding(.horizontal, 16)
                         
                         // Help & Support
-                        Button(action: {
-                            showingHelpSupport = true
-                        }) {
+                        NavigationLink(destination: HelpSupportView()) {
                             ProfileRow(
                                 icon: "questionmark.circle.fill",
                                 title: "Brauchst du Hilfe?",
@@ -194,9 +186,7 @@ struct ProfileView: View {
                     // Legal Sektion
                     VStack(spacing: 0) {
                         // Impressum
-                        Button(action: {
-                            showingImpressum = true
-                        }) {
+                        NavigationLink(destination: ImpressumView()) {
                             ProfileRow(
                                 icon: "doc.text.fill",
                                 title: "Impressum",
@@ -208,9 +198,7 @@ struct ProfileView: View {
                         Divider().padding(.horizontal, 16)
                         
                         // AGB
-                        Button(action: {
-                            showingAGB = true
-                        }) {
+                        NavigationLink(destination: AGBView()) {
                             ProfileRow(
                                 icon: "doc.plaintext.fill",
                                 title: "AGB",
@@ -222,9 +210,7 @@ struct ProfileView: View {
                         Divider().padding(.horizontal, 16)
                         
                         // Datenschutzerklärung
-                        Button(action: {
-                            showingDatenschutz = true
-                        }) {
+                        NavigationLink(destination: DatenschutzerklaerungView()) {
                             ProfileRow(
                                 icon: "hand.raised.fill",
                                 title: "Datenschutzerklärung",
