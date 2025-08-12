@@ -98,8 +98,17 @@ extension POI {
         let props = feature.properties
         let coords = feature.geometry.coordinates
         
-        // Basic Properties
-        self.id = "geoapify_\(feature.hashValue)"
+        // Basic Properties: Prefer stable Geoapify place_id as primary identifier
+        if let rawPlaceId = props.place_id?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !rawPlaceId.isEmpty {
+            self.id = "geo_\(rawPlaceId)"
+        } else {
+            // Stable fallback based on name + coordinates (no random hash)
+            let namePart = (props.name ?? "").replacingOccurrences(of: " ", with: "_")
+            let lat = String(format: "%.6f", (feature.geometry.coordinates.count >= 2 ? feature.geometry.coordinates[1] : 0))
+            let lon = String(format: "%.6f", (feature.geometry.coordinates.count >= 2 ? feature.geometry.coordinates[0] : 0))
+            self.id = "geo_fallback_\(namePart)_\(lat)_\(lon)"
+        }
         self.name = props.name ?? "Unbekannter Ort"
         
         // Geoapify returns [longitude, latitude]
