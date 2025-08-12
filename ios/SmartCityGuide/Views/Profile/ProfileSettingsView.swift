@@ -215,7 +215,7 @@ struct ProfileSettingsView: View {
                         .foregroundColor(.secondary)
                 }
                 
-                // Endpoint Options Section
+                // Endpoint Options Section (unified radio style)
                 Section {
                     VStack(alignment: .leading, spacing: 12) {
                         HStack {
@@ -232,22 +232,19 @@ struct ProfileSettingsView: View {
                                 Button(action: {
                                     settingsManager.updateDefaults(endpointOption: option)
                                 }) {
-                                    HStack {
+                                    HStack(alignment: .top, spacing: 10) {
                                         Image(systemName: settingsManager.settings.defaultEndpointOption == option ? "checkmark.circle.fill" : "circle")
                                             .foregroundColor(settingsManager.settings.defaultEndpointOption == option ? .blue : .secondary)
                                             .font(.system(size: 20))
-                                        
                                         VStack(alignment: .leading, spacing: 2) {
                                             Text(option.rawValue)
                                                 .font(.body)
                                                 .fontWeight(.medium)
                                                 .foregroundColor(.primary)
-                                            
                                             Text(option.description)
                                                 .font(.caption)
                                                 .foregroundColor(.secondary)
                                         }
-                                        
                                         Spacer()
                                     }
                                     .padding(.horizontal, 12)
@@ -281,6 +278,8 @@ struct ProfileSettingsView: View {
                         }
                     }
                     .padding(.vertical, 4)
+                } header: {
+                    Text("Ziel-Präferenzen")
                 }
                 
                 // Reset Section
