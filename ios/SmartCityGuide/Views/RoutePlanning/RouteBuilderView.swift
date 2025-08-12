@@ -737,7 +737,7 @@ struct RouteBuilderView: View {
   
   private func loadPOIsAndGenerateRoute() async {
     do {
-      // Step 1: Load POIs from Geoapify API (MIGRATION TESTING: Distance filtering disabled)
+      // Step 1: Load POIs from Geoapify API
       isLoadingPOIs = true
       
       // 🚀 USE DIRECT COORDINATES if available (eliminates geocoding!)

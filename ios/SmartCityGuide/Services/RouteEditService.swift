@@ -295,7 +295,7 @@ final class RouteEditService: ObservableObject {
         // Add new waypoint to intermediates
         intermediateWaypoints.append(newWaypoint)
         
-        // PHASE 1: Quick air distance estimation to find top candidates
+        // Quick air distance estimation to find top candidates
         var candidates: [(route: [RoutePoint], estimatedDistance: Double)] = []
         
         for insertPosition in 0...intermediateWaypoints.count-1 {
@@ -318,7 +318,7 @@ final class RouteEditService: ObservableObject {
         candidates.sort { $0.estimatedDistance < $1.estimatedDistance }
         let topCandidates = Array(candidates.prefix(2))
         
-        // PHASE 2: MapKit verification for top candidates only
+        // MapKit verification for top candidates only
         var bestRoute: [RoutePoint] = []
         var bestActualDistance: Double = Double.infinity
         
