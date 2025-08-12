@@ -300,9 +300,19 @@ class GeoapifyAPIService: ObservableObject {
                 return POI(from: feature, category: detectedCategory, requestedCity: cityName)
             }
             
+            // Filter: Ignore POIs ohne verlässlichen Namen (z.B. "Unbekannter Ort")
+            let filteredPOIs = allPOIs.filter { poi in
+                let name = poi.name.trimmingCharacters(in: .whitespacesAndNewlines)
+                // Verwerfe leere Namen, Platzhalter oder sehr generische Labels
+                guard !name.isEmpty else { return false }
+                let lower = name.lowercased()
+                if lower == "unbekannter ort" || lower == "unknown" || lower == "unnamed place" { return false }
+                return true
+            }
+            
             // Remove duplicates manually since POI doesn't conform to Hashable
             var uniquePOIs: [POI] = []
-            for poi in allPOIs {
+            for poi in filteredPOIs {
                 let isDuplicate = uniquePOIs.contains { existingPOI in
                     existingPOI.name == poi.name && 
                     abs(existingPOI.coordinate.latitude - poi.coordinate.latitude) < 0.0001 &&
