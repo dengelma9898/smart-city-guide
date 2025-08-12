@@ -132,14 +132,9 @@ extension POI {
         // Contact Information - Geoapify doesn't provide contact details directly
         self.contact = nil
         
-        // Description from categories/details or fallback
-        if let details = props.details, !details.isEmpty {
-            self.description = details.joined(separator: ", ")
-        } else if let categories = props.categories, !categories.isEmpty {
-            self.description = categories.joined(separator: ", ")
-        } else {
-            self.description = category.rawValue
-        }
+        // Do NOT surface technical Geoapify details/categories as user-facing description.
+        // Leave description empty; UI will show enriched data or a friendly fallback.
+        self.description = nil
         
         // Tags from Geoapify data
         var tags: [String: String] = [:]
