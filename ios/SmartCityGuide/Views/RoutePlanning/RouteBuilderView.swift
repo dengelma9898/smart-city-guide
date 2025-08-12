@@ -513,7 +513,7 @@ struct RouteBuilderView: View {
   @State private var zoomScale: CGFloat = 1.0
   
   // Route Edit States
-  @State private var showingEditView = false
+  @State private var showingEditView = false // deprecated by sheet(item:), kept for safety
   @State private var editingWaypointIndex: Int?
   @State private var editableSpot: EditableRouteSpot?
   
@@ -624,17 +624,15 @@ struct RouteBuilderView: View {
       }
     }
     .overlay(zoomOverlay)
-    .sheet(isPresented: $showingEditView) {
-      if let editableSpot = editableSpot {
-        RouteEditView(
-          originalRoute: routeService.generatedRoute!,
-          editableSpot: editableSpot,
-          cityName: startingCity,
-          allDiscoveredPOIs: discoveredPOIs,
-          onSpotChanged: handleSpotChange,
-          onCancel: handleEditCancel
-        )
-      }
+    .sheet(item: $editableSpot) { item in
+      RouteEditView(
+        originalRoute: routeService.generatedRoute!,
+        editableSpot: item,
+        cityName: startingCity,
+        allDiscoveredPOIs: discoveredPOIs,
+        onSpotChanged: handleSpotChange,
+        onCancel: handleEditCancel
+      )
     }
   }
 
@@ -995,7 +993,7 @@ struct RouteBuilderView: View {
     )
     
     editingWaypointIndex = index
-    showingEditView = true
+    // Present via sheet(item:)
   }
   
   /// Handle spot change from route edit

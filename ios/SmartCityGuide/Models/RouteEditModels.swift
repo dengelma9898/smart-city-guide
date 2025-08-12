@@ -13,7 +13,9 @@ import SwiftUI
 // MARK: - Route Edit Core Models
 
 /// Represents a route spot that can be edited with alternative POIs
-struct EditableRouteSpot {
+struct EditableRouteSpot: Identifiable {
+    /// Unique identifier to support sheet(item:) presentation
+    let id = UUID()
     /// The original waypoint in the route
     let originalWaypoint: RoutePoint
     /// Position/index in the route waypoints array
