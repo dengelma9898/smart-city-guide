@@ -242,15 +242,6 @@ struct RouteBuilderView: View {
           }
         }
         Spacer()
-        if index > 0 && index < route.waypoints.count - 1 {
-          Button(action: { editWaypoint(at: index) }) {
-            Image(systemName: "pencil.circle.fill").font(.system(size: 24)).foregroundColor(.blue)
-          }
-          .accessibilityIdentifier("route.edit.button")
-          .accessibilityLabel("Stopp bearbeiten")
-          .accessibilityValue("index_\(index)")
-          .buttonStyle(PlainButtonStyle())
-        }
       }
       .padding(.vertical, 12)
       .padding(.horizontal, 8)
