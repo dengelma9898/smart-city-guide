@@ -254,6 +254,11 @@ struct RoutePlanningView: View {
         
         // Bottom Button with Safe Area Support
         Button(action: {
+          // Diagnostics: log the exact parameters the user selected before we open the builder
+          SecureLogger.shared.logInfo(
+            "🧭 UI Params → start='\(usingCurrentLocation ? "Mein Standort" : startingCity)' stops=\(maximumStops.rawValue) maxTime=\(maximumWalkingTime.rawValue) minDist=\(minimumPOIDistance.rawValue) currentLocation=\(usingCurrentLocation)",
+            category: .ui
+          )
           if planningMode == .automatic {
             showingRouteBuilder = true
           } else {
