@@ -61,7 +61,7 @@ struct ProfileSettingsView: View {
                     Text("Startpunkt-Präferenzen")
                 }
                 
-                // Maximum Stops Section
+                // Maximum Stops Section (unified radio style)
                 Section {
                     VStack(alignment: .leading, spacing: 12) {
                         HStack {
@@ -73,32 +73,37 @@ struct ProfileSettingsView: View {
                                 .fontWeight(.medium)
                         }
                         
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 8) {
-                                ForEach(MaximumStops.allCases, id: \.self) { stops in
-                                    Button(action: {
-                                        settingsManager.updateDefaults(maximumStops: stops)
-                                    }) {
-                                        Text(stops.rawValue)
-                                            .font(.caption)
-                                            .fontWeight(.medium)
-                                            .foregroundColor(settingsManager.settings.defaultMaximumStops == stops ? .white : .blue)
-                                            .padding(.horizontal, 12)
-                                            .padding(.vertical, 6)
-                                            .background(
-                                                RoundedRectangle(cornerRadius: 12)
-                                                    .fill(settingsManager.settings.defaultMaximumStops == stops ? .blue : Color(.systemGray6))
-                                            )
+                        VStack(spacing: 8) {
+                            ForEach(MaximumStops.allCases, id: \.self) { stops in
+                                Button(action: {
+                                    settingsManager.updateDefaults(maximumStops: stops)
+                                }) {
+                                    HStack(alignment: .top, spacing: 10) {
+                                        Image(systemName: settingsManager.settings.defaultMaximumStops == stops ? "checkmark.circle.fill" : "circle")
+                                            .foregroundColor(settingsManager.settings.defaultMaximumStops == stops ? .blue : .secondary)
+                                            .font(.system(size: 20))
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text(stops.rawValue)
+                                                .font(.body)
+                                                .fontWeight(.medium)
+                                                .foregroundColor(.primary)
+                                            Text(stopsDescription(stops))
+                                                .font(.caption)
+                                                .foregroundColor(.secondary)
+                                        }
+                                        Spacer()
                                     }
-                                    .accessibilityIdentifier("settings.stops.\(stops.rawValue)")
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 8)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .fill(settingsManager.settings.defaultMaximumStops == stops ? Color(.systemBlue).opacity(0.1) : Color.clear)
+                                    )
                                 }
+                                .buttonStyle(PlainButtonStyle())
+                                .accessibilityIdentifier("settings.stops.\(stops.rawValue)")
                             }
-                            .padding(.horizontal, 4)
                         }
-                        
-                        Text("Standard: \(settingsManager.settings.defaultMaximumStops.rawValue)")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
                     }
                     .padding(.vertical, 4)
                 } header: {
@@ -157,7 +162,7 @@ struct ProfileSettingsView: View {
                     Text("Zeit-Präferenzen")
                 }
                 
-                // Minimum POI Distance Section
+                // Minimum POI Distance Section (unified radio style)
                 Section {
                     VStack(alignment: .leading, spacing: 12) {
                         HStack {
@@ -169,32 +174,37 @@ struct ProfileSettingsView: View {
                                 .fontWeight(.medium)
                         }
                         
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 8) {
-                                ForEach(MinimumPOIDistance.allCases, id: \.self) { distance in
-                                    Button(action: {
-                                        settingsManager.updateDefaults(minimumPOIDistance: distance)
-                                    }) {
-                                        Text(distance.rawValue)
-                                            .font(.caption)
-                                            .fontWeight(.medium)
-                                            .foregroundColor(settingsManager.settings.defaultMinimumPOIDistance == distance ? .white : .blue)
-                                            .padding(.horizontal, 12)
-                                            .padding(.vertical, 6)
-                                            .background(
-                                                RoundedRectangle(cornerRadius: 12)
-                                                    .fill(settingsManager.settings.defaultMinimumPOIDistance == distance ? .blue : Color(.systemGray6))
-                                            )
+                        VStack(spacing: 8) {
+                            ForEach(MinimumPOIDistance.allCases, id: \.self) { distance in
+                                Button(action: {
+                                    settingsManager.updateDefaults(minimumPOIDistance: distance)
+                                }) {
+                                    HStack(alignment: .top, spacing: 10) {
+                                        Image(systemName: settingsManager.settings.defaultMinimumPOIDistance == distance ? "checkmark.circle.fill" : "circle")
+                                            .foregroundColor(settingsManager.settings.defaultMinimumPOIDistance == distance ? .blue : .secondary)
+                                            .font(.system(size: 20))
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text(distance.rawValue)
+                                                .font(.body)
+                                                .fontWeight(.medium)
+                                                .foregroundColor(.primary)
+                                            Text(distanceDescription(distance))
+                                                .font(.caption)
+                                                .foregroundColor(.secondary)
+                                        }
+                                        Spacer()
                                     }
-                                    .accessibilityIdentifier("settings.distance.\(distance.rawValue)")
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 8)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .fill(settingsManager.settings.defaultMinimumPOIDistance == distance ? Color(.systemBlue).opacity(0.1) : Color.clear)
+                                    )
                                 }
+                                .buttonStyle(PlainButtonStyle())
+                                .accessibilityIdentifier("settings.distance.\(distance.rawValue)")
                             }
-                            .padding(.horizontal, 4)
                         }
-                        
-                        Text("Standard: \(settingsManager.settings.defaultMinimumPOIDistance.rawValue)")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
                     }
                     .padding(.vertical, 4)
                 } header: {
@@ -303,6 +313,26 @@ struct ProfileSettingsView: View {
                 }
             }
         }
+    }
+}
+
+// MARK: - Option Descriptions
+private func stopsDescription(_ stops: MaximumStops) -> String {
+    switch stops {
+    case .three: return "Kompakte, schnelle Tour"
+    case .five: return "Ausgewogene Entdeckung"
+    case .eight: return "Intensivere Runde mit mehr Vielfalt"
+    }
+}
+
+private func distanceDescription(_ d: MinimumPOIDistance) -> String {
+    switch d {
+    case .oneHundred: return "Enger Radius – dichter beieinander"
+    case .twoFifty: return "Gutes Mittelmaß für City-Touren"
+    case .fiveHundred: return "Mehr Strecke, mehr Wechsel"
+    case .sevenFifty: return "Weite Abstände – abwechslungsreicher"
+    case .oneKm: return "Große Distanzen für längere Spaziergänge"
+    case .noMinimum: return "Keine Begrenzung – kann kompakt clustern"
     }
 }
 
