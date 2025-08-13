@@ -275,29 +275,31 @@ struct ContentView: View {
             .accessibilityIdentifier("home.plan.manual")
             .accessibilityLabel("Manuell auswählen")
 
-            // Schnell planen (Quick)
-            Button(action: {
-              SecureLogger.shared.logInfo("⚡️ Quick‑Plan: Trigger gedrückt", category: .ui)
-              Task { await startQuickPlanning() }
-            }) {
-              HStack(spacing: 10) {
-                Image(systemName: "bolt.circle")
-                  .font(.system(size: 16, weight: .medium))
-                Text("Schnell planen")
-                  .font(.headline)
-                  .fontWeight(.medium)
+            if FeatureFlags.quickRoutePlanningEnabled {
+              // Schnell planen (Quick)
+              Button(action: {
+                SecureLogger.shared.logInfo("⚡️ Quick‑Plan: Trigger gedrückt", category: .ui)
+                Task { await startQuickPlanning() }
+              }) {
+                HStack(spacing: 10) {
+                  Image(systemName: "bolt.circle")
+                    .font(.system(size: 16, weight: .medium))
+                  Text("Schnell planen")
+                    .font(.headline)
+                    .fontWeight(.medium)
+                }
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+                .background(
+                  RoundedRectangle(cornerRadius: 14)
+                    .fill(Color.orange)
+                    .shadow(color: .black.opacity(0.15), radius: 6, x: 0, y: 3)
+                )
               }
-              .foregroundColor(.white)
-              .frame(maxWidth: .infinity)
-              .padding(.vertical, 14)
-              .background(
-                RoundedRectangle(cornerRadius: 14)
-                  .fill(Color.orange)
-                  .shadow(color: .black.opacity(0.15), radius: 6, x: 0, y: 3)
-              )
+              .accessibilityIdentifier("home.plan.quick")
+              .accessibilityLabel("Schnell planen")
             }
-            .accessibilityIdentifier("home.plan.quick")
-            .accessibilityLabel("Schnell planen")
           }
           .padding(.horizontal, 20)
           .padding(.bottom, 50)
