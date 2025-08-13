@@ -520,6 +520,9 @@ struct RouteBuilderView: View {
   // Route Edit History (track replaced POIs by waypoint index)
   @State private var replacedPOIsHistory: [Int: [POI]] = [:]
   
+  // Phase 2 (Vorbereitung): Add-POI Sheet-State (wird später genutzt)
+  @State private var showingAddPOISheet = false
+  
   // MARK: - Computed Properties
   
   private var loadingStateText: String {
@@ -1208,5 +1211,118 @@ struct RouteBuilderView: View {
     }
     
     return routes
+  }
+  
+  // MARK: - Insert/Delete API (Phase 1)
+  
+  /// Fügt einen neuen POI in die aktuelle Route ein
+  /// - Parameters:
+  ///   - poi: Der einzufügende POI
+  ///   - index: Optionaler Zielindex in den Waypoints; default ist vor dem Ziel
+  private func insertPOI(_ poi: POI, at index: Int? = nil) async {
+    guard let currentRoute = routeService.generatedRoute else { return }
+    
+    // Verhindere Duplikate
+    if isAlreadyInRoute(poi) {
+      await MainActor.run {
+        routeService.errorMessage = "Dieser Stopp ist bereits in deiner Route."
+      }
+      return
+    }
+    
+    await MainActor.run {
+      routeService.isGenerating = true
+      routeService.errorMessage = nil
+    }
+    
+    do {
+      var newWaypoints = currentRoute.waypoints
+      let insertIndexDefault = max(1, newWaypoints.count - 1)
+      let safeIndex: Int = {
+        if let idx = index {
+          return min(max(1, idx), max(1, newWaypoints.count - 1))
+        } else {
+          return insertIndexDefault
+        }
+      }()
+      
+      let newWaypoint = RoutePoint(from: poi)
+      newWaypoints.insert(newWaypoint, at: safeIndex)
+      
+      let newRoutes = try await recalculateWalkingRoutes(for: newWaypoints)
+      let newTotalDistance = newRoutes.reduce(0) { $0 + $1.distance }
+      let newTotalTravelTime: TimeInterval = newRoutes.reduce(0) { $0 + $1.expectedTravelTime }
+      let newTotalExperienceTime: TimeInterval = newTotalTravelTime + currentRoute.totalVisitTime
+      
+      let updatedRoute = GeneratedRoute(
+        waypoints: newWaypoints,
+        routes: newRoutes,
+        totalDistance: newTotalDistance,
+        totalTravelTime: newTotalTravelTime,
+        totalVisitTime: currentRoute.totalVisitTime,
+        totalExperienceTime: newTotalExperienceTime
+      )
+      
+      await MainActor.run {
+        routeService.generatedRoute = updatedRoute
+        routeService.isGenerating = false
+      }
+      
+      // Enrichment erneut anstoßen
+      await enrichRouteWithWikipedia(route: updatedRoute)
+      
+    } catch {
+      await MainActor.run {
+        routeService.isGenerating = false
+        routeService.errorMessage = "Hinzufügen fehlgeschlagen: \(error.localizedDescription)"
+      }
+    }
+  }
+  
+  /// Löscht einen Zwischenstopp aus der aktuellen Route
+  /// - Parameter index: Index des zu löschenden Wegpunkts (nur Zwischenstopps erlaubt)
+  private func deletePOI(at index: Int) async {
+    guard let currentRoute = routeService.generatedRoute else { return }
+    let count = currentRoute.waypoints.count
+    // Erlaube nur Zwischenstopps (nicht Start = 0, nicht Ziel = count-1)
+    guard count >= 3, index > 0, index < count - 1 else { return }
+    
+    await MainActor.run {
+      routeService.isGenerating = true
+      routeService.errorMessage = nil
+    }
+    
+    do {
+      var newWaypoints = currentRoute.waypoints
+      newWaypoints.remove(at: index)
+      
+      let newRoutes = try await recalculateWalkingRoutes(for: newWaypoints)
+      let newTotalDistance = newRoutes.reduce(0) { $0 + $1.distance }
+      let newTotalTravelTime: TimeInterval = newRoutes.reduce(0) { $0 + $1.expectedTravelTime }
+      let newTotalExperienceTime: TimeInterval = newTotalTravelTime + currentRoute.totalVisitTime
+      
+      let updatedRoute = GeneratedRoute(
+        waypoints: newWaypoints,
+        routes: newRoutes,
+        totalDistance: newTotalDistance,
+        totalTravelTime: newTotalTravelTime,
+        totalVisitTime: currentRoute.totalVisitTime,
+        totalExperienceTime: newTotalExperienceTime
+      )
+      
+      await MainActor.run {
+        routeService.generatedRoute = updatedRoute
+        routeService.isGenerating = false
+      }
+      
+      // Wikipedia-Enrichment für aktualisierte Route
+      await enrichRouteWithWikipedia(route: updatedRoute)
+      
+    } catch {
+      await MainActor.run {
+        routeService.isGenerating = false
+        routeService.errorMessage = "Löschen fehlgeschlagen: \(error.localizedDescription)"
+      }
+    }
   }
 }
