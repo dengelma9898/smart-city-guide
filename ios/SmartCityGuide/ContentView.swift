@@ -11,6 +11,8 @@ struct ContentView: View {
   @State private var showingProfile = false
   @State private var showingRoutePlanning = false
   @State private var activeRoute: GeneratedRoute?
+  // Phase 2: Vorbereitung für Modus-Vorselektion (Phase 3 nutzt dies)
+  @State private var desiredPlanningMode: RoutePlanningMode? = nil
   
   // Phase 2: Location Features
   @StateObject private var locationService = LocationManagerService.shared
@@ -214,31 +216,81 @@ struct ContentView: View {
           .padding(.bottom, 50)
           
         } else {
-          // No active route - Show plan route button
-          VStack(spacing: 16) {
-            // Plan Route Button - Main interaction
+          // No active route – drei Primäraktionen im Thumb‑Bereich
+          VStack(spacing: 12) {
+            // Automatisch planen
             Button(action: {
+              desiredPlanningMode = .automatic
               showingRoutePlanning = true
             }) {
-              HStack(spacing: 8) {
-                Image(systemName: "location.north.line.fill")
-                  .font(.system(size: 18, weight: .medium))
-                Text("Los, planen wir!")
+              HStack(spacing: 10) {
+                Image(systemName: "sparkles")
+                  .font(.system(size: 16, weight: .medium))
+                Text("Automatisch planen")
                   .font(.headline)
                   .fontWeight(.medium)
               }
               .foregroundColor(.white)
-              .padding(.horizontal, 32)
-              .padding(.vertical, 16)
+              .frame(maxWidth: .infinity)
+              .padding(.vertical, 14)
               .background(
-                RoundedRectangle(cornerRadius: 28)
+                RoundedRectangle(cornerRadius: 14)
                   .fill(.blue)
-                  .shadow(color: .black.opacity(0.2), radius: 8, x: 0, y: 4)
+                  .shadow(color: .black.opacity(0.15), radius: 6, x: 0, y: 3)
               )
             }
-            .accessibilityIdentifier("home.plan.button")
-            .accessibilityLabel("Los, planen wir!")
+            .accessibilityIdentifier("home.plan.automatic")
+            .accessibilityLabel("Automatisch planen")
+
+            // Manuell auswählen
+            Button(action: {
+              desiredPlanningMode = .manual
+              showingRoutePlanning = true
+            }) {
+              HStack(spacing: 10) {
+                Image(systemName: "hand.point.up.left")
+                  .font(.system(size: 16, weight: .medium))
+                Text("Manuell auswählen")
+                  .font(.headline)
+                  .fontWeight(.medium)
+              }
+              .foregroundColor(.blue)
+              .frame(maxWidth: .infinity)
+              .padding(.vertical, 14)
+              .background(
+                RoundedRectangle(cornerRadius: 14)
+                  .fill(.regularMaterial)
+                  .shadow(color: .black.opacity(0.08), radius: 4, x: 0, y: 2)
+              )
+            }
+            .accessibilityIdentifier("home.plan.manual")
+            .accessibilityLabel("Manuell auswählen")
+
+            // Schnell planen (Quick)
+            Button(action: {
+              // Phase 4 implementiert den echten Quick‑Flow; hier nur Platzhalter‑Navigation folgt später
+              SecureLogger.shared.logInfo("⚡️ Quick‑Plan: Trigger gedrückt (Phase 2 UI)", category: .ui)
+            }) {
+              HStack(spacing: 10) {
+                Image(systemName: "bolt.circle")
+                  .font(.system(size: 16, weight: .medium))
+                Text("Schnell planen")
+                  .font(.headline)
+                  .fontWeight(.medium)
+              }
+              .foregroundColor(.white)
+              .frame(maxWidth: .infinity)
+              .padding(.vertical, 14)
+              .background(
+                RoundedRectangle(cornerRadius: 14)
+                  .fill(Color.orange)
+                  .shadow(color: .black.opacity(0.15), radius: 6, x: 0, y: 3)
+              )
+            }
+            .accessibilityIdentifier("home.plan.quick")
+            .accessibilityLabel("Schnell planen")
           }
+          .padding(.horizontal, 20)
           .padding(.bottom, 50)
         }
       }
@@ -276,6 +328,12 @@ struct ContentView: View {
           }
         }
       })
+      .onAppear {
+        // Phase 3: Modus aus Startscreen vorbesetzen
+        if let mode = desiredPlanningMode {
+          NotificationCenter.default.post(name: .init("PresetPlanningMode"), object: nil, userInfo: ["mode": mode.rawValue])
+        }
+      }
     }
     // Phase 2: Lifecycle & Alerts
     .onAppear {
