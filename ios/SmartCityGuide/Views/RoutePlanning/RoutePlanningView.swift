@@ -351,6 +351,13 @@ struct RoutePlanningView: View {
           }
         }
       }
+      // Phase 3: Optional Vorselektion des Planungsmodus vom Startscreen
+      .onReceive(NotificationCenter.default.publisher(for: Notification.Name("PresetPlanningMode"))) { note in
+        if let raw = note.userInfo?["mode"] as? String, let mode = parsePlanningMode(raw) {
+          planningMode = mode
+          SecureLogger.shared.logDebug("🎛️ Preset planning mode -> \(mode.rawValue)", category: .ui)
+        }
+      }
       .alert("Startort Info", isPresented: $showingStartPointInfo) {
         Button("Alles klar!") { }
       } message: {
@@ -453,5 +460,16 @@ struct RoutePlanningView: View {
     hasLoadedDefaults = true
     
     SecureLogger.shared.logDebug("📱 RoutePlanningView: Loaded settings defaults - Stops: \(maximumStops.rawValue), Time: \(maximumWalkingTime.rawValue), Distance: \(minimumPOIDistance.rawValue)", category: .ui)
+  }
+  
+  // MARK: - Phase 3 Helpers
+  /// Toleranter Parser für Modus‑Strings (unterstützt RawValues und englische Kurzformen)
+  private func parsePlanningMode(_ value: String) -> RoutePlanningMode? {
+    // Direkter RawValue‑Treffer (Deutsch)
+    if let m = RoutePlanningMode(rawValue: value) { return m }
+    let v = value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+    if ["automatic", "auto", "automatisch", "automatisch planen"].contains(v) { return .automatic }
+    if ["manual", "manuell", "manuell erstellen", "manuell auswählen"].contains(v) { return .manual }
+    return nil
   }
 }
