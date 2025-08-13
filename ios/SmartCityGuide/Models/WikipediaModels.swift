@@ -286,7 +286,7 @@ struct WikipediaEnrichedPOI {
         if let extract = wikipediaData?.extract, !extract.isEmpty {
             return extract
         }
-        return basePOI.description ?? basePOI.category.rawValue
+        return basePOI.description ?? "Zu diesem Ort haben wir leider keine weiteren Infos gefunden."
     }
     
     /// Wikipedia-Bild falls verfügbar

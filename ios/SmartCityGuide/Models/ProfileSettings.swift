@@ -52,7 +52,7 @@ struct ProfileSettings: Codable {
             } else if defaultNumberOfPlaces <= 5 {
                 defaultMaximumStops = .five
             } else {
-                defaultMaximumStops = .ten
+                defaultMaximumStops = .eight
             }
             
             // Migration: routeLength -> maximumWalkingTime

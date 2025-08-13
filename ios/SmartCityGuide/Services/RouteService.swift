@@ -98,6 +98,12 @@ class RouteService: ObservableObject {
       }
       
       let startLocation = startLocationPoint.coordinate
+
+      // Log effective parameters once at start for diagnostics
+      let stopsLog = String(maximumStops.intValue)
+      let maxTimeLog = maximumWalkingTime.minutes.map { "\($0)min" } ?? "open-end"
+      let minDistLog = minimumPOIDistance.meters.map { "\(Int($0))m" } ?? "none"
+      logger.info("🧭 Route Params → start='\(startingCityName, privacy: .public)' stops=\(stopsLog, privacy: .public) maxTime=\(maxTimeLog, privacy: .public) minDist=\(minDistLog, privacy: .public) availPOIs=\(availablePOIs?.count ?? 0)")
       
       // Step 2: Generate route using POIs with new filters
       let waypoints: [RoutePoint]
@@ -766,12 +772,7 @@ class RouteService: ObservableObject {
     
     // Step 1: Determine effective maximum stops
     let effectiveMaxStops: Int
-    if let maxStopsInt = maximumStops.intValue {
-      effectiveMaxStops = maxStopsInt
-    } else {
-      // "Unbegrenzt" - use a reasonable upper limit
-      effectiveMaxStops = min(20, availablePOIs.count)
-    }
+    effectiveMaxStops = maximumStops.intValue
     
     // Step 2: Select best POIs for the route (using legacy logic for now)
     let selectedPOIs = POICacheService.shared.selectBestPOIs(

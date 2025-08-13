@@ -2,7 +2,7 @@ import SwiftUI
 
 // MARK: - AGB View
 struct AGBView: View {
-    @Environment(\.dismiss) private var dismiss
+    
     
     var body: some View {
         NavigationView {
@@ -200,14 +200,7 @@ struct AGBView: View {
                 .padding(.bottom, 32)
             }
             .navigationTitle("AGB")
-            .navigationBarTitleDisplayMode(.large)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Fertig") {
-                        dismiss()
-                    }
-                }
-            }
+            .navigationBarTitleDisplayMode(.inline)
         }
     }
 }

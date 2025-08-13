@@ -4,6 +4,8 @@ import CoreLocation
 
 // MARK: - Route Models
 struct RoutePoint {
+  /// Eindeutige Zuordnung zum ursprünglichen POI (falls vorhanden)
+  let poiId: String?
   let name: String
   let coordinate: CLLocationCoordinate2D
   let address: String
@@ -15,6 +17,7 @@ struct RoutePoint {
   let emailAddress: String?
   
   init(from mapItem: MKMapItem) {
+    self.poiId = nil
     self.name = mapItem.name ?? "Unbekannter Ort"
     self.coordinate = mapItem.placemark.coordinate
     self.address = mapItem.placemark.title ?? ""
@@ -26,7 +29,8 @@ struct RoutePoint {
     self.emailAddress = nil    // MKMapItem doesn't provide this
   }
   
-  init(name: String, coordinate: CLLocationCoordinate2D, address: String, category: PlaceCategory = .attraction, phoneNumber: String? = nil, url: URL? = nil, operatingHours: String? = nil, emailAddress: String? = nil) {
+  init(name: String, coordinate: CLLocationCoordinate2D, address: String, category: PlaceCategory = .attraction, phoneNumber: String? = nil, url: URL? = nil, operatingHours: String? = nil, emailAddress: String? = nil, poiId: String? = nil) {
+    self.poiId = poiId
     self.name = name
     self.coordinate = coordinate
     self.address = address
@@ -40,6 +44,7 @@ struct RoutePoint {
   
   /// Erstelle RoutePoint aus POI mit Kontakt- und Öffnungszeiten-Informationen
   init(from poi: POI) {
+    self.poiId = poi.id
     self.name = poi.name
     self.coordinate = poi.coordinate
     self.address = poi.fullAddress
@@ -148,16 +153,9 @@ enum MaximumStops: String, CaseIterable, Codable {
     case three = "3"
     case five = "5" 
     case eight = "8"
-    case ten = "10"
-    case fifteen = "15"
-    case twenty = "20"
-    case unlimited = "Unbegrenzt"
-    
-    var intValue: Int? {
-        switch self {
-        case .unlimited: return nil
-        default: return Int(rawValue)
-        }
+
+    var intValue: Int {
+        return Int(rawValue) ?? 5
     }
 }
 

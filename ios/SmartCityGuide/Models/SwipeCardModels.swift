@@ -388,7 +388,7 @@ extension SwipeCard {
         }
         
         // Fallback to POI description or category
-        return poi.displayDescription
+        return "Zu diesem Ort haben wir leider keine weiteren Infos gefunden."
     }
     
     /// Whether the card has quality content (images + description)

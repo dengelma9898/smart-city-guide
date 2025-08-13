@@ -26,6 +26,7 @@ struct RoutePlanningView: View {
   @State private var showingPOIDistanceInfo = false
   @State private var showingEndpointInfo = false
   @State private var hasLoadedDefaults = false // Track if defaults have been loaded
+  @State private var didUserInteract = false // Prevent defaults from overwriting user choices
   
   let onRouteGenerated: (GeneratedRoute) -> Void
   
@@ -173,6 +174,7 @@ struct RoutePlanningView: View {
                   showingStopsInfo = true
                 }
               )
+              .onChange(of: maximumStops) { _, _ in didUserInteract = true }
               
               // Maximum Walking Time Section
               HorizontalFilterChips(
@@ -184,6 +186,7 @@ struct RoutePlanningView: View {
                   showingWalkingTimeInfo = true
                 }
               )
+              .onChange(of: maximumWalkingTime) { _, _ in didUserInteract = true }
               
               // Minimum POI Distance Section
               HorizontalFilterChips(
@@ -195,6 +198,7 @@ struct RoutePlanningView: View {
                   showingPOIDistanceInfo = true
                 }
               )
+              .onChange(of: minimumPOIDistance) { _, _ in didUserInteract = true }
             }
             
             // Endpoint Section
@@ -254,6 +258,11 @@ struct RoutePlanningView: View {
         
         // Bottom Button with Safe Area Support
         Button(action: {
+          // Diagnostics: log the exact parameters the user selected before we open the builder
+          SecureLogger.shared.logInfo(
+            "🧭 UI Params → start='\(usingCurrentLocation ? "Mein Standort" : startingCity)' stops=\(maximumStops.rawValue) maxTime=\(maximumWalkingTime.rawValue) minDist=\(minimumPOIDistance.rawValue) currentLocation=\(usingCurrentLocation)",
+            category: .ui
+          )
           if planningMode == .automatic {
             showingRouteBuilder = true
           } else {
@@ -426,6 +435,9 @@ struct RoutePlanningView: View {
     guard !hasLoadedDefaults else {
       return
     }
+    
+    // Do not overwrite if the user already interacted with option chips
+    guard !didUserInteract else { return }
     
     // Load default values from profile settings
     let newDefaults = settingsManager.settings.getNewDefaultsForRoutePlanning()

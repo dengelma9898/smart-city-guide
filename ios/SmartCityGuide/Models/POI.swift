@@ -98,8 +98,17 @@ extension POI {
         let props = feature.properties
         let coords = feature.geometry.coordinates
         
-        // Basic Properties
-        self.id = "geoapify_\(feature.hashValue)"
+        // Basic Properties: Prefer stable Geoapify place_id as primary identifier
+        if let rawPlaceId = props.place_id?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !rawPlaceId.isEmpty {
+            self.id = "geo_\(rawPlaceId)"
+        } else {
+            // Stable fallback based on name + coordinates (no random hash)
+            let namePart = (props.name ?? "").replacingOccurrences(of: " ", with: "_")
+            let lat = String(format: "%.6f", (feature.geometry.coordinates.count >= 2 ? feature.geometry.coordinates[1] : 0))
+            let lon = String(format: "%.6f", (feature.geometry.coordinates.count >= 2 ? feature.geometry.coordinates[0] : 0))
+            self.id = "geo_fallback_\(namePart)_\(lat)_\(lon)"
+        }
         self.name = props.name ?? "Unbekannter Ort"
         
         // Geoapify returns [longitude, latitude]
@@ -123,14 +132,9 @@ extension POI {
         // Contact Information - Geoapify doesn't provide contact details directly
         self.contact = nil
         
-        // Description from categories/details or fallback
-        if let details = props.details, !details.isEmpty {
-            self.description = details.joined(separator: ", ")
-        } else if let categories = props.categories, !categories.isEmpty {
-            self.description = categories.joined(separator: ", ")
-        } else {
-            self.description = category.rawValue
-        }
+        // Do NOT surface technical Geoapify details/categories as user-facing description.
+        // Leave description empty; UI will show enriched data or a friendly fallback.
+        self.description = nil
         
         // Tags from Geoapify data
         var tags: [String: String] = [:]
