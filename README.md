@@ -9,6 +9,9 @@ Eine iOS SwiftUI-App für intelligente Multi-Stop-Walking-Routen in Städten mit
 - **MapKit Integration**: Präzise Walking-Directions mit 0.2s Rate Limiting
 - **Friendly German UI**: "Los, planen wir!" - Conversational User Experience
 - **Caching & Performance**: POI-Caching für optimale Performance
+- **Manuelles Hinzufügen von POIs**: Über die `+`-Schaltfläche in der Detailansicht per Swipe (nehmen/überspringen)
+- **Einzelne POIs löschen**: Swipe-Action „Löschen“ in der Routenliste; beim letzten Zwischenstopp zurück zur Planung
+- **Vollständige Reoptimierung**: CTA „Jetzt optimieren“ ordnet neue Stopps intelligent an (Start/Ziel fix)
 
 ## 🔧 Setup & Installation
 
@@ -52,6 +55,11 @@ cd smart-city-guide
    - APIKeys.plist auswählen → "Add to target: SmartCityGuide" ✅
 
 ### 3. App builden und starten
+
+Empfohlen (MCP, siehe `.cursorrules`):
+- Build gegen iPhone 16 Simulator mit Xcode MCP (siehe in Editor integrierte Commands)
+
+Fallback (xcodebuild):
 ```bash
 cd ios
 xcodebuild -project SmartCityGuide.xcodeproj -scheme SmartCityGuide -destination 'platform=iOS Simulator,name=iPhone 16' build
@@ -103,7 +111,11 @@ ios/SmartCityGuide/
 
 ### Build Verification
 ```bash
-# MCP Build Test
+# MCP Build Test (empfohlen)
+# Verwende die in der IDE verfügbare Xcode MCP Aktion für den iPhone 16 Simulator
+# (siehe .cursorrules Konfiguration)
+
+# Alternativ (Fallback):
 cd ios
 xcodebuild -project SmartCityGuide.xcodeproj -scheme SmartCityGuide build
 ```
@@ -152,6 +164,13 @@ xcodebuild -project SmartCityGuide.xcodeproj -scheme SmartCityGuide -destination
 - Seed/Test-Daten via `launchEnvironment["UITEST"] = "1"`
 - Flow-Test `Profile_ChangeName_Tests.swift`
 
+#### Neue Accessibility-IDs (Routen-Features)
+- `route.add-poi.button`
+- `route.add-poi.sheet.swipe`
+- `route.add-poi.swipe.like`, `route.add-poi.swipe.skip`
+- `route.add-poi.cta.optimize`
+- `route.delete-poi.action.{index}`
+
 Weitere Details stehen in `test-implementations/10-08-2025-ui-test-env-and-first-flow.md`.
 
 ### Referenzen (Context7)
@@ -178,6 +197,19 @@ Weitere Details stehen in `test-implementations/10-08-2025-ui-test-env-and-first
 - [`Smart_City_Guide_Security_Plan.md`](Smart_City_Guide_Security_Plan.md) - Comprehensive Security Analysis
 - [`.cursorrules`](.cursorrules) - AI Development Guidelines
 - **HERE API Docs**: https://developer.here.com/documentation
+
+## ✨ How-To: Neue Stopps hinzufügen & löschen
+
+### Neue Stopps hinzufügen
+1. In der Routen-Detailansicht oben rechts auf **+** tippen
+2. Im Swipe-Deck: links = **nehmen** (✅), rechts = **überspringen** (❌)
+3. Mehrere POIs nacheinander hinzufügen (Sheet bleibt offen)
+4. **Jetzt optimieren** tippen → Route wird vollständig neu berechnet (Start/Ziel bleiben fix)
+
+### Stopps löschen
+1. In der Routenliste einen Zwischenstopp nach links wischen
+2. **Löschen** tippen → Route wird neu berechnet
+3. Wenn es der letzte Zwischenstopp war → automatische Rückkehr zur Planung
 
 ## 🔄 Contributing
 

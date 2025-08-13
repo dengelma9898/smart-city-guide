@@ -366,6 +366,24 @@ struct FAQCategory {
                     """
                 ),
                 FAQ(
+                    question: "Wie füge ich neue Stopps zu meiner Route hinzu?",
+                    answer: """
+                    Tippe in der Routenübersicht oben rechts auf das **+**. 
+                    Im anschließenden Swipe-Interface kannst du POIs nach links **nehmen** (✅) oder nach rechts **überspringen** (❌). 
+                    Du kannst beliebig viele POIs hintereinander hinzufügen. 
+
+                    Sobald du fertig bist, tippe auf **Jetzt optimieren** – die gesamte Route wird anschließend vollständig neu berechnet und die Reihenfolge intelligent optimiert.
+                    """
+                ),
+                FAQ(
+                    question: "Wie lösche ich einzelne Stopps aus meiner Route?",
+                    answer: """
+                    Wische in der Routenliste bei einem Zwischenstopp nach links und tippe auf **Löschen**. 
+                    Die Laufwege werden danach automatisch neu berechnet. 
+                    Wenn nur noch ein einziger Zwischenstopp vorhanden ist und du diesen löscht, gelangst du automatisch zurück zur Planung.
+                    """
+                ),
+                FAQ(
                     question: "Warum werden mir nur bestimmte Alternative Stopps gezeigt?",
                     answer: """
                     Die App zeigt dir alle interessanten Orte in der Stadt, außer denen, die bereits in deiner Route sind.
