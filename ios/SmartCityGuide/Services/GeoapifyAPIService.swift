@@ -113,7 +113,7 @@ class GeoapifyAPIService: ObservableObject {
 
   /// Fetch POIs strictly within a city using Geoapify Places city filter
   func fetchPOIsInCity(cityId: String, cityName: String, categories: [PlaceCategory]) async throws -> [POI] {
-    if let cached = POICacheService.shared.getCachedPOIs(forCityId: cityId) { return cached }
+    if let cached = POICacheService.shared.getCachedPOIs(for: "cityid:\(cityId)") { return cached }
     let allCategories = categories.flatMap { $0.geoapifyCategories }.filter { $0.contains(".") }
     guard !allCategories.isEmpty else { return [] }
     let cats = allCategories.joined(separator: ",")
@@ -132,7 +132,7 @@ class GeoapifyAPIService: ObservableObject {
       return POI(from: feature, category: detectedCategory, requestedCity: cityName)
     }
     let filtered = allPOIs.filter { !$0.name.trimmingCharacters(in: .whitespaces).isEmpty }
-    POICacheService.shared.cachePOIs(filtered, forCityId: cityId, cityName: cityName)
+    POICacheService.shared.cachePOIs(filtered, for: "cityid:\(cityId)")
     secureLogger.logPOISearch(cityName: cityName, poiCount: filtered.count)
     return filtered
   }
