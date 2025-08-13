@@ -456,8 +456,8 @@ extension ContentView {
     do {
       // Phase 11: Resolve city and fetch POIs strictly within that city
       let fetchStart = Date()
-      let city = try await GeoapifyAPIService.resolveCityContext(for: loc.coordinate)
-      let pois = try await GeoapifyAPIService.fetchPOIsInCity(
+      let city = try await GeoapifyAPIService.shared.resolveCityContext(for: loc.coordinate)
+      let pois = try await GeoapifyAPIService.shared.fetchPOIsInCity(
         cityId: city.cityId,
         cityName: city.cityName,
         categories: PlaceCategory.geoapifyEssentialCategories
