@@ -2,7 +2,7 @@ import SwiftUI
 
 // MARK: - Datenschutzerklärung View
 struct DatenschutzerklaerungView: View {
-    @Environment(\.dismiss) private var dismiss
+    
     
     var body: some View {
         NavigationView {
@@ -198,14 +198,7 @@ struct DatenschutzerklaerungView: View {
                 .padding(.bottom, 32)
             }
             .navigationTitle("Datenschutz")
-            .navigationBarTitleDisplayMode(.large)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Fertig") {
-                        dismiss()
-                    }
-                }
-            }
+            .navigationBarTitleDisplayMode(.inline)
         }
     }
 }
