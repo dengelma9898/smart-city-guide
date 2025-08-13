@@ -26,7 +26,7 @@ Dieser Plan beschreibt inkrementelle Phasen mit klar abhakbaren Aufgaben, die je
 - [x] Fehlerbehandlung: Nutzerfreundliche Fehlermeldung wie beim Ersetzen
 
 Verifikation (Build):
-- [ ] Projekt baut erfolgreich für Simulator „iPhone 16“
+- [x] Projekt baut erfolgreich für Simulator „iPhone 16“
 
 ---
 
@@ -71,9 +71,9 @@ Verifikation (Funktion):
 ---
 
 ### Phase 5: FAQ & Texte, Logging, Stabilität
-- [ ] `HelpSupportView.swift` um FAQ-Einträge erweitern:
-  - [ ] „Wie füge ich neue Stopps zu meiner Tour hinzu?“
-  - [ ] „Wie lösche ich einzelne Stopps?“ (inkl. Hinweis zum letzten Stopp → Navigation zurück)
+- [x] `HelpSupportView.swift` um FAQ-Einträge erweitern:
+  - [x] „Wie füge ich neue Stopps zu meiner Tour hinzu?“
+  - [x] „Wie lösche ich einzelne Stopps?“ (inkl. Hinweis zum letzten Stopp → Navigation zurück)
 - [ ] Deutsche UI-Texte: konsistent, freundlich, kurz
 - [ ] Logging via `SecureLogger` (Info/Warning an sinnvollen Stellen)
 - [ ] UI-Tests (happy path):
@@ -82,8 +82,14 @@ Verifikation (Funktion):
   - [ ] Last-POI-Delete: Bei einem Stopp → löschen → zurück in Planung
 
 Verifikation (Build & Basic Run):
-- [ ] Projekt baut erfolgreich
+- [x] Projekt baut erfolgreich
 - [ ] Smoke-Test auf Simulator: UI-Elemente vorhanden, keine Crashes
+
+#### Manuelle Testschritte (UI-Schnellcheck)
+- [ ] Profil → Hilfe & Support öffnen, Suchfeld sichtbar
+- [ ] Kategorie „Routenplanung“ expandieren
+- [ ] FAQ „Wie füge ich neue Stopps zu meiner Route hinzu?“ öffnen, Text zu Swipe + „Jetzt optimieren“ sichtbar
+- [ ] FAQ „Wie lösche ich einzelne Stopps?“ öffnen, Hinweis zum letzten Stopp (zurück zur Planung) sichtbar
 
 ---
 
