@@ -18,7 +18,7 @@ Eine iOS SwiftUI-App für intelligente Multi-Stop-Walking-Routen in Städten mit
 ### Voraussetzungen
 - **Xcode 15.0+**
 - **iOS 17.5+**
-- **HERE Developer Account** für API-Zugang
+- **Geoapify Account** für Places/Geocoding API
 
 ### 1. Repository klonen
 ```bash
@@ -26,14 +26,14 @@ git clone [your-repo-url]
 cd smart-city-guide
 ```
 
-### 2. HERE API Key konfigurieren
+### 2. Geoapify API Key konfigurieren
 
-⚠️ **WICHTIG**: Diese App benötigt einen HERE API Key für POI-Discovery.
+⚠️ **WICHTIG**: Diese App nutzt Geoapify für Geocoding und Places/POI.
 
-1. **HERE Developer Account erstellen**: https://developer.here.com/
-2. **Neuen API Key generieren** mit folgenden Berechtigungen:
-   - HERE Search API
-   - HERE Geocoding API
+1. **Geoapify Account erstellen**: https://www.geoapify.com/
+2. **API Key generieren** mit Zugriff auf:
+   - Geocoding API
+   - Places API
 3. **APIKeys.plist erstellen**:
    ```bash
    # Erstelle ios/SmartCityGuide/APIKeys.plist
@@ -45,8 +45,8 @@ cd smart-city-guide
    <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
    <plist version="1.0">
    <dict>
-       <key>HERE_API_KEY</key>
-       <string>DEIN_HERE_API_KEY</string>
+       <key>GEOAPIFY_API_KEY</key>
+       <string>DEIN_GEOAPIFY_API_KEY</string>
    </dict>
    </plist>
    ```
@@ -86,13 +86,14 @@ xcodebuild -project SmartCityGuide.xcodeproj -scheme SmartCityGuide -destination
 - ✅ **APIKeys.plist** ist in `.gitignore` - wird nicht committed
 - ✅ **Sichere Konfiguration** über Bundle.main
 - ✅ **Error Handling** für fehlende API Keys
+- ✅ **Certificate Pinning** via `NetworkSecurityManager`
 - ⚠️ **Niemals API Keys in Code committen**
 
 ## 📱 App Architecture
 
 ### Core Services
 1. **RouteService (@MainActor)**: TSP-optimierte Route-Generierung
-2. **HEREAPIService**: POI-Discovery mit Caching via POICacheService  
+2. **GeoapifyAPIService**: POI-Discovery mit Caching via POICacheService  
 3. **MapKit Integration**: Walking routes mit MKDirections
 
 ### Project Structure
@@ -196,7 +197,7 @@ Weitere Details stehen in `test-implementations/10-08-2025-ui-test-env-and-first
 
 - [`Smart_City_Guide_Security_Plan.md`](Smart_City_Guide_Security_Plan.md) - Comprehensive Security Analysis
 - [`.cursorrules`](.cursorrules) - AI Development Guidelines
-- **HERE API Docs**: https://developer.here.com/documentation
+- **Geoapify Docs**: https://www.geoapify.com/developers
 
 ## ✨ How-To: Neue Stopps hinzufügen & löschen
 
