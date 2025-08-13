@@ -522,6 +522,8 @@ struct RouteBuilderView: View {
   
   // Phase 2 (Vorbereitung): Add-POI Sheet-State (wird später genutzt)
   @State private var showingAddPOISheet = false
+  @State private var addFlowTopCard: SwipeCard?
+  @State private var addFlowSelectedPOIs: [POI] = []
   
   // MARK: - Computed Properties
   
@@ -592,7 +594,17 @@ struct RouteBuilderView: View {
       .navigationBarTitleDisplayMode(.large)
       .toolbar {
         ToolbarItem(placement: .navigationBarTrailing) {
-          Button("Fertig") { dismiss() }
+          HStack(spacing: 12) {
+            if routeService.generatedRoute != nil {
+              Button {
+                showingAddPOISheet = true
+              } label: {
+                Image(systemName: "plus")
+              }
+              .accessibilityIdentifier("route.add-poi.button")
+            }
+            Button("Fertig") { dismiss() }
+          }
         }
       }
     }
@@ -636,6 +648,181 @@ struct RouteBuilderView: View {
         onSpotChanged: handleSpotChange,
         onCancel: handleEditCancel
       )
+    }
+    .sheet(isPresented: $showingAddPOISheet, onDismiss: {
+      addFlowSelectedPOIs.removeAll()
+      addFlowTopCard = nil
+    }) {
+      NavigationView {
+        ZStack {
+          // Background styling aligned with edit view
+          LinearGradient(
+            gradient: Gradient(colors: [
+              Color(.systemBackground),
+              Color(.systemGray6).opacity(0.3)
+            ]),
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+          )
+          .ignoresSafeArea()
+          
+          VStack(spacing: 20) {
+          let availablePOIs: [POI] = discoveredPOIs.filter { poi in
+            !isAlreadyInRoute(poi)
+          }
+          if let route = routeService.generatedRoute, !availablePOIs.isEmpty {
+            let referenceWaypoint: RoutePoint = {
+              // Referenzpunkt nur für Distanzanzeige in Karten
+              if route.waypoints.count > 1 {
+                return route.waypoints[route.waypoints.count - 2] // letzter Zwischenstopp, falls vorhanden
+              }
+              return route.waypoints.first ?? RoutePoint(
+                name: startingCity,
+                coordinate: startingCoordinates ?? CLLocationCoordinate2D(latitude: 0, longitude: 0),
+                address: startingCity,
+                category: .attraction
+              )
+            }()
+            // Main card area with similar sizing/margins as edit view
+            SwipeCardStackView(
+              pois: availablePOIs,
+              enrichedData: enrichedPOIs,
+              originalWaypoint: referenceWaypoint,
+              onCardAction: { action in
+                switch action {
+                case .accept(let poi):
+                  if !addFlowSelectedPOIs.contains(where: { $0.id == poi.id }) {
+                    addFlowSelectedPOIs.append(poi)
+                  }
+                case .reject(_):
+                  break
+                case .skip:
+                  break
+                }
+              },
+              onStackEmpty: {
+                // Nutzer kann über „Fertig“ schließen; hier nichts erzwingen
+              },
+              onTopCardChanged: { top in
+                addFlowTopCard = top
+              }
+            )
+            .accessibilityIdentifier("route.add-poi.sheet.swipe")
+            .frame(maxHeight: 420)
+            
+            // Manual action bar styled like in edit view (red/green)
+            HStack(spacing: 24) {
+              // Reject/Skip
+              Button(action: {
+                if let top = addFlowTopCard {
+                  NotificationCenter.default.post(name: .manualCardExit, object: nil, userInfo: [
+                    "cardId": top.id.uuidString,
+                    "direction": "right"
+                  ])
+                  DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                    NotificationCenter.default.post(name: .manualCardRemoval, object: nil)
+                  }
+                }
+              }) {
+                VStack(spacing: 8) {
+                  Image(systemName: "xmark.circle.fill")
+                    .font(.system(size: 32))
+                    .foregroundColor(.red)
+                  Text("Überspringen")
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .foregroundColor(.red)
+                }
+              }
+              .buttonStyle(PlainButtonStyle())
+              .accessibilityIdentifier("route.add-poi.swipe.skip")
+              
+              Spacer()
+              
+              // Accept/Like
+              Button(action: {
+                if let top = addFlowTopCard {
+                  NotificationCenter.default.post(name: .manualCardExit, object: nil, userInfo: [
+                    "cardId": top.id.uuidString,
+                    "direction": "left"
+                  ])
+                  if !addFlowSelectedPOIs.contains(where: { $0.id == top.poi.id }) {
+                    addFlowSelectedPOIs.append(top.poi)
+                  }
+                  DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                    NotificationCenter.default.post(name: .manualCardRemoval, object: nil)
+                  }
+                }
+              }) {
+                VStack(spacing: 8) {
+                  Image(systemName: "checkmark.circle.fill")
+                    .font(.system(size: 32))
+                    .foregroundColor(.green)
+                  Text("Nehmen")
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .foregroundColor(.green)
+                }
+              }
+              .buttonStyle(PlainButtonStyle())
+              .accessibilityIdentifier("route.add-poi.swipe.like")
+            }
+            .padding(.horizontal, 40)
+            .padding(.vertical, 16)
+            .background(
+              RoundedRectangle(cornerRadius: 12)
+                .fill(.ultraThinMaterial)
+                .stroke(Color.primary.opacity(0.1), lineWidth: 1)
+            )
+
+            // Freundlicher CTA zur vollständigen Optimierung (TSP)
+            if !addFlowSelectedPOIs.isEmpty {
+              Button {
+                Task { await reoptimizeRouteWithAddedPOIs() }
+              } label: {
+                HStack(spacing: 8) {
+                  Image(systemName: "wand.and.stars")
+                  Text("Jetzt optimieren")
+                    .fontWeight(.semibold)
+                }
+                .frame(maxWidth: .infinity)
+              }
+              .buttonStyle(.borderedProminent)
+              .controlSize(.large)
+              .padding(.bottom, 12)
+              .accessibilityIdentifier("route.add-poi.cta.optimize")
+            }
+          } else {
+            VStack(spacing: 12) {
+              Text("Keine weiteren Orte zum Hinzufügen gefunden.")
+                .font(.body)
+                .foregroundColor(.secondary)
+              Button("Schließen") { showingAddPOISheet = false }
+                .buttonStyle(.bordered)
+            }
+            .padding()
+          }
+          }
+          .padding(.horizontal, 20)
+          .padding(.top, 10)
+        }
+        .navigationTitle("Neue Stopps entdecken")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+          ToolbarItem(placement: .navigationBarLeading) {
+            Button("Abbrechen") { showingAddPOISheet = false }
+          }
+          ToolbarItem(placement: .navigationBarTrailing) {
+            if !addFlowSelectedPOIs.isEmpty {
+              Text("Hinzugefügt: \(addFlowSelectedPOIs.count)")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+            }
+          }
+        }
+      }
+      .presentationDetents([.large])
+      .presentationDragIndicator(.visible)
     }
   }
 
@@ -1322,6 +1509,51 @@ struct RouteBuilderView: View {
       await MainActor.run {
         routeService.isGenerating = false
         routeService.errorMessage = "Löschen fehlgeschlagen: \(error.localizedDescription)"
+      }
+    }
+  }
+
+  // MARK: - Full Re-Optimization after Add Flow
+  private func reoptimizeRouteWithAddedPOIs() async {
+    guard let currentRoute = routeService.generatedRoute else {
+      showingAddPOISheet = false
+      return
+    }
+    await MainActor.run {
+      routeService.isGenerating = true
+      routeService.errorMessage = nil
+    }
+    do {
+      // Bestehende Zwischenstopps der aktuellen Route als POIs abbilden
+      let existingWaypoints = Array(currentRoute.waypoints.dropFirst().dropLast())
+      var existingPOIs: [POI] = existingWaypoints.compactMap { findCurrentPOI(for: $0) }
+      // Dedup mit bereits im Add-Flow gewählten POIs
+      for poi in addFlowSelectedPOIs {
+        if !existingPOIs.contains(where: { $0.id == poi.id }) {
+          existingPOIs.append(poi)
+        }
+      }
+      // Start-Koordinate ermitteln
+      let startCoord: CLLocationCoordinate2D = {
+        if let coords = startingCoordinates { return coords }
+        return currentRoute.waypoints.first?.coordinate ?? CLLocationCoordinate2D(latitude: 0, longitude: 0)
+      }()
+      // Vollständige Neu-Optimierung (TSP) mit allen ausgewählten POIs
+      let updatedRoute = try await routeService.generateManualRoute(
+        selectedPOIs: existingPOIs,
+        startLocation: startCoord,
+        endpointOption: endpointOption,
+        customEndpoint: customEndpoint,
+        customEndpointCoordinates: customEndpointCoordinates
+      )
+      await MainActor.run {
+        showingAddPOISheet = false
+        addFlowSelectedPOIs.removeAll()
+      }
+      await enrichRouteWithWikipedia(route: updatedRoute)
+    } catch {
+      await MainActor.run {
+        routeService.errorMessage = "Optimierung fehlgeschlagen: \(error.localizedDescription)"
       }
     }
   }
