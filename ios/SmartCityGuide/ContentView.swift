@@ -249,6 +249,8 @@ struct ContentView: View {
             }
             .accessibilityIdentifier("home.plan.automatic")
             .accessibilityLabel("Automatisch planen")
+            // Legacy Identifier für bestehende UI-Tests (Kompatibilität)
+            .accessibilityIdentifier("Los, planen wir!")
 
             // Manuell auswählen
             Button(action: {
