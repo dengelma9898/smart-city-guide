@@ -9,10 +9,7 @@ struct ImpressumView: View {
                 VStack(alignment: .leading, spacing: 24) {
                     // Header
                     VStack(alignment: .leading, spacing: 12) {
-                        Text("📋 Impressum")
-                            .font(.title2)
-                            .fontWeight(.bold)
-                        
+
                         Text("Angaben gemäß § 5 TMG (Telemediengesetz)")
                             .font(.subheadline)
                             .foregroundColor(.secondary)
@@ -124,7 +121,7 @@ struct ImpressumView: View {
                 .padding(.bottom, 32)
             }
             .navigationTitle("Impressum")
-            .navigationBarTitleDisplayMode(.large)
+            .navigationBarTitleDisplayMode(.inline)
         }
     }
 }
