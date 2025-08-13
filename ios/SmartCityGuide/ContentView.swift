@@ -450,7 +450,7 @@ extension ContentView {
       // Fetch POIs around current coordinate
       let pois = try await geoapifyService.fetchPOIs(
         at: loc.coordinate,
-        cityName: nil,
+        cityName: "Mein Standort",
         categories: PlaceCategory.geoapifyEssentialCategories
       )
       await MainActor.run { quickPlanningMessage = "Optimiere deine Route…" }
