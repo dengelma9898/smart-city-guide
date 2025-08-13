@@ -2,7 +2,6 @@ import SwiftUI
 
 // MARK: - Impressum View
 struct ImpressumView: View {
-    @Environment(\.dismiss) private var dismiss
     
     var body: some View {
         NavigationView {
@@ -126,13 +125,6 @@ struct ImpressumView: View {
             }
             .navigationTitle("Impressum")
             .navigationBarTitleDisplayMode(.large)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Fertig") {
-                        dismiss()
-                    }
-                }
-            }
         }
     }
 }
