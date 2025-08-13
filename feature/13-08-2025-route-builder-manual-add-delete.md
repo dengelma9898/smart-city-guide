@@ -17,13 +17,13 @@ Dieser Plan beschreibt inkrementelle Phasen mit klar abhakbaren Aufgaben, die je
 ---
 
 ### Phase 1: Technische Vorbereitungen und API der View
-- [ ] UI-Flags/Status ergänzen, falls nötig (z. B. Sheet-State für „POI hinzufügen“)
-- [ ] Öffentliche, klar benannte Methoden in `RouteBuilderView` für Insert/Delete:
-  - [ ] `insertPOI(_ poi: POI, at index: Int?)` (Index optional → Default: vor Ziel einfügen)
-  - [ ] `deletePOI(at index: Int)` (nur Zwischenstopps erlaubt)
-- [ ] Re-Routing-Funktion wiederverwenden: `recalculateWalkingRoutes(for:)` (bereits vorhanden)
-- [ ] Duplikate verhindern: `isAlreadyInRoute(_:)` nutzen/erweitern
-- [ ] Fehlerbehandlung: Nutzerfreundliche Fehlermeldung wie beim Ersetzen
+- [x] UI-Flags/Status ergänzen, falls nötig (z. B. Sheet-State für „POI hinzufügen“)
+- [x] Öffentliche, klar benannte Methoden in `RouteBuilderView` für Insert/Delete:
+  - [x] `insertPOI(_ poi: POI, at index: Int?)` (Index optional → Default: vor Ziel einfügen)
+  - [x] `deletePOI(at index: Int)` (nur Zwischenstopps erlaubt)
+- [x] Re-Routing-Funktion wiederverwenden: `recalculateWalkingRoutes(for:)` (bereits vorhanden)
+- [x] Duplikate verhindern: `isAlreadyInRoute(_:)` nutzen/erweitern
+- [x] Fehlerbehandlung: Nutzerfreundliche Fehlermeldung wie beim Ersetzen
 
 Verifikation (Build):
 - [ ] Projekt baut erfolgreich für Simulator „iPhone 16“
@@ -31,18 +31,19 @@ Verifikation (Build):
 ---
 
 ### Phase 2: UI „POI hinzufügen“ (Swipe/Tinder-Style)
-- [ ] Toolbar-Button „+“ anzeigen, wenn eine Route existiert: `navigationBarTrailing`
-- [ ] Sheet präsentieren: „POI per Swipe auswählen“ (kein Suchfeld)
-  - [ ] Kandidatenquelle: `discoveredPOIs` gefiltert auf „nicht bereits in Route“
-  - [ ] Umsetzung mit bestehenden Komponenten: `SwipeCardStackView`/`SpotSwipeCardView` (wie in Edit-/Manuell-Flow)
-  - [ ] Aktionen: Rechts-Swipe = „Hinzufügen“; Links-Swipe = „Überspringen“; Info-Button zeigt Detail (falls vorhanden)
-  - [ ] On-Like → `insertPOI(_:at:)` ausführen, Karte aus dem Deck entfernen, Sheet bleibt geöffnet (Mehrfach-Hinzufügen möglich)
-- [ ] Einfüge-Strategie v1: vor Ziel (Index: `route.waypoints.count - 1`)
-- [ ] Re-Routing + Ladezustände analog „Ersetzen“
-- [ ] Accessibility:
-  - [ ] Add-Button: `accessibilityIdentifier("route.add-poi.button")`
-  - [ ] Sheet: `accessibilityIdentifier("route.add-poi.sheet.swipe")`
-  - [ ] Like/Skip Controls: `accessibilityIdentifier("route.add-poi.swipe.like")`, `accessibilityIdentifier("route.add-poi.swipe.skip")`
+- [x] Toolbar-Button „+“ anzeigen, wenn eine Route existiert: `navigationBarTrailing`
+- [x] Sheet präsentieren: „POI per Swipe auswählen“ (kein Suchfeld)
+  - [x] Kandidatenquelle: `discoveredPOIs` gefiltert auf „nicht bereits in Route“
+  - [x] Umsetzung mit bestehenden Komponenten: `SwipeCardStackView`/`SpotSwipeCardView` (wie in Edit-/Manuell-Flow)
+  - [x] Aktionen: Rechts-Swipe = „Hinzufügen“; Links-Swipe = „Überspringen“; Info-Button zeigt Detail (falls vorhanden)
+  - [x] On-Like → Karte entfernen, Auswahl sammeln; Sheet bleibt geöffnet (Mehrfach-Hinzufügen möglich)
+- [x] Einfüge-Strategie v1: vor Ziel (intern ersetzt durch vollständige Optimierung)
+- [x] CTA „Jetzt optimieren“ triggert vollständige Reoptimierung (TSP-light) via `generateManualRoute`
+- [x] Accessibility:
+  - [x] Add-Button: `accessibilityIdentifier("route.add-poi.button")`
+  - [x] Sheet: `accessibilityIdentifier("route.add-poi.sheet.swipe")`
+  - [x] Like/Skip Controls: `accessibilityIdentifier("route.add-poi.swipe.like")`, `accessibilityIdentifier("route.add-poi.swipe.skip")`
+  - [x] CTA: `accessibilityIdentifier("route.add-poi.cta.optimize")`
 
 Verifikation (Funktion):
 - [ ] UI-Elemente sichtbar, Sheet öffnet korrekt und bleibt beim Hinzufügen offen
@@ -51,11 +52,11 @@ Verifikation (Funktion):
 ---
 
 ### Phase 3: UI „POI löschen“ (Einzelstopp)
-- [ ] Swipe-Action „Löschen“ an `waypointRow` für Zwischenstopps (nicht Start/Ziel)
-- [ ] Tap auf „Löschen“ → `deletePOI(at:)` → Re-Routing
-- [ ] Spezialfall: Es ist nur noch 1 Zwischenstopp vorhanden → Löschen triggert `dismiss()` zurück zur Planung
-- [ ] Accessibility:
-  - [ ] Delete-Action: `accessibilityIdentifier("route.delete-poi.action.")` mit Index-Suffix
+- [x] Swipe-Action „Löschen“ an `waypointRow` für Zwischenstopps (nicht Start/Ziel)
+- [x] Tap auf „Löschen“ → `deletePOI(at:)` → Re-Routing
+- [x] Spezialfall: Es ist nur noch 1 Zwischenstopp vorhanden → Löschen triggert `dismiss()` zurück zur Planung
+- [x] Accessibility:
+  - [x] Delete-Action: `accessibilityIdentifier("route.delete-poi.action.")` mit Index-Suffix
 
 Verifikation (Funktion):
 - [ ] Löschen eines beliebigen Zwischenstopps aktualisiert Route (Anzahl Stopps, Distanzen, Zeiten)
@@ -63,13 +64,9 @@ Verifikation (Funktion):
 
 ---
 
-### Phase 4: UX/Heuristik-Verbesserungen (Optional, separat abhakbar)
-- [ ] „Best Placement“-Heuristik beim Insert: Evaluierung mehrerer Insert-Positionen und Wahl minimaler Mehrkosten
-  - [ ] Hard-Limit (z. B. höchstens 4–5 Evaluierungen), 200ms Rate-Limit respektieren
-- [ ] Mini-Loading-Indikator nur im betroffenen Bereich (lokaler Scope)
-
-Verifikation:
-- [ ] Messbar geringere zusätzliche Distanzzeit gegenüber „vor Ziel“-Heuristik bei einfachen Fällen
+### Future Features (verschoben aus Phase 4)
+- „Best Placement“-Heuristik beim Insert mit Evaluierung mehrerer Insert-Positionen (Rate-Limit beachten)
+- Mini-Loading-Indikator nur im betroffenen Bereich (lokaler Scope)
 
 ---
 
