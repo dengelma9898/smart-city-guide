@@ -82,11 +82,6 @@ class GeoapifyAPIService: ObservableObject {
             // Cache hit - no logging needed
             return cachedPOIs
         }
-      
-      let pois = try await searchPOIs(near: coordinates, categories: categories, cityName: cityName, radius: 5000) // 5km tourism radius
-      POICacheService.shared.cachePOIs(pois, for: cityName)
-      return pois
-  }
 
   // MARK: - City-Scoped APIs (Phase 11)
   struct CityContext {
@@ -149,6 +144,11 @@ class GeoapifyAPIService: ObservableObject {
   static func fetchPOIsInCity(cityId: String, cityName: String, categories: [PlaceCategory]) async throws -> [POI] {
     try await GeoapifyAPIService.shared.fetchPOIsInCity(cityId: cityId, cityName: cityName, categories: categories)
   }
+        
+        let pois = try await searchPOIs(near: coordinates, categories: categories, cityName: cityName, radius: 5000) // 5km tourism radius
+        POICacheService.shared.cachePOIs(pois, for: cityName)
+        return pois
+    }
     
     // MARK: - Private Implementation
     
