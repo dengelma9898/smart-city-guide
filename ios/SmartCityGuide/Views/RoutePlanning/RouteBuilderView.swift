@@ -76,6 +76,12 @@ struct RouteBuilderView: View {
                 if index > 0 && index < route.waypoints.count - 1 {
                   Button("Bearbeiten") { editWaypoint(at: index) }
                     .tint(.blue)
+                  Button(role: .destructive) {
+                    Task { await deletePOI(at: index) }
+                  } label: {
+                    Text("Löschen")
+                  }
+                  .accessibilityIdentifier("route.delete-poi.action.\(index)")
                 }
               }
             if index < route.waypoints.count - 1 {
@@ -1474,6 +1480,10 @@ struct RouteBuilderView: View {
     // Erlaube nur Zwischenstopps (nicht Start = 0, nicht Ziel = count-1)
     guard count >= 3, index > 0, index < count - 1 else { return }
     
+    // Spezialfall: Nur noch 1 Zwischenstopp vorhanden und wird gelöscht → zurück zur Planung
+    let intermediateCount = max(0, count - 2)
+    let isDeletingLastIntermediate = (intermediateCount == 1)
+    
     await MainActor.run {
       routeService.isGenerating = true
       routeService.errorMessage = nil
@@ -1498,12 +1508,20 @@ struct RouteBuilderView: View {
       )
       
       await MainActor.run {
-        routeService.generatedRoute = updatedRoute
-        routeService.isGenerating = false
+        if isDeletingLastIntermediate {
+          // Navigiere zurück zur Planung (Sheet/Screen schließen)
+          routeService.isGenerating = false
+          dismiss()
+        } else {
+          routeService.generatedRoute = updatedRoute
+          routeService.isGenerating = false
+        }
       }
       
       // Wikipedia-Enrichment für aktualisierte Route
-      await enrichRouteWithWikipedia(route: updatedRoute)
+      if !isDeletingLastIntermediate {
+        await enrichRouteWithWikipedia(route: updatedRoute)
+      }
       
     } catch {
       await MainActor.run {
