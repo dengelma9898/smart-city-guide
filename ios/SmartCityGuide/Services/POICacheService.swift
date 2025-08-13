@@ -21,22 +21,6 @@ class POICacheService: ObservableObject {
             logger.info("💾 ❌ Cache miss for '\(cityName)'")
             return nil
         }
-
-  // CityId-scoped cache helpers (for strict city filtering)
-  func getCachedPOIs(forCityId cityId: String) -> [POI]? {
-    let cacheKey = "cityid:" + cityId
-    guard let cachedData = cache[cacheKey] else {
-      logger.info("💾 ❌ Cache miss for cityId='\(cityId)'")
-      return nil
-    }
-    if Date().timeIntervalSince(cachedData.timestamp) > cacheExpirationTime {
-      logger.info("💾 ⏰ Cache expired for cityId='\(cityId)'")
-      cache.removeValue(forKey: cacheKey)
-      return nil
-    }
-    logger.info("💾 ✅ Cache hit for cityId='\(cityId)': \(cachedData.pois.count) POIs")
-    return cachedData.pois
-  }
         
         // Check if cache is still valid
         if Date().timeIntervalSince(cachedData.timestamp) > cacheExpirationTime {
@@ -61,17 +45,6 @@ class POICacheService: ObservableObject {
         cache[cacheKey] = cachedData
         logger.info("💾 💾 Cache store: \(pois.count) POIs for '\(cityName)'")
     }
-
-  func cachePOIs(_ pois: [POI], forCityId cityId: String, cityName: String? = nil) {
-    let cacheKey = "cityid:" + cityId
-    let cachedData = CachedPOIData(
-      pois: pois,
-      timestamp: Date(),
-      cityName: cityName ?? "<CITYID>" + cityId
-    )
-    cache[cacheKey] = cachedData
-    logger.info("💾 💾 Cache store: \(pois.count) POIs for cityId='\(cityId)' city='\(cityName ?? "-")'")
-  }
     
     func clearCache() {
         cache.removeAll()
