@@ -309,6 +309,10 @@ struct FAQCategory {
             icon: "🗺️",
             faqs: [
                 FAQ(
+                    question: "Was ist die Schnell‑Planung?",
+                    answer: "Mit der Schnell‑Planung startest du sofort eine Rundreise ab deinem aktuellen Standort. Die App wählt automatisch bis zu 5 interessante Orte in deiner Nähe, ohne Zeitlimit und ohne Mindestabstand. Es gibt keine Zwischenschritte – du siehst direkt die fertige Route auf der Karte."
+                ),
+                FAQ(
                     question: "Wie funktioniert die intelligente Routenplanung?",
                     answer: "Unsere App nutzt einen speziellen Algorithmus (TSP-Optimierung), der die beste Route zwischen deinen gewählten Sehenswürdigkeiten berechnet. Dabei werden echte Gehzeiten und Entfernungen berücksichtigt, sodass du möglichst effizient von Ort zu Ort kommst."
                 ),

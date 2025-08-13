@@ -228,6 +228,7 @@ struct ContentView: View {
             // Automatisch planen
             Button(action: {
               desiredPlanningMode = .automatic
+              SecureLogger.shared.logUserAction("Tap plan automatic")
               showingRoutePlanning = true
             }) {
               HStack(spacing: 10) {
@@ -252,6 +253,7 @@ struct ContentView: View {
             // Manuell auswählen
             Button(action: {
               desiredPlanningMode = .manual
+              SecureLogger.shared.logUserAction("Tap plan manual")
               showingRoutePlanning = true
             }) {
               HStack(spacing: 10) {
@@ -418,6 +420,7 @@ extension ContentView {
   
   /// Phase 4: Start the Quick‑Planning flow
   fileprivate func startQuickPlanning() async {
+    let overallStart = Date()
     // Ensure permission
     if !locationService.isLocationAuthorized {
       await MainActor.run { quickPlanningMessage = "Brauch kurz dein OK für den Standort…"; isQuickPlanning = true }
@@ -448,13 +451,17 @@ extension ContentView {
     await MainActor.run { quickPlanningMessage = "Entdecke coole Orte…"; isQuickPlanning = true }
     do {
       // Fetch POIs around current coordinate
+      let fetchStart = Date()
       let pois = try await geoapifyService.fetchPOIs(
         at: loc.coordinate,
         cityName: "Mein Standort",
         categories: PlaceCategory.geoapifyEssentialCategories
       )
+      let fetchDuration = Date().timeIntervalSince(fetchStart)
+      SecureLogger.shared.logInfo("Quick POI fetch: \(pois.count) results in \(String(format: "%.2f", fetchDuration))s", category: .performance)
       await MainActor.run { quickPlanningMessage = "Optimiere deine Route…" }
       // Generate route with fixed parameters
+      let routeStart = Date()
       await quickRouteService.generateRoute(
         fromCurrentLocation: loc,
         maximumStops: .five,
@@ -464,7 +471,11 @@ extension ContentView {
         minimumPOIDistance: .noMinimum,
         availablePOIs: pois
       )
+      let routeDuration = Date().timeIntervalSince(routeStart)
       if let route = quickRouteService.generatedRoute {
+        let totalDuration = Date().timeIntervalSince(overallStart)
+        SecureLogger.shared.logRouteCalculation(waypoints: route.waypoints.count, duration: routeDuration)
+        SecureLogger.shared.logInfo("Quick planning total: \(String(format: "%.2f", totalDuration))s", category: .performance)
         await MainActor.run {
           activeRoute = route
           adjustCamera(to: route)
