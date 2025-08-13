@@ -136,6 +136,14 @@ class GeoapifyAPIService: ObservableObject {
     secureLogger.logPOISearch(cityName: cityName, poiCount: filtered.count)
     return filtered
   }
+
+  // Static convenience wrappers to avoid property wrapper dynamicMember issues in SwiftUI views
+  static func resolveCityContext(for coordinate: CLLocationCoordinate2D) async throws -> CityContext {
+    try await GeoapifyAPIService.shared.resolveCityContext(for: coordinate)
+  }
+  static func fetchPOIsInCity(cityId: String, cityName: String, categories: [PlaceCategory]) async throws -> [POI] {
+    try await GeoapifyAPIService.shared.fetchPOIsInCity(cityId: cityId, cityName: cityName, categories: categories)
+  }
         
         let pois = try await searchPOIs(near: coordinates, categories: categories, cityName: cityName, radius: 5000) // 5km tourism radius
         POICacheService.shared.cachePOIs(pois, for: cityName)
