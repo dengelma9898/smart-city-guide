@@ -25,6 +25,7 @@ class GeoapifyAPIService: ObservableObject {
     }
     private let baseURL = "https://api.geoapify.com/v2"
     private let geocodeURL = "https://api.geoapify.com/v1/geocode"
+  private let placesURL = "https://api.geoapify.com/v2/places"
     private let urlSession: URLSession
     
     @Published var isLoading = false
@@ -81,6 +82,60 @@ class GeoapifyAPIService: ObservableObject {
             // Cache hit - no logging needed
             return cachedPOIs
         }
+
+  // MARK: - City-Scoped APIs (Phase 11)
+  struct CityContext {
+    let cityId: String
+    let cityName: String
+    let countryCode: String?
+  }
+
+  /// Resolve the city context (cityId/cityName) for strict city-scoped Places queries
+  func resolveCityContext(for coordinate: CLLocationCoordinate2D) async throws -> CityContext {
+    let urlString = "\(geocodeURL)/reverse?lat=\(coordinate.latitude)&lon=\(coordinate.longitude)&type=city&lang=de&apiKey=\(apiKey)"
+    guard let url = URL(string: urlString) else { throw GeoapifyError.invalidURL }
+    secureLogger.logAPIRequest(url: urlString, category: .geoapify)
+    let (data, response) = try await urlSession.data(from: url)
+    guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
+      throw GeoapifyError.invalidResponse(statusCode: (response as? HTTPURLResponse)?.statusCode ?? -1)
+    }
+    struct ReverseResp: Codable { let features: [GeoapifyGeocodeFeature] }
+    let decoded = try JSONDecoder().decode(ReverseResp.self, from: data)
+    guard let first = decoded.features.first else { throw GeoapifyError.cityNotFound("<current>") }
+    let props = first.properties
+    // Geoapify city id is properties.place_id
+    let cityId = props.place_id ?? ""
+    let cityName = props.city ?? props.formatted ?? "Unbekannte Stadt"
+    guard !cityId.isEmpty else { throw GeoapifyError.cityNotFound(cityName) }
+    secureLogger.logInfo("🏙️ CityContext: name=\(cityName) id=\(cityId)", category: .geoapify)
+    return CityContext(cityId: cityId, cityName: cityName, countryCode: props.country_code)
+  }
+
+  /// Fetch POIs strictly within a city using Geoapify Places city filter
+  func fetchPOIsInCity(cityId: String, cityName: String, categories: [PlaceCategory]) async throws -> [POI] {
+    if let cached = POICacheService.shared.getCachedPOIs(forCityId: cityId) { return cached }
+    let allCategories = categories.flatMap { $0.geoapifyCategories }.filter { $0.contains(".") }
+    guard !allCategories.isEmpty else { return [] }
+    let cats = allCategories.joined(separator: ",")
+    guard let encCats = cats.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) else { throw GeoapifyError.invalidURL }
+    // city filter: use place:<cityId>
+    let urlString = "\(placesURL)?categories=\(encCats)&filter=place:\(cityId)&limit=50&lang=de&apiKey=\(apiKey)"
+    secureLogger.logAPIRequest(url: urlString, category: .geoapify)
+    guard let url = URL(string: urlString) else { throw GeoapifyError.invalidURL }
+    let (data, response) = try await urlSession.data(from: url)
+    guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
+      throw GeoapifyError.invalidResponse(statusCode: (response as? HTTPURLResponse)?.statusCode ?? -1)
+    }
+    let searchResponse = try JSONDecoder().decode(GeoapifySearchResponse.self, from: data)
+    let allPOIs = searchResponse.features.compactMap { feature -> POI? in
+      let detectedCategory = detectCategory(for: feature)
+      return POI(from: feature, category: detectedCategory, requestedCity: cityName)
+    }
+    let filtered = allPOIs.filter { !$0.name.trimmingCharacters(in: .whitespaces).isEmpty }
+    POICacheService.shared.cachePOIs(filtered, forCityId: cityId, cityName: cityName)
+    secureLogger.logPOISearch(cityName: cityName, poiCount: filtered.count)
+    return filtered
+  }
         
         let pois = try await searchPOIs(near: coordinates, categories: categories, cityName: cityName, radius: 5000) // 5km tourism radius
         POICacheService.shared.cachePOIs(pois, for: cityName)
@@ -379,6 +434,8 @@ struct GeoapifyGeocodeProperties: Codable {
     let formatted: String?
     let city: String?
     let country: String?
+    let country_code: String?
+    let place_id: String?
 }
 
 struct GeoapifySearchResponse: Codable {

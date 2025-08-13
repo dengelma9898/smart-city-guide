@@ -454,11 +454,12 @@ extension ContentView {
     }
     await MainActor.run { quickPlanningMessage = "Entdecke coole Orte…"; isQuickPlanning = true }
     do {
-      // Fetch POIs around current coordinate
+      // Phase 11: Resolve city and fetch POIs strictly within that city
       let fetchStart = Date()
-      let pois = try await geoapifyService.fetchPOIs(
-        at: loc.coordinate,
-        cityName: "Mein Standort",
+      let city = try await geoapifyService.resolveCityContext(for: loc.coordinate)
+      let pois = try await geoapifyService.fetchPOIsInCity(
+        cityId: city.cityId,
+        cityName: city.cityName,
         categories: PlaceCategory.geoapifyEssentialCategories
       )
       let fetchDuration = Date().timeIntervalSince(fetchStart)
