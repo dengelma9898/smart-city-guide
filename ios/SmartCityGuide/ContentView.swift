@@ -11,6 +11,15 @@ struct ContentView: View {
   @State private var showingProfile = false
   @State private var showingRoutePlanning = false
   @State private var activeRoute: GeneratedRoute?
+  // Phase 2: Vorbereitung für Modus-Vorselektion (Phase 3 nutzt dies)
+  @State private var desiredPlanningMode: RoutePlanningMode? = nil
+  // Phase 4: Quick‑Planning Flow
+  @StateObject private var quickRouteService = RouteService()
+  @StateObject private var geoapifyService = GeoapifyAPIService.shared
+  @State private var isQuickPlanning = false
+  @State private var quickPlanningMessage = "Wir basteln deine Route!"
+  @State private var showingQuickError = false
+  @State private var quickErrorMessage = ""
   
   // Phase 2: Location Features
   @StateObject private var locationService = LocationManagerService.shared
@@ -214,34 +223,109 @@ struct ContentView: View {
           .padding(.bottom, 50)
           
         } else {
-          // No active route - Show plan route button
-          VStack(spacing: 16) {
-            // Plan Route Button - Main interaction
+          // No active route – drei Primäraktionen im Thumb‑Bereich
+          VStack(spacing: 12) {
+            // Automatisch planen
             Button(action: {
+              desiredPlanningMode = .automatic
+              SecureLogger.shared.logUserAction("Tap plan automatic")
               showingRoutePlanning = true
             }) {
-              HStack(spacing: 8) {
-                Image(systemName: "location.north.line.fill")
-                  .font(.system(size: 18, weight: .medium))
-                Text("Los, planen wir!")
+              HStack(spacing: 10) {
+                Image(systemName: "sparkles")
+                  .font(.system(size: 16, weight: .medium))
+                Text("Automatisch planen")
                   .font(.headline)
                   .fontWeight(.medium)
               }
               .foregroundColor(.white)
-              .padding(.horizontal, 32)
-              .padding(.vertical, 16)
+              .frame(maxWidth: .infinity)
+              .padding(.vertical, 14)
               .background(
-                RoundedRectangle(cornerRadius: 28)
+                RoundedRectangle(cornerRadius: 14)
                   .fill(.blue)
-                  .shadow(color: .black.opacity(0.2), radius: 8, x: 0, y: 4)
+                  .shadow(color: .black.opacity(0.15), radius: 6, x: 0, y: 3)
               )
             }
-            .accessibilityIdentifier("home.plan.button")
-            .accessibilityLabel("Los, planen wir!")
+            .accessibilityIdentifier("home.plan.automatic")
+            .accessibilityLabel("Automatisch planen")
+            // Legacy Identifier für bestehende UI-Tests (Kompatibilität)
+            .accessibilityIdentifier("Los, planen wir!")
+
+            // Manuell auswählen
+            Button(action: {
+              desiredPlanningMode = .manual
+              SecureLogger.shared.logUserAction("Tap plan manual")
+              showingRoutePlanning = true
+            }) {
+              HStack(spacing: 10) {
+                Image(systemName: "hand.point.up.left")
+                  .font(.system(size: 16, weight: .medium))
+                Text("Manuell auswählen")
+                  .font(.headline)
+                  .fontWeight(.medium)
+              }
+              .foregroundColor(.blue)
+              .frame(maxWidth: .infinity)
+              .padding(.vertical, 14)
+              .background(
+                RoundedRectangle(cornerRadius: 14)
+                  .fill(.regularMaterial)
+                  .shadow(color: .black.opacity(0.08), radius: 4, x: 0, y: 2)
+              )
+            }
+            .accessibilityIdentifier("home.plan.manual")
+            .accessibilityLabel("Manuell auswählen")
+
+            if FeatureFlags.quickRoutePlanningEnabled {
+              // Schnell planen (Quick)
+              Button(action: {
+                SecureLogger.shared.logInfo("⚡️ Quick‑Plan: Trigger gedrückt", category: .ui)
+                Task { await startQuickPlanning() }
+              }) {
+                HStack(spacing: 10) {
+                  Image(systemName: "bolt.circle")
+                    .font(.system(size: 16, weight: .medium))
+                  Text("Schnell planen")
+                    .font(.headline)
+                    .fontWeight(.medium)
+                }
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+                .background(
+                  RoundedRectangle(cornerRadius: 14)
+                    .fill(Color.orange)
+                    .shadow(color: .black.opacity(0.15), radius: 6, x: 0, y: 3)
+                )
+              }
+              .accessibilityIdentifier("home.plan.quick")
+              .accessibilityLabel("Schnell planen")
+            }
           }
+          .padding(.horizontal, 20)
           .padding(.bottom, 50)
         }
       }
+      // Quick‑Planning Loader Overlay
+      .overlay(
+        Group {
+          if isQuickPlanning {
+            ZStack {
+              Color.black.opacity(0.25).ignoresSafeArea()
+              VStack(spacing: 16) {
+                ProgressView().scaleEffect(1.2)
+                Text(quickPlanningMessage)
+                  .font(.body)
+                  .foregroundColor(.white)
+              }
+              .padding(.horizontal, 20)
+              .padding(.vertical, 16)
+              .background(RoundedRectangle(cornerRadius: 12).fill(Color.black.opacity(0.55)))
+            }
+          }
+        }
+      )
     }
     .sheet(isPresented: $showingProfile) {
       ProfileView()
@@ -250,32 +334,14 @@ struct ContentView: View {
       RoutePlanningView(onRouteGenerated: { route in
         activeRoute = route
         showingRoutePlanning = false // Dismiss the route planning sheet
-        // Adjust camera to show entire route
-        if let firstWaypoint = route.waypoints.first,
-           let _ = route.waypoints.last {
-          let coordinates = route.waypoints.map { $0.coordinate }
-          let minLat = coordinates.map { $0.latitude }.min() ?? firstWaypoint.coordinate.latitude
-          let maxLat = coordinates.map { $0.latitude }.max() ?? firstWaypoint.coordinate.latitude
-          let minLon = coordinates.map { $0.longitude }.min() ?? firstWaypoint.coordinate.longitude
-          let maxLon = coordinates.map { $0.longitude }.max() ?? firstWaypoint.coordinate.longitude
-          
-          let center = CLLocationCoordinate2D(
-            latitude: (minLat + maxLat) / 2,
-            longitude: (minLon + maxLon) / 2
-          )
-          
-          let span = MKCoordinateSpan(
-            latitudeDelta: (maxLat - minLat) * 1.3,
-            longitudeDelta: (maxLon - minLon) * 1.3
-          )
-          
-          withAnimation(.easeInOut(duration: 1.0)) {
-            cameraPosition = MapCameraPosition.region(
-              MKCoordinateRegion(center: center, span: span)
-            )
-          }
-        }
+        adjustCamera(to: route)
       })
+      .onAppear {
+        // Phase 3: Modus aus Startscreen vorbesetzen
+        if let mode = desiredPlanningMode {
+          NotificationCenter.default.post(name: .init("PresetPlanningMode"), object: nil, userInfo: ["mode": mode.rawValue])
+        }
+      }
     }
     // Phase 2: Lifecycle & Alerts
     .onAppear {
@@ -318,9 +384,122 @@ struct ContentView: View {
     } message: {
       Text("Um deine Position auf der Karte zu sehen, aktiviere bitte Location-Services in den Einstellungen.")
     }
+    .alert("Ups, da lief was schief!", isPresented: $showingQuickError) {
+      Button("Okay", role: .cancel) { }
+    } message: {
+      Text(quickErrorMessage)
+    }
   }
 }
 
 #Preview {
   ContentView()
+}
+
+// MARK: - Private helpers
+extension ContentView {
+  /// Adjust camera to show entire route
+  private func adjustCamera(to route: GeneratedRoute) {
+    if let firstWaypoint = route.waypoints.first {
+      let coordinates = route.waypoints.map { $0.coordinate }
+      let minLat = coordinates.map { $0.latitude }.min() ?? firstWaypoint.coordinate.latitude
+      let maxLat = coordinates.map { $0.latitude }.max() ?? firstWaypoint.coordinate.latitude
+      let minLon = coordinates.map { $0.longitude }.min() ?? firstWaypoint.coordinate.longitude
+      let maxLon = coordinates.map { $0.longitude }.max() ?? firstWaypoint.coordinate.longitude
+      let center = CLLocationCoordinate2D(
+        latitude: (minLat + maxLat) / 2,
+        longitude: (minLon + maxLon) / 2
+      )
+      let span = MKCoordinateSpan(
+        latitudeDelta: max(0.005, (maxLat - minLat) * 1.3),
+        longitudeDelta: max(0.005, (maxLon - minLon) * 1.3)
+      )
+      withAnimation(.easeInOut(duration: 1.0)) {
+        cameraPosition = MapCameraPosition.region(
+          MKCoordinateRegion(center: center, span: span)
+        )
+      }
+    }
+  }
+  
+  /// Phase 4: Start the Quick‑Planning flow
+  fileprivate func startQuickPlanning() async {
+    let overallStart = Date()
+    // Ensure permission
+    if !locationService.isLocationAuthorized {
+      await MainActor.run { quickPlanningMessage = "Brauch kurz dein OK für den Standort…"; isQuickPlanning = true }
+      await locationService.requestLocationPermission()
+      if !locationService.isLocationAuthorized {
+        await MainActor.run {
+          isQuickPlanning = false
+          showingQuickError = true
+          quickErrorMessage = "Ohne Standortfreigabe kann ich die Schnell‑Route nicht starten."
+        }
+        return
+      }
+    }
+    // Get coordinate (retry once if nil)
+    var current = locationService.currentLocation
+    if current == nil {
+      locationService.startLocationUpdates()
+      try? await Task.sleep(nanoseconds: 800_000_000)
+      current = locationService.currentLocation
+    }
+    guard let loc = current else {
+      await MainActor.run {
+        showingQuickError = true
+        quickErrorMessage = "Konnte deinen Standort gerade nicht bestimmen. Versuch es gleich nochmal."
+      }
+      return
+    }
+    await MainActor.run { quickPlanningMessage = "Entdecke coole Orte…"; isQuickPlanning = true }
+    do {
+      // Fetch POIs around current coordinate
+      let fetchStart = Date()
+      let pois = try await geoapifyService.fetchPOIs(
+        at: loc.coordinate,
+        cityName: "Mein Standort",
+        categories: PlaceCategory.geoapifyEssentialCategories,
+        radiusMeters: 2000
+      )
+      let fetchDuration = Date().timeIntervalSince(fetchStart)
+      SecureLogger.shared.logInfo("Quick POI fetch: \(pois.count) results in \(String(format: "%.2f", fetchDuration))s", category: .performance)
+      await MainActor.run { quickPlanningMessage = "Optimiere deine Route…" }
+      // Generate route with fixed parameters
+      let routeStart = Date()
+      await quickRouteService.generateRoute(
+        fromCurrentLocation: loc,
+        maximumStops: .eight,
+        endpointOption: .roundtrip,
+        customEndpoint: "",
+        maximumWalkingTime: .openEnd,
+        minimumPOIDistance: .noMinimum,
+        availablePOIs: pois
+      )
+      let routeDuration = Date().timeIntervalSince(routeStart)
+      if let route = quickRouteService.generatedRoute {
+        let totalDuration = Date().timeIntervalSince(overallStart)
+        SecureLogger.shared.logRouteCalculation(waypoints: route.waypoints.count, duration: routeDuration)
+        SecureLogger.shared.logInfo("Quick planning total: \(String(format: "%.2f", totalDuration))s", category: .performance)
+        await MainActor.run {
+          activeRoute = route
+          adjustCamera(to: route)
+          isQuickPlanning = false
+        }
+        Task { await ProximityService.shared.startProximityMonitoring(for: route) }
+      } else {
+        await MainActor.run {
+          isQuickPlanning = false
+          showingQuickError = true
+          quickErrorMessage = quickRouteService.errorMessage ?? "Leider keine Route gefunden."
+        }
+      }
+    } catch {
+      await MainActor.run {
+        isQuickPlanning = false
+        showingQuickError = true
+        quickErrorMessage = "Konnte keine Orte in deiner Nähe laden: \(error.localizedDescription)"
+      }
+    }
+  }
 }

@@ -95,3 +95,6 @@ ios/SmartCityGuide/Info.plist
 
 # macOS
 .DS_Store
+
+# Local build artifacts
+.derived-data/

@@ -72,8 +72,14 @@ class GeoapifyAPIService: ObservableObject {
         }
     }
     
-    /// Direct POI search with coordinates (eliminates geocoding entirely!)
-    func fetchPOIs(at coordinates: CLLocationCoordinate2D, cityName: String, categories: [PlaceCategory] = PlaceCategory.geoapifyEssentialCategories) async throws -> [POI] {
+    /// Direct POI search with coordinates (eliminates geocoding entirely!).
+    /// radiusMeters: override the default tourism radius (default 5000m). Used e.g. for Quick-Planning (2000m).
+    func fetchPOIs(
+        at coordinates: CLLocationCoordinate2D,
+        cityName: String,
+        categories: [PlaceCategory] = PlaceCategory.geoapifyEssentialCategories,
+        radiusMeters: Double = 5000
+    ) async throws -> [POI] {
         secureLogger.logCoordinates(coordinates, context: "Direct POI search for '\(cityName)' via Geoapify")
         
         // Check cache first
@@ -82,7 +88,7 @@ class GeoapifyAPIService: ObservableObject {
             return cachedPOIs
         }
         
-        let pois = try await searchPOIs(near: coordinates, categories: categories, cityName: cityName, radius: 5000) // 5km tourism radius
+        let pois = try await searchPOIs(near: coordinates, categories: categories, cityName: cityName, radius: radiusMeters)
         POICacheService.shared.cachePOIs(pois, for: cityName)
         return pois
     }
