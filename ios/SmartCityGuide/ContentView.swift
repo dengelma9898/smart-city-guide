@@ -8,7 +8,7 @@ struct ContentView: View {
       span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)
     )
   )
-  @State private var showingProfile = false
+  // Profile now opens via Navigation push, not sheet
   @State private var showingRoutePlanning = false
   @State private var activeRoute: GeneratedRoute?
   // Phase 2: Vorbereitung für Modus-Vorselektion (Phase 3 nutzt dies)
@@ -43,7 +43,8 @@ struct ContentView: View {
   }
   
   var body: some View {
-    ZStack {
+    NavigationStack {
+      ZStack {
       // Fullscreen Map
       Map(position: $cameraPosition) {
         // Phase 2: User Location (Blue Dot)
@@ -80,10 +81,8 @@ struct ContentView: View {
       VStack {
         // Top overlay - Profile button (top-left like Apple Maps)
         HStack {
-          // Profile Button
-            Button(action: {
-            showingProfile = true
-          }) {
+          // Profile Entry as NavigationLink (push)
+          NavigationLink(destination: ProfileView()) {
             Image(systemName: "person.circle.fill")
               .font(.system(size: 20))
               .foregroundColor(.blue)
@@ -327,9 +326,6 @@ struct ContentView: View {
         }
       )
     }
-    .sheet(isPresented: $showingProfile) {
-      ProfileView()
-    }
     .sheet(isPresented: $showingRoutePlanning) {
       RoutePlanningView(onRouteGenerated: { route in
         activeRoute = route
@@ -389,7 +385,11 @@ struct ContentView: View {
     } message: {
       Text(quickErrorMessage)
     }
+    // NavigationBar auf der Root-Map verstecken, damit keine graue/Material-Fläche oben sichtbar ist
+    .toolbar(.hidden, for: .navigationBar)
   }
+}
+
 }
 
 #Preview {

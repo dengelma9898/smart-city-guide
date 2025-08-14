@@ -8,7 +8,6 @@ struct RouteHistoryView: View {
     @State private var routeToDelete: SavedRoute?
     
     var body: some View {
-        NavigationView {
             Group {
                 if historyManager.savedRoutes.isEmpty {
                     // Enhanced Empty State
@@ -111,15 +110,10 @@ struct RouteHistoryView: View {
             }
             .navigationTitle("Deine Abenteuer")
             .navigationBarTitleDisplayMode(.large)
+            .accessibilityIdentifier("profile.history.screen")
             .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Fertig") {
-                        dismiss()
-                    }
-                }
-                
                 if !historyManager.savedRoutes.isEmpty {
-                    ToolbarItem(placement: .navigationBarLeading) {
+                    ToolbarItem(placement: .navigationBarTrailing) {
                         Menu {
                             Button("Alles löschen", role: .destructive) {
                                 showingDeleteAlert = true
@@ -127,6 +121,7 @@ struct RouteHistoryView: View {
                         } label: {
                             Image(systemName: "ellipsis.circle")
                         }
+                        .accessibilityIdentifier("profile.history.menu")
                     }
                 }
             }
@@ -138,7 +133,7 @@ struct RouteHistoryView: View {
             } message: {
                 Text("Willst du wirklich alle deine Abenteuer löschen? Das kann nicht rückgängig gemacht werden!")
             }
-        }
+        
     }
     
     private func deleteRoutes(offsets: IndexSet) {

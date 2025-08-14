@@ -1,11 +1,14 @@
 import SwiftUI
 import PhotosUI
 
-// MARK: - Profile Image View with PhotosPicker
+enum ProfileImageInteraction { case none, overlayPicker }
+
+// MARK: - Profile Image View (overlay optional)
 struct ProfileImageView: View {
     @EnvironmentObject var profileManager: UserProfileManager
     @State private var selectedItem: PhotosPickerItem?
     @State private var isLoading = false
+    var interaction: ProfileImageInteraction = .none
     
     private let imageSize: CGFloat = 80
     
@@ -33,26 +36,27 @@ struct ProfileImageView: View {
                         .foregroundColor(.blue)
                 }
                 
-                // Edit overlay
-                VStack {
-                    Spacer()
-                    HStack {
+                // Optional Edit overlay (used only when explicitly enabled)
+                if interaction == .overlayPicker {
+                    VStack {
                         Spacer()
-                        
-                        PhotosPicker(selection: $selectedItem, matching: .images) {
-                            Image(systemName: "camera.circle.fill")
-                                .font(.system(size: 24))
-                                .foregroundColor(.white)
-                                .background(
-                                    Circle()
-                                        .fill(.blue)
-                                        .frame(width: 28, height: 28)
-                                )
+                        HStack {
+                            Spacer()
+                            PhotosPicker(selection: $selectedItem, matching: .images) {
+                                Image(systemName: "camera.circle.fill")
+                                    .font(.system(size: 24))
+                                    .foregroundColor(.white)
+                                    .background(
+                                        Circle()
+                                            .fill(.blue)
+                                            .frame(width: 28, height: 28)
+                                    )
+                            }
+                            .offset(x: 8, y: 8)
                         }
-                        .offset(x: 8, y: 8)
                     }
+                    .frame(width: imageSize, height: imageSize)
                 }
-                .frame(width: imageSize, height: imageSize)
             }
             
             // Remove Image Button (if image exists)
@@ -65,9 +69,7 @@ struct ProfileImageView: View {
             }
         }
         .onChange(of: selectedItem) { _, newItem in
-            Task {
-                await loadSelectedImage(from: newItem)
-            }
+            Task { await loadSelectedImage(from: newItem) }
         }
     }
     

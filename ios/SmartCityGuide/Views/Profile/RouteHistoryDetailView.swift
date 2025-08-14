@@ -295,6 +295,7 @@ struct RouteHistoryDetailView: View {
         }
         .navigationTitle("Dein Abenteuer")
         .navigationBarTitleDisplayMode(.inline)
+        .accessibilityIdentifier("profile.history.detail.screen")
         .actionSheet(isPresented: $showingReuseOptions) {
             ActionSheet(
                 title: Text("Route nochmal machen?"),

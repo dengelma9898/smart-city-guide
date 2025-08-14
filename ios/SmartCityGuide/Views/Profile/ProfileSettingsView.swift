@@ -6,8 +6,7 @@ struct ProfileSettingsView: View {
     @EnvironmentObject var settingsManager: ProfileSettingsManager
     
     var body: some View {
-        NavigationView {
-            Form {
+        Form {
                 // Header Section
                 Section {
                     VStack(spacing: 8) {
@@ -301,17 +300,10 @@ struct ProfileSettingsView: View {
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
-            }
-            .navigationTitle("Deine Präferenzen")
-            .navigationBarTitleDisplayMode(.large)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Fertig") {
-                        dismiss()
-                    }
-                }
-            }
         }
+        .navigationTitle("Deine Präferenzen")
+        .navigationBarTitleDisplayMode(.large)
+        .accessibilityIdentifier("profile.settings.screen")
     }
 }
 

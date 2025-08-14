@@ -6,23 +6,18 @@ struct ProfileView: View {
     @StateObject private var profileManager = UserProfileManager()
     @StateObject private var settingsManager = ProfileSettingsManager.shared
     @StateObject private var historyManager = RouteHistoryManager()
+    @State private var showingAvatarSheet = false
     
-    @State private var showingSettings = false
-    @State private var showingRouteHistory = false
-    @State private var showingEditProfile = false
-    @State private var showingHelpSupport = false
-    @State private var showingImpressum = false
-    @State private var showingDatenschutz = false
-    @State private var showingAGB = false
+    // Sheets für Unterseiten entfallen – alle Unterseiten öffnen via Push
     
     var body: some View {
-        NavigationView {
-            ScrollView {
+        ScrollView {
                 VStack(spacing: 24) {
                     // Enhanced Profile Header
                     VStack(spacing: 16) {
-                        ProfileImageView()
+                        ProfileImageView(interaction: .overlayPicker)
                             .environmentObject(profileManager)
+                            .onTapGesture { showingAvatarSheet = true }
                         
                         VStack(spacing: 8) {
                             Text(profileManager.profile.name)
@@ -34,11 +29,11 @@ struct ProfileView: View {
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
                             
-                            Button("Los, ändere dein Profil!") {
-                                showingEditProfile = true
+                            NavigationLink(destination: EditProfileView().environmentObject(profileManager)) {
+                                Text("Los, ändere dein Profil!")
+                                    .font(.caption)
+                                    .foregroundColor(.blue)
                             }
-                            .font(.caption)
-                            .foregroundColor(.blue)
                             .accessibilityIdentifier("profile.open.edit.button")
                         }
                     }
@@ -228,40 +223,25 @@ struct ProfileView: View {
                 }
                 .padding(.horizontal, 20)
             }
-            .navigationTitle("Dein Profil")
-            .navigationBarTitleDisplayMode(.large)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Fertig") {
-                        dismiss()
-                    }
-                }
-            }
-        }
-        .sheet(isPresented: $showingSettings) {
-            ProfileSettingsView()
-                .environmentObject(settingsManager)
-        }
-        .sheet(isPresented: $showingRouteHistory) {
-            RouteHistoryView()
-                .environmentObject(historyManager)
-        }
-        .sheet(isPresented: $showingEditProfile) {
-            EditProfileView()
+        .navigationTitle("Dein Profil")
+        .navigationBarTitleDisplayMode(.large)
+        .accessibilityIdentifier("profile.root.screen")
+        // Keine Sheet-Präsentationen mehr für Profil-Unterseiten
+        .sheet(isPresented: $showingAvatarSheet) {
+            AvatarQuickActionsSheet()
                 .environmentObject(profileManager)
+                .presentationDetents([.medium])
+                .presentationDragIndicator(.visible)
         }
-        .sheet(isPresented: $showingHelpSupport) {
-            HelpSupportView()
-        }
-        .sheet(isPresented: $showingImpressum) {
-            ImpressumView()
-        }
-        .sheet(isPresented: $showingAGB) {
-            AGBView()
-        }
-        .sheet(isPresented: $showingDatenschutz) {
-            DatenschutzerklaerungView()
-        }
+    }
+
+    // Quick-Action Sheet für Profilbild
+    @ViewBuilder
+    private var avatarQuickActionsSheet: some View {
+        AvatarQuickActionsSheet()
+            .environmentObject(profileManager)
+            .presentationDetents([.medium])
+            .presentationDragIndicator(.visible)
     }
     
     private var totalDistance: String {
@@ -314,21 +294,25 @@ struct EditProfileView: View {
     
     @State private var name: String = ""
     @State private var email: String = ""
+    @State private var showingAvatarSheet: Bool = false
     
     var body: some View {
         NavigationView {
             Form {
+                // Foto zuerst anzeigen
+                Section("Dein Foto") {
+                    ProfileImageView(interaction: .overlayPicker)
+                        .environmentObject(profileManager)
+                        .onTapGesture { showingAvatarSheet = true }
+                }
+                
+                // Danach Name/E-Mail
                 Section("Erzähl uns von dir!") {
                     TextField("Name", text: $name)
                         .accessibilityIdentifier("profile.name.textfield")
                     TextField("E-Mail", text: $email)
                         .keyboardType(.emailAddress)
                         .autocapitalization(.none)
-                }
-                
-                Section("Dein Foto") {
-                    ProfileImageView()
-                        .environmentObject(profileManager)
                 }
             }
             .navigationTitle("Profil anpassen")
@@ -341,13 +325,19 @@ struct EditProfileView: View {
                 }
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Fertig!") {
+                    Button("Speichern") {
                         saveProfile()
                         dismiss()
                     }
                     .disabled(name.isEmpty || email.isEmpty)
                     .accessibilityIdentifier("profile.save.button")
                 }
+            }
+            .sheet(isPresented: $showingAvatarSheet) {
+                AvatarQuickActionsSheet()
+                    .environmentObject(profileManager)
+                    .presentationDetents([.medium])
+                    .presentationDragIndicator(.visible)
             }
         }
         .onAppear {

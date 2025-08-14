@@ -5,8 +5,7 @@ struct DatenschutzerklaerungView: View {
     
     
     var body: some View {
-        NavigationView {
-            ScrollView {
+        ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
                     // Header
                     VStack(alignment: .leading, spacing: 12) {
@@ -196,10 +195,10 @@ struct DatenschutzerklaerungView: View {
                     Spacer()
                 }
                 .padding(.bottom, 32)
-            }
-            .navigationTitle("Datenschutz")
-            .navigationBarTitleDisplayMode(.inline)
         }
+        .navigationTitle("Datenschutz")
+        .navigationBarTitleDisplayMode(.inline)
+        .accessibilityIdentifier("profile.privacy.screen")
     }
 }
 
