@@ -20,6 +20,8 @@ struct ContentView: View {
   @State private var quickPlanningMessage = "Wir basteln deine Route!"
   @State private var showingQuickError = false
   @State private var quickErrorMessage = ""
+  // Phase 1: Active Route Bottom Sheet
+  @State private var showingActiveRouteSheet = false
   
   // Phase 2: Location Features
   @StateObject private var locationService = LocationManagerService.shared
@@ -44,287 +46,30 @@ struct ContentView: View {
   
   var body: some View {
     NavigationStack {
-      ZStack {
-      // Fullscreen Map
-      Map(position: $cameraPosition) {
-        // Phase 2: User Location (Blue Dot)
-        if locationService.currentLocation != nil {
-          UserAnnotation()
-        }
-        
-        // Display route if active
-        if let route = activeRoute {
-          // Route polylines
-          ForEach(Array(route.routes.enumerated()), id: \.offset) { index, mkRoute in
-            MapPolyline(mkRoute)
-              .stroke(.blue, style: StrokeStyle(lineWidth: 4, lineCap: .round, lineJoin: .round))
-          }
-          
-          // Waypoint markers
-          ForEach(Array(route.waypoints.enumerated()), id: \.offset) { index, waypoint in
-            Marker(
-              waypoint.name,
-              coordinate: waypoint.coordinate
-            )
-            .tint(index == 0 ? .green : (index == route.waypoints.count - 1 ? .red : waypoint.category.color))
-          }
-        }
+      ZStack(alignment: .bottom) {
+        mapLayer
+        overlayLayer
       }
-      .mapControls {
-        MapCompass()
-        MapScaleView()
+    }
+    // Phase 1: Present Active Route Bottom Sheet when route is active
+    .sheet(isPresented: $showingActiveRouteSheet) {
+      if FeatureFlags.activeRouteBottomSheetEnabled, let route = activeRoute {
+        ActiveRouteSheetView(
+          route: route,
+          onEnd: {
+            withAnimation(.easeInOut(duration: 0.3)) {
+              activeRoute = nil
+              showingActiveRouteSheet = false
+            }
+          }
+        )
+        .presentationDetents([.height(84), .fraction(0.5), .large])
+        .presentationDragIndicator(.visible)
+        .interactiveDismissDisabled(true)
+        .presentationBackgroundInteraction(.enabled)
+      } else {
+        EmptyView()
       }
-      .mapStyle(.standard)
-      .ignoresSafeArea()
-      
-      // Overlay following iOS design patterns
-      VStack {
-        // Top overlay - Profile button (top-left like Apple Maps)
-        HStack {
-          // Profile Entry as NavigationLink (push)
-          NavigationLink(destination: ProfileView()) {
-            Image(systemName: "person.circle.fill")
-              .font(.system(size: 20))
-              .foregroundColor(.blue)
-              .frame(width: 40, height: 40)
-              .background(
-                Circle()
-                  .fill(.regularMaterial)
-                  .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
-              )
-          }
-          .accessibilityIdentifier("home.profile.button")
-          .accessibilityLabel("Profil öffnen")
-          
-          Spacer()
-          
-          // Phase 2: Location Button - Always visible, smart behavior
-          Button(action: {
-            if !locationService.isLocationAuthorized {
-              // Not authorized - request permission or show settings
-              if locationService.authorizationStatus == .denied || locationService.authorizationStatus == .restricted {
-                showingLocationPermissionAlert = true
-              } else {
-                Task { @MainActor in
-                  await locationService.requestLocationPermission()
-                }
-              }
-            } else {
-              // Authorized - center on user location
-              if let userLocation = locationService.currentLocation {
-                withAnimation(.easeInOut(duration: 0.8)) {
-                  cameraPosition = MapCameraPosition.region(
-                    MKCoordinateRegion(
-                      center: userLocation.coordinate,
-                      span: MKCoordinateSpan(latitudeDelta: 0.005, longitudeDelta: 0.005)
-                    )
-                  )
-                }
-              }
-            }
-          }) {
-            Image(systemName: locationButtonIcon)
-              .font(.system(size: 18))
-              .foregroundColor(locationButtonColor)
-              .frame(width: 40, height: 40)
-              .background(
-                Circle()
-                  .fill(.regularMaterial)
-                  .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
-              )
-          }
-          .accessibilityIdentifier("home.location.button")
-          .accessibilityLabel("Mein Standort")
-        }
-        .padding(.horizontal, 20)
-        .padding(.top, 16)
-        
-        Spacer()
-        
-        // Bottom overlay - Different based on route state
-        if let route = activeRoute {
-          // Route is active - Show route controls
-          VStack(spacing: 16) {
-            // Route info card
-            HStack(spacing: 12) {
-              VStack(alignment: .leading, spacing: 4) {
-                Text("Deine Tour läuft!")
-                  .font(.caption)
-                  .foregroundColor(.secondary)
-                
-                Text("\(Int(route.totalDistance / 1000)) km • \(formatExperienceTime(route.totalExperienceTime))")
-                  .font(.subheadline)
-                  .fontWeight(.medium)
-              }
-              
-              Spacer()
-              
-              Text("\(route.numberOfStops) coole Stopps")
-                .font(.caption)
-                .foregroundColor(.secondary)
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .background(
-              RoundedRectangle(cornerRadius: 12)
-                .fill(.regularMaterial)
-                .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
-            )
-            
-            // Route action buttons
-            HStack(spacing: 12) {
-              // Stop Route Button
-              Button(action: {
-                withAnimation(.easeInOut(duration: 0.3)) {
-                  activeRoute = nil
-                }
-              }) {
-                HStack(spacing: 6) {
-                  Image(systemName: "stop.fill")
-                    .font(.system(size: 16, weight: .medium))
-                  Text("Tour beenden")
-                    .font(.body)
-                    .fontWeight(.medium)
-                }
-                .foregroundColor(.white)
-                .padding(.horizontal, 20)
-                .padding(.vertical, 12)
-                .background(
-                  RoundedRectangle(cornerRadius: 20)
-                    .fill(.red)
-                    .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
-                )
-              }
-              
-              // Modify Route Button
-              Button(action: {
-                showingRoutePlanning = true
-              }) {
-                HStack(spacing: 6) {
-                  Image(systemName: "pencil")
-                    .font(.system(size: 16, weight: .medium))
-                  Text("Anpassen")
-                    .font(.body)
-                    .fontWeight(.medium)
-                }
-                .foregroundColor(.blue)
-                .padding(.horizontal, 20)
-                .padding(.vertical, 12)
-                .background(
-                  RoundedRectangle(cornerRadius: 20)
-                    .fill(.regularMaterial)
-                    .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
-                )
-              }
-              .accessibilityIdentifier("route.edit.button")
-            }
-          }
-          .padding(.bottom, 50)
-          
-        } else {
-          // No active route – drei Primäraktionen im Thumb‑Bereich
-          VStack(spacing: 12) {
-            // Automatisch planen
-            Button(action: {
-              desiredPlanningMode = .automatic
-              SecureLogger.shared.logUserAction("Tap plan automatic")
-              showingRoutePlanning = true
-            }) {
-              HStack(spacing: 10) {
-                Image(systemName: "sparkles")
-                  .font(.system(size: 16, weight: .medium))
-                Text("Automatisch planen")
-                  .font(.headline)
-                  .fontWeight(.medium)
-              }
-              .foregroundColor(.white)
-              .frame(maxWidth: .infinity)
-              .padding(.vertical, 14)
-              .background(
-                RoundedRectangle(cornerRadius: 14)
-                  .fill(.blue)
-                  .shadow(color: .black.opacity(0.15), radius: 6, x: 0, y: 3)
-              )
-            }
-            .accessibilityIdentifier("home.plan.automatic")
-            .accessibilityLabel("Automatisch planen")
-            // Legacy Identifier für bestehende UI-Tests (Kompatibilität)
-            .accessibilityIdentifier("Los, planen wir!")
-
-            // Manuell auswählen
-            Button(action: {
-              desiredPlanningMode = .manual
-              SecureLogger.shared.logUserAction("Tap plan manual")
-              showingRoutePlanning = true
-            }) {
-              HStack(spacing: 10) {
-                Image(systemName: "hand.point.up.left")
-                  .font(.system(size: 16, weight: .medium))
-                Text("Manuell auswählen")
-                  .font(.headline)
-                  .fontWeight(.medium)
-              }
-              .foregroundColor(.blue)
-              .frame(maxWidth: .infinity)
-              .padding(.vertical, 14)
-              .background(
-                RoundedRectangle(cornerRadius: 14)
-                  .fill(.regularMaterial)
-                  .shadow(color: .black.opacity(0.08), radius: 4, x: 0, y: 2)
-              )
-            }
-            .accessibilityIdentifier("home.plan.manual")
-            .accessibilityLabel("Manuell auswählen")
-
-            if FeatureFlags.quickRoutePlanningEnabled {
-              // Schnell planen (Quick)
-              Button(action: {
-                SecureLogger.shared.logInfo("⚡️ Quick‑Plan: Trigger gedrückt", category: .ui)
-                Task { await startQuickPlanning() }
-              }) {
-                HStack(spacing: 10) {
-                  Image(systemName: "bolt.circle")
-                    .font(.system(size: 16, weight: .medium))
-                  Text("Schnell planen")
-                    .font(.headline)
-                    .fontWeight(.medium)
-                }
-                .foregroundColor(.white)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 14)
-                .background(
-                  RoundedRectangle(cornerRadius: 14)
-                    .fill(Color.orange)
-                    .shadow(color: .black.opacity(0.15), radius: 6, x: 0, y: 3)
-                )
-              }
-              .accessibilityIdentifier("home.plan.quick")
-              .accessibilityLabel("Schnell planen")
-            }
-          }
-          .padding(.horizontal, 20)
-          .padding(.bottom, 50)
-        }
-      }
-      // Quick‑Planning Loader Overlay
-      .overlay(
-        Group {
-          if isQuickPlanning {
-            ZStack {
-              Color.black.opacity(0.25).ignoresSafeArea()
-              VStack(spacing: 16) {
-                ProgressView().scaleEffect(1.2)
-                Text(quickPlanningMessage)
-                  .font(.body)
-                  .foregroundColor(.white)
-              }
-              .padding(.horizontal, 20)
-              .padding(.vertical, 16)
-              .background(RoundedRectangle(cornerRadius: 12).fill(Color.black.opacity(0.55)))
-            }
-          }
-        }
-      )
     }
     .sheet(isPresented: $showingRoutePlanning) {
       RoutePlanningView(onRouteGenerated: { route in
@@ -387,9 +132,22 @@ struct ContentView: View {
     }
     // NavigationBar auf der Root-Map verstecken, damit keine graue/Material-Fläche oben sichtbar ist
     .toolbar(.hidden, for: .navigationBar)
+    // Statusbar/Top bar: keep map truly fullscreen
+    .statusBarHidden(true)
+    .onChange(of: activeRoute != nil) { isActive in
+      if FeatureFlags.activeRouteBottomSheetEnabled {
+        showingActiveRouteSheet = isActive
+      }
+    }
+    .onChange(of: showingRoutePlanning) { isPresented in
+      // When planning sheet is dismissed and a route exists, re-present the active route sheet
+      if FeatureFlags.activeRouteBottomSheetEnabled, !isPresented, activeRoute != nil {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+          showingActiveRouteSheet = true
+        }
+      }
+    }
   }
-}
-
 }
 
 #Preview {
@@ -398,6 +156,255 @@ struct ContentView: View {
 
 // MARK: - Private helpers
 extension ContentView {
+  // Extracted overlay (top controls + bottom actions + loader) to reduce body complexity
+  @ViewBuilder
+  fileprivate var overlayLayer: some View {
+    VStack {
+      // Top overlay
+      HStack {
+        NavigationLink(destination: ProfileView()) {
+          Image(systemName: "person.circle.fill")
+            .font(.system(size: 20))
+            .foregroundColor(.blue)
+            .frame(width: 40, height: 40)
+            .background(
+              Circle()
+                .fill(.regularMaterial)
+                .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
+            )
+        }
+        .accessibilityIdentifier("home.profile.button")
+        .accessibilityLabel("Profil öffnen")
+        Spacer()
+        Button(action: locationButtonTapped) {
+          Image(systemName: locationButtonIcon)
+            .font(.system(size: 18))
+            .foregroundColor(locationButtonColor)
+            .frame(width: 40, height: 40)
+            .background(
+              Circle()
+                .fill(.regularMaterial)
+                .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
+            )
+        }
+        .accessibilityIdentifier("home.location.button")
+        .accessibilityLabel("Mein Standort")
+      }
+      .padding(.horizontal, 20)
+      .padding(.top, 16)
+
+      Spacer()
+
+      // Bottom overlay – legacy or primary actions
+      bottomOverlay
+    }
+    .overlay(
+      Group {
+        if isQuickPlanning {
+          ZStack {
+            Color.black.opacity(0.25).ignoresSafeArea()
+            VStack(spacing: 16) {
+              ProgressView().scaleEffect(1.2)
+              Text(quickPlanningMessage)
+                .font(.body)
+                .foregroundColor(.white)
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 16)
+            .background(RoundedRectangle(cornerRadius: 12).fill(Color.black.opacity(0.55)))
+          }
+        }
+      }
+    )
+  }
+
+  private func locationButtonTapped() {
+    if !locationService.isLocationAuthorized {
+      if locationService.authorizationStatus == .denied || locationService.authorizationStatus == .restricted {
+        showingLocationPermissionAlert = true
+      } else {
+        Task { @MainActor in
+          await locationService.requestLocationPermission()
+        }
+      }
+    } else if let userLocation = locationService.currentLocation {
+      withAnimation(.easeInOut(duration: 0.8)) {
+        cameraPosition = MapCameraPosition.region(
+          MKCoordinateRegion(
+            center: userLocation.coordinate,
+            span: MKCoordinateSpan(latitudeDelta: 0.005, longitudeDelta: 0.005)
+          )
+        )
+      }
+    }
+  }
+  // Extracted Map layer to help the compiler
+  @ViewBuilder
+  fileprivate var mapLayer: some View {
+    Map(position: $cameraPosition) {
+      if locationService.currentLocation != nil {
+        UserAnnotation()
+      }
+      if let route = activeRoute {
+        ForEach(Array(route.routes.enumerated()), id: \.offset) { _, mkRoute in
+          MapPolyline(mkRoute)
+            .stroke(.blue, style: StrokeStyle(lineWidth: 4, lineCap: .round, lineJoin: .round))
+        }
+        ForEach(Array(route.waypoints.enumerated()), id: \.offset) { index, waypoint in
+          Marker(
+            waypoint.name,
+            coordinate: waypoint.coordinate
+          )
+          .tint(index == 0 ? .green : (index == route.waypoints.count - 1 ? .red : waypoint.category.color))
+        }
+      }
+    }
+    .mapControls {
+      MapCompass()
+      MapScaleView()
+    }
+    .mapStyle(.standard)
+    .ignoresSafeArea()
+  }
+
+  // Extracted bottom overlay to reduce body complexity
+  @ViewBuilder
+  fileprivate var bottomOverlay: some View {
+    // 1) Legacy banner only when route active AND sheet feature disabled
+    if let route = activeRoute, !FeatureFlags.activeRouteBottomSheetEnabled {
+      VStack(spacing: 16) {
+        HStack(spacing: 12) {
+          VStack(alignment: .leading, spacing: 4) {
+            Text("Deine Tour läuft!")
+              .font(.caption)
+              .foregroundColor(.secondary)
+            Text("\(Int(route.totalDistance / 1000)) km • \(formatExperienceTime(route.totalExperienceTime))")
+              .font(.subheadline)
+              .fontWeight(.medium)
+          }
+          Spacer()
+          Text("\(route.numberOfStops) coole Stopps")
+            .font(.caption)
+            .foregroundColor(.secondary)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(
+          RoundedRectangle(cornerRadius: 12)
+            .fill(.regularMaterial)
+            .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
+        )
+        HStack(spacing: 12) {
+          Button(action: { withAnimation(.easeInOut(duration: 0.3)) { activeRoute = nil } }) {
+            HStack(spacing: 6) { Image(systemName: "stop.fill").font(.system(size: 16, weight: .medium)); Text("Tour beenden").font(.body).fontWeight(.medium) }
+            .foregroundColor(.white)
+            .padding(.horizontal, 20)
+            .padding(.vertical, 12)
+            .background(
+              RoundedRectangle(cornerRadius: 20)
+                .fill(.red)
+                .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
+            )
+          }
+          Button(action: { showingRoutePlanning = true }) {
+            HStack(spacing: 6) { Image(systemName: "pencil").font(.system(size: 16, weight: .medium)); Text("Anpassen").font(.body).fontWeight(.medium) }
+            .foregroundColor(.blue)
+            .padding(.horizontal, 20)
+            .padding(.vertical, 12)
+            .background(
+              RoundedRectangle(cornerRadius: 20)
+                .fill(.regularMaterial)
+                .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
+            )
+          }
+          .accessibilityIdentifier("route.edit.button")
+        }
+      }
+      .padding(.bottom, 50)
+    } else if activeRoute == nil {
+      VStack(spacing: 12) {
+        Button(action: {
+          desiredPlanningMode = .automatic
+          SecureLogger.shared.logUserAction("Tap plan automatic")
+          showingRoutePlanning = true
+        }) {
+          HStack(spacing: 10) {
+            Image(systemName: "sparkles")
+              .font(.system(size: 16, weight: .medium))
+            Text("Automatisch planen")
+              .font(.headline)
+              .fontWeight(.medium)
+          }
+          .foregroundColor(.white)
+          .frame(maxWidth: .infinity)
+          .padding(.vertical, 14)
+          .background(
+            RoundedRectangle(cornerRadius: 14)
+              .fill(.blue)
+              .shadow(color: .black.opacity(0.15), radius: 6, x: 0, y: 3)
+          )
+        }
+        .accessibilityIdentifier("home.plan.automatic")
+        .accessibilityLabel("Automatisch planen")
+        // Legacy Identifier für bestehende UI-Tests (Kompatibilität)
+        .accessibilityIdentifier("Los, planen wir!")
+
+        Button(action: {
+          desiredPlanningMode = .manual
+          SecureLogger.shared.logUserAction("Tap plan manual")
+          showingRoutePlanning = true
+        }) {
+          HStack(spacing: 10) {
+            Image(systemName: "hand.point.up.left")
+              .font(.system(size: 16, weight: .medium))
+            Text("Manuell auswählen")
+              .font(.headline)
+              .fontWeight(.medium)
+          }
+          .foregroundColor(.blue)
+          .frame(maxWidth: .infinity)
+          .padding(.vertical, 14)
+          .background(
+            RoundedRectangle(cornerRadius: 14)
+              .fill(.regularMaterial)
+              .shadow(color: .black.opacity(0.08), radius: 4, x: 0, y: 2)
+          )
+        }
+        .accessibilityIdentifier("home.plan.manual")
+        .accessibilityLabel("Manuell auswählen")
+
+        if FeatureFlags.quickRoutePlanningEnabled {
+          Button(action: {
+            SecureLogger.shared.logInfo("⚡️ Quick‑Plan: Trigger gedrückt", category: .ui)
+            Task { await startQuickPlanning() }
+          }) {
+            HStack(spacing: 10) {
+              Image(systemName: "bolt.circle")
+                .font(.system(size: 16, weight: .medium))
+              Text("Schnell planen")
+                .font(.headline)
+                .fontWeight(.medium)
+            }
+            .foregroundColor(.white)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 14)
+            .background(
+              RoundedRectangle(cornerRadius: 14)
+                .fill(Color.orange)
+                .shadow(color: .black.opacity(0.15), radius: 6, x: 0, y: 3)
+            )
+          }
+          .accessibilityIdentifier("home.plan.quick")
+          .accessibilityLabel("Schnell planen")
+        }
+      }
+      .padding(.horizontal, 20)
+      .padding(.bottom, 50)
+    } else {
+      // 2) Route active AND sheet feature enabled → hide bottom actions entirely
+      EmptyView()
+    }
+  }
   /// Adjust camera to show entire route
   private func adjustCamera(to route: GeneratedRoute) {
     if let firstWaypoint = route.waypoints.first {
