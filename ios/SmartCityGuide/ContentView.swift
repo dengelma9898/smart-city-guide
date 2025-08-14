@@ -459,7 +459,8 @@ extension ContentView {
       let pois = try await geoapifyService.fetchPOIs(
         at: loc.coordinate,
         cityName: "Mein Standort",
-        categories: PlaceCategory.geoapifyEssentialCategories
+        categories: PlaceCategory.geoapifyEssentialCategories,
+        radiusMeters: 2000
       )
       let fetchDuration = Date().timeIntervalSince(fetchStart)
       SecureLogger.shared.logInfo("Quick POI fetch: \(pois.count) results in \(String(format: "%.2f", fetchDuration))s", category: .performance)
@@ -468,7 +469,7 @@ extension ContentView {
       let routeStart = Date()
       await quickRouteService.generateRoute(
         fromCurrentLocation: loc,
-        maximumStops: .five,
+        maximumStops: .eight,
         endpointOption: .roundtrip,
         customEndpoint: "",
         maximumWalkingTime: .openEnd,

@@ -15,9 +15,10 @@ Best‑Practice‑Leitplanken (aus Mobile‑UX‑Richtlinien):
 - Drei sichtbare Primäraktionen am Startscreen, klar beschriftet und mit Icons/Bildern.
 - „Schnell planen“:
   - Start‑ und Endpunkt = aktueller Standort (Rundreise).
-  - Max. POIs = 5.
+  - Max. POIs = 8.
   - Maximale Gehzeit = keine Begrenzung.
   - Mindestabstand zwischen POIs = kein Minimum.
+  - Suchradius nur für Schnell‑Planung: 2000 m.
   - Keine `RoutePlanningView`/`RouteBuilderView` dazwischen – direktes Anzeigen/Starten der Route auf der Karte.
   - Ladeindikator mit freundlichem Text während der Planung.
 - Fehlerfälle (keine Standortfreigabe, kein GPS‑Fix, keine POIs gefunden) werden freundlich und stabil behandelt.
@@ -126,7 +127,7 @@ Verifikation: VoiceOver‑Durchlauf; große Schrift skaliert ohne Layout‑Brüc
 Änderungspunkt: `Views/Profile/HelpSupportView.swift`.
 
 Tasks:
-1. Neuer FAQ‑Eintrag: „Was ist Schnell‑Planung?“ mit kurzer Erklärung (Rundreise vom aktuellen Standort, feste Parameter, sofortige Karte).
+1. Neuer FAQ‑Eintrag: „Was ist Schnell‑Planung?“ mit kurzer Erklärung (Rundreise vom aktuellen Standort, bis zu 8 Orte, Suchradius 2000 m nur für diesen Modus, „Open End“ Gehzeit, kein Mindestabstand, sofortige Karte).
 2. Hinweis zu Standortfreigabe.
 
 Verifikation: Eintrag sichtbar; Rechtschreibung; Links/Text stimmen.
@@ -185,68 +186,3 @@ Verifikation: Flag aus/anmachbar; Metriken erfassbar.
 - [ ] Phase 10 Flag (optional)
 
 ---
-
-## Phase 11 – Quick‑POI nur innerhalb der Start‑Stadt (Geoapify Places API)
-Ziel: Die Schnell‑Suche lädt POIs ausschließlich innerhalb der Stadt, in der Start und Endpunkt liegen (Rundreise). Keine umliegenden Ortschaften.
-
-Änderungspunkte: `Services/GeoapifyAPIService.swift`, `Services/POICacheService.swift`, `ContentView.swift` (Quick‑Flow‑Aufruf)
-
-Tasks:
-1. Stadt aus aktueller Position bestimmen (Reverse Geocoding über Geoapify)
-   - Neue Service‑Funktion: `resolveCityContext(for coordinate) -> CityContext { cityName, countryCode, cityId, bboxOrPolygon }`
-   - `cityId`/Boundary aus der Geoapify Geocoding Response extrahieren (für Places‑Filter)
-2. POIs strikt auf Stadt einschränken (Geoapify Places API)
-   - Neue Funktion: `fetchPOIsInCity(cityId: String, categories: [PlaceCategory]) -> [POI]`
-   - Request mit Places‑Filter für die spezifische Stadt (z. B. `filter=place:<cityId>` bzw. boundary‑basiert je nach Geoapify‑Spezifikation)
-   - Optional `bias=proximity:<lat,lon>` nur als Sortierung, nicht als räumliche Einschränkung
-3. Caching anpassen
-   - `POICacheService` Keys um `cityId` erweitern, damit keine Vermischung zwischen Städten auftritt
-4. Quick‑Flow Wiring
-   - Quick‑Flow ersetzt bisherigen POI‑Fetch komplett durch `fetchPOIsInCity`
-
-Verifikation:
-- Logs zeigen eindeutig die Stadt (Name + `cityId`) und dass der Places‑Call mit Stadt‑Filter erfolgt
-- Route entsteht in üblichen Fällen ohne POIs außerhalb der Stadtgrenze
-- MCP‑Build grün, manuelle Sichtprüfung im Simulator
-
----
-
-## Phase 12 – Quick‑Search vereinfachen (andere Logiken entfernen)
-Ziel: Alle alternativen Logiken für die Schnell‑Suche entfernen; Quick‑Flow nutzt ausschließlich die Stadt‑basierten Geoapify‑Places.
-
-Änderungspunkte: `ContentView.swift`, `Services/GeoapifyAPIService.swift`, `Services/RouteService.swift`
-
-Tasks:
-1. Entfernen/Fallbacks deaktivieren
-   - MKLocalSearch‑Fallback vollständig entfernen
-   - Jegliche bounding/radius‑Heuristiken zugunsten des Geoapify‑Stadt‑Filters entfernen
-2. Schnittstellen bereinigen
-   - Quick‑Flow: keine `cityName: "Mein Standort"` mehr; stattdessen verpflichtend `cityId`
-   - RouteService bleibt unverändert; nur der Call‑Site liefert POIs aus der Stadt
-3. Logging
-   - Quick‑Flow Logging ergänzt: `cityId`, `cityName`, Anzahl POIs
-
-Verifikation:
-- Code‑Suche bestätigt, dass `MKLocalSearch` und radius‑basierte Alternativen im Quick‑Flow nicht mehr verwendet werden
-- Quick‑Flow funktioniert ausschließlich über `fetchPOIsInCity`
-
----
-
-## Phase 13 – Tests & MCP‑Verifikation (City‑Scope)
-Ziel: Nachweis, dass die Schnell‑Suche nur Stadt‑interne POIs nutzt.
-
-Tasks:
-1. Simulator‑Standort auf Nürnberg setzen (MCP)
-   - Quick‑Flow auslösen → Logs müssen `cityName=Nürnberg` und einen Geoapify‑Places‑Call mit Stadt‑Filter zeigen
-2. UI‑Test anpassen/ergänzen
-   - Neuer Testfall `Route_Quick_City_Scoped_Tests`
-   - Prüft: Loader sichtbar → „Deine Tour läuft!“ sichtbar → keine Interims‑Screens
-   - Optional: Prüfen auf Log‑Muster (City‑Scope)
-3. Negative Pfade
-   - Keine Stadt ermittelbar → freundlicher Fehlerhinweis
-   - Geoapify liefert 0 POIs → Hinweis „Keine Orte in <Stadt> gefunden“
-
-Verifikation:
-- MCP‑Build & Run grün
-- UI‑Test läuft stabil (iPhone 16)
-- Log‑Auswertung bestätigt City‑Scope (ohne zusätzliche Heuristiken)
