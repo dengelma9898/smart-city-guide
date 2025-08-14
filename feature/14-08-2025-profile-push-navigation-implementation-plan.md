@@ -32,9 +32,9 @@ Abnahme-Kriterien
 ### Phase 2 – UI/UX-Feinschliff
 Verifizierbares Ziel: Konsistente Titel/Back-Labels, Accessibility und State-Verhalten.
 
-- [ ] Navigationstitel setzen: `ProfileView` und Unterseiten mit prägnanten Titeln.
+- [x] Navigationstitel setzen: `ProfileView` und Unterseiten mit prägnanten Titeln.
 - [ ] Back-Button-Label (falls abweichend sinnvoll), kürzen/lokalisieren.
-- [ ] A11y: `accessibilityIdentifier` für Haupt-Buttons/Listen.
+- [x] A11y: `accessibilityIdentifier` für Haupt-Buttons/Listen/Screens ergänzt (`profile.*.screen`).
 - [ ] Deeplink-Kompatibilität: Öffnen einer Unterseite via Push funktioniert (NavigationStack-Pfad).
 - [ ] Persistenz: Re-Entry ins Profil erhält den zuletzt aktiven Zustand nicht (immer frischer Einstieg) – sofern gewünscht.
 - [ ] Design-Check: Spacing/Grouping konsistent zu iOS Einstellungen.

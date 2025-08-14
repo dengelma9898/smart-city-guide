@@ -5,8 +5,7 @@ struct AGBView: View {
     
     
     var body: some View {
-        NavigationView {
-            ScrollView {
+        ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
                     // Header
                     VStack(alignment: .leading, spacing: 12) {
@@ -198,10 +197,10 @@ struct AGBView: View {
                     Spacer()
                 }
                 .padding(.bottom, 32)
-            }
-            .navigationTitle("AGB")
-            .navigationBarTitleDisplayMode(.inline)
         }
+        .navigationTitle("AGB")
+        .navigationBarTitleDisplayMode(.inline)
+        .accessibilityIdentifier("profile.agb.screen")
     }
 }
 
