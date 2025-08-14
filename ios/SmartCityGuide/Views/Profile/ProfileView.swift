@@ -15,7 +15,7 @@ struct ProfileView: View {
                 VStack(spacing: 24) {
                     // Enhanced Profile Header
                     VStack(spacing: 16) {
-                        ProfileImageView()
+                        ProfileImageView(interaction: .overlayPicker)
                             .environmentObject(profileManager)
                             .onTapGesture { showingAvatarSheet = true }
                         
@@ -294,14 +294,16 @@ struct EditProfileView: View {
     
     @State private var name: String = ""
     @State private var email: String = ""
+    @State private var showingAvatarSheet: Bool = false
     
     var body: some View {
         NavigationView {
             Form {
                 // Foto zuerst anzeigen
                 Section("Dein Foto") {
-                    ProfileImageView()
+                    ProfileImageView(interaction: .overlayPicker)
                         .environmentObject(profileManager)
+                        .onTapGesture { showingAvatarSheet = true }
                 }
                 
                 // Danach Name/E-Mail
@@ -330,6 +332,12 @@ struct EditProfileView: View {
                     .disabled(name.isEmpty || email.isEmpty)
                     .accessibilityIdentifier("profile.save.button")
                 }
+            }
+            .sheet(isPresented: $showingAvatarSheet) {
+                AvatarQuickActionsSheet()
+                    .environmentObject(profileManager)
+                    .presentationDetents([.medium])
+                    .presentationDragIndicator(.visible)
             }
         }
         .onAppear {
