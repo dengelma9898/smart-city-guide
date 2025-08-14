@@ -112,14 +112,8 @@ struct RouteHistoryView: View {
             .navigationBarTitleDisplayMode(.large)
             .accessibilityIdentifier("profile.history.screen")
             .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Fertig") {
-                        dismiss()
-                    }
-                }
-                
                 if !historyManager.savedRoutes.isEmpty {
-                    ToolbarItem(placement: .navigationBarLeading) {
+                    ToolbarItem(placement: .navigationBarTrailing) {
                         Menu {
                             Button("Alles löschen", role: .destructive) {
                                 showingDeleteAlert = true
@@ -127,6 +121,7 @@ struct RouteHistoryView: View {
                         } label: {
                             Image(systemName: "ellipsis.circle")
                         }
+                        .accessibilityIdentifier("profile.history.menu")
                     }
                 }
             }
