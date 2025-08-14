@@ -6,6 +6,7 @@ struct ProfileView: View {
     @StateObject private var profileManager = UserProfileManager()
     @StateObject private var settingsManager = ProfileSettingsManager.shared
     @StateObject private var historyManager = RouteHistoryManager()
+    @State private var showingAvatarSheet = false
     
     // Sheets für Unterseiten entfallen – alle Unterseiten öffnen via Push
     
@@ -16,6 +17,7 @@ struct ProfileView: View {
                     VStack(spacing: 16) {
                         ProfileImageView()
                             .environmentObject(profileManager)
+                            .onTapGesture { showingAvatarSheet = true }
                         
                         VStack(spacing: 8) {
                             Text(profileManager.profile.name)
@@ -225,6 +227,21 @@ struct ProfileView: View {
         .navigationBarTitleDisplayMode(.large)
         .accessibilityIdentifier("profile.root.screen")
         // Keine Sheet-Präsentationen mehr für Profil-Unterseiten
+        .sheet(isPresented: $showingAvatarSheet) {
+            AvatarQuickActionsSheet()
+                .environmentObject(profileManager)
+                .presentationDetents([.medium])
+                .presentationDragIndicator(.visible)
+        }
+    }
+
+    // Quick-Action Sheet für Profilbild
+    @ViewBuilder
+    private var avatarQuickActionsSheet: some View {
+        AvatarQuickActionsSheet()
+            .environmentObject(profileManager)
+            .presentationDetents([.medium])
+            .presentationDragIndicator(.visible)
     }
     
     private var totalDistance: String {
