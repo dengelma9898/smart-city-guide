@@ -61,6 +61,9 @@ struct ContentView: View {
               activeRoute = nil
               showingActiveRouteSheet = false
             }
+          },
+          onAddStop: {
+            // Placeholder: will open manual add/edit in Phase 3
           }
         )
         .presentationDetents([.height(84), .fraction(0.5), .large])

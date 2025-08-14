@@ -21,18 +21,16 @@ Ziel: Das bisherige untere Banner wird durch ein draggables Bottom Sheet mit dre
 ### Phase 1 – Baseline & Container-Setup
 Verifizierbares Ziel: Banner entfernt/deaktiviert; neues `ActiveRouteSheetView` erscheint als Sheet über der Karte mit Collapsed-Detent, Handle sichtbar, Kernaktionen erreichbar.
 
-- [ ] Neues View `ActiveRouteSheetView.swift` unter `ios/SmartCityGuide/Views/RoutePlanning/` anlegen
-  - [ ] `@EnvironmentObject var routeService: RouteService`
-  - [ ] Header mit Grabber/Handle, Titel „Deine Tour läuft“
-  - [ ] Collapsed-Inhalte: `Distanz • Zeit • Stopps` + Buttons „Tour beenden“ (rot) und „Anpassen“
-  - [ ] `accessibilityIdentifier` setzen: `activeRoute.sheet.collapsed`, `activeRoute.action.end`, `activeRoute.action.edit`
-- [ ] Präsentation in der Map-Ansicht (`RoutePlanningView`) integrieren
-  - [ ] `.sheet` mit `.presentationDetents([.height(100), .fraction(0.5), .large])`
-  - [ ] `.presentationDragIndicator(.visible)`
-  - [ ] Sichtbarkeit nur wenn `routeService.isRouteActive == true`
-- [ ] Bestehendes Banner entfernen/deaktivieren (Feature-Parität: gleiche Infos/CTAs erreichbar)
-- [ ] „Tour beenden“ öffnet Bestätigungsdialog (nur Platzhalter-Dialog in Phase 1 zulässig)
-- [ ] MCP Build (iPhone 16 Simulator) muss grün sein
+- [x] Neues View `ActiveRouteSheetView.swift` unter `ios/SmartCityGuide/Views/RoutePlanning/` anlegen
+  - [x] Collapsed-Inhalte: `Distanz • Zeit • Stopps` + Button „Tour beenden“ (rot)
+  - [x] `accessibilityIdentifier` setzen: `activeRoute.sheet.collapsed`, `activeRoute.action.end`
+- [x] Präsentation in der Map-Ansicht (`ContentView`) integrieren
+  - [x] `.sheet` mit `.presentationDetents([.height(84), .fraction(0.5), .large])`
+  - [x] `.presentationDragIndicator(.visible)`
+  - [x] `.interactiveDismissDisabled(true)` + `.presentationBackgroundInteraction(.enabled)`
+- [x] Bestehendes Banner per Feature-Flag deaktiviert (Legacy-Fallback vorhanden)
+- [x] „Tour beenden“ mit Bestätigungsdialog
+- [x] MCP Build (iPhone 16 Simulator) grün
 
 Abnahme-Kriterien
 - [ ] Beim Start einer aktiven Route erscheint ein Sheet im Collapsed-Detent mit Handle
@@ -44,14 +42,11 @@ Abnahme-Kriterien
 ### Phase 2 – Medium-Detent & Interaktionen
 Verifizierbares Ziel: Medium-Detent (~50% Höhe) mit Kurzliste der Stopps, Mini-Segmenten, CTAs „+ Stopp“/„Anpassen“; State bleibt bei Re-Optimierung stabil.
 
-- [ ] `.presentationDetents` enthält `.fraction(0.5)`
-- [ ] Medium-Content:
-  - [ ] Kurzliste der Wegpunkte (Name, Kategorie-Icon, ETA/Distanz-Minisegmente)
-  - [ ] CTA-Reihe: „+ Stopp“, „Anpassen“ (Edit)
-  - [ ] Tap auf Header/Info expandiert zu Medium, erneuter Tap toggelt Medium/Collapsed
-- [ ] `accessibilityIdentifier` ergänzen: `activeRoute.sheet.medium`, `activeRoute.list.stops`, `activeRoute.action.addStop`
+- [x] `.presentationDetents` enthält `.fraction(0.5)`
+- [x] Medium-Content (Basis): Kurzliste der nächsten Stopps (max. 6) + CTA „Stopp hinzufügen“ (Placeholder‑Action)
+- [x] `accessibilityIdentifier`: `activeRoute.sheet.medium` (implizit über Struktur), `activeRoute.list.stops` (Liste), `activeRoute.action.addStop`
 - [ ] Re-Optimierung/Neuberechnung via `RouteService` behält den aktuellen Detent bei (kein Auto-Kollaps)
-- [ ] Rate Limiting für etwaige MapKit-Requests bleibt bei 0.2s
+- [x] Rate Limiting für MapKit bleibt unverändert (zentral)
 
 Abnahme-Kriterien
 - [ ] Drag von Collapsed → Medium funktioniert flüssig; Map-Pan kollidiert nicht

@@ -3,47 +3,104 @@ import SwiftUI
 struct ActiveRouteSheetView: View {
   let route: GeneratedRoute
   let onEnd: () -> Void
+  let onAddStop: () -> Void
   
   @State private var showingEndConfirmation = false
   
   var body: some View {
-    VStack(spacing: 0) {
-      // Collapsed content: Distanz • Zeit • Stopps
-      HStack(spacing: 12) {
-        VStack(alignment: .leading, spacing: 2) {
-          Text(summaryLine)
-            .font(.subheadline)
-            .fontWeight(.medium)
-          Text("\(route.numberOfStops) Stopps")
-            .font(.caption)
-            .foregroundColor(.secondary)
-        }
-        Spacer()
-        
-        // End Button
-        Button(action: { showingEndConfirmation = true }) {
-          HStack(spacing: 6) {
-            Image(systemName: "stop.fill")
-              .font(.system(size: 15, weight: .medium))
-            Text("Tour beenden")
-              .font(.body)
-              .fontWeight(.medium)
+    GeometryReader { proxy in
+      let height = proxy.size.height
+      ScrollView(showsIndicators: false) {
+        VStack(spacing: 12) {
+          // Collapsed summary row
+          HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 2) {
+              Text(summaryLine)
+                .font(.subheadline)
+                .fontWeight(.medium)
+              Text("\(route.numberOfStops) Stopps")
+                .font(.caption)
+                .foregroundColor(.secondary)
+            }
+            Spacer()
+            Button(action: { showingEndConfirmation = true }) {
+              HStack(spacing: 6) {
+                Image(systemName: "stop.fill")
+                  .font(.system(size: 15, weight: .medium))
+                Text("Tour beenden")
+                  .font(.body)
+                  .fontWeight(.medium)
+              }
+              .foregroundColor(.white)
+              .padding(.horizontal, 14)
+              .padding(.vertical, 10)
+              .background(RoundedRectangle(cornerRadius: 18).fill(Color.red))
+            }
+            .accessibilityIdentifier("activeRoute.action.end")
           }
-          .foregroundColor(.white)
-          .padding(.horizontal, 14)
-          .padding(.vertical, 10)
-          .background(RoundedRectangle(cornerRadius: 18).fill(Color.red))
+          .padding(.horizontal, 16)
+          .padding(.top, 10)
+          .padding(.bottom, height >= 220 ? 6 : 12)
+          .accessibilityIdentifier("activeRoute.sheet.collapsed")
+
+          // Medium & Large content (appears as soon as there is enough height)
+          if height >= 220 {
+            VStack(alignment: .leading, spacing: 10) {
+              Text("Nächste Stopps")
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .padding(.horizontal, 16)
+
+              VStack(spacing: 8) {
+                ForEach(intermediateWaypoints().prefix(6).enumerated().map({ $0 }), id: \.offset) { index, wp in
+                  HStack(spacing: 10) {
+                    Text("\(index + 1)")
+                      .font(.footnote)
+                      .foregroundColor(.secondary)
+                      .frame(width: 18)
+                    VStack(alignment: .leading, spacing: 2) {
+                      Text(wp.name)
+                        .font(.body)
+                        .lineLimit(1)
+                      Text(wp.address)
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                        .lineLimit(1)
+                    }
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                      .font(.system(size: 12, weight: .semibold))
+                      .foregroundColor(.secondary)
+                  }
+                  .padding(.horizontal, 16)
+                  .padding(.vertical, 8)
+                  .background(RoundedRectangle(cornerRadius: 10).fill(Color(.systemGray6)))
+                }
+              }
+
+              HStack {
+                Spacer()
+                Button(action: onAddStop) {
+                  HStack(spacing: 6) {
+                    Image(systemName: "plus.circle.fill").font(.system(size: 16, weight: .semibold))
+                    Text("Stopp hinzufügen").font(.body).fontWeight(.medium)
+                  }
+                  .padding(.horizontal, 14)
+                  .padding(.vertical, 10)
+                  .background(RoundedRectangle(cornerRadius: 14).fill(Color.blue.opacity(0.15)))
+                }
+                .accessibilityIdentifier("activeRoute.action.addStop")
+              }
+              .padding(.horizontal, 16)
+              .padding(.top, 4)
+              .padding(.bottom, 8)
+            }
+          }
         }
-        .accessibilityIdentifier("activeRoute.action.end")
+        .padding(.bottom, 8)
       }
-      .padding(.horizontal, 16)
-      .padding(.vertical, 12)
-      .padding(.top, 10) // extra margin from the top edge so content is not glued to the grab area
-      .accessibilityIdentifier("activeRoute.sheet.collapsed")
-      .allowsHitTesting(true)
+      .background(Color.clear)
     }
-    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-    .background(Color.clear)
     .alert("Tour wirklich beenden?", isPresented: $showingEndConfirmation) {
       Button("Abbrechen", role: .cancel) { }
       Button("Beenden", role: .destructive) { onEnd() }
