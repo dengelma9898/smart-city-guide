@@ -33,10 +33,10 @@ Abnahme-Kriterien
 Verifizierbares Ziel: Konsistente Titel/Back-Labels, Accessibility und State-Verhalten.
 
 - [x] Navigationstitel setzen: `ProfileView` und Unterseiten mit prägnanten Titeln.
-- [ ] Back-Button-Label (falls abweichend sinnvoll), kürzen/lokalisieren.
+ - [x] Back-Button-Label (falls abweichend sinnvoll), kürzen/lokalisieren.
 - [x] A11y: `accessibilityIdentifier` für Haupt-Buttons/Listen/Screens ergänzt (`profile.*.screen`).
 - [ ] Deeplink-Kompatibilität: Öffnen einer Unterseite via Push funktioniert (NavigationStack-Pfad).
-- [ ] Persistenz: Re-Entry ins Profil erhält den zuletzt aktiven Zustand nicht (immer frischer Einstieg) – sofern gewünscht.
+- [x] Persistenz: Re-Entry ins Profil erhält den zuletzt aktiven Zustand nicht (immer frischer Einstieg) – sofern gewünscht.
 - [ ] Design-Check: Spacing/Grouping konsistent zu iOS Einstellungen.
 
 Abnahme-Kriterien

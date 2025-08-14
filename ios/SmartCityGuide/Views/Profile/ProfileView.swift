@@ -10,8 +10,7 @@ struct ProfileView: View {
     // Sheets für Unterseiten entfallen – alle Unterseiten öffnen via Push
     
     var body: some View {
-        NavigationView {
-            ScrollView {
+        ScrollView {
                 VStack(spacing: 24) {
                     // Enhanced Profile Header
                     VStack(spacing: 16) {
@@ -222,16 +221,9 @@ struct ProfileView: View {
                 }
                 .padding(.horizontal, 20)
             }
-            .navigationTitle("Dein Profil")
-            .navigationBarTitleDisplayMode(.large)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Fertig") {
-                        dismiss()
-                    }
-                }
-            }
-        }
+        .navigationTitle("Dein Profil")
+        .navigationBarTitleDisplayMode(.large)
+        .accessibilityIdentifier("profile.root.screen")
         // Keine Sheet-Präsentationen mehr für Profil-Unterseiten
     }
     
