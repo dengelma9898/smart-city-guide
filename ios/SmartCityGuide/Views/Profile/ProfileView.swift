@@ -7,13 +7,7 @@ struct ProfileView: View {
     @StateObject private var settingsManager = ProfileSettingsManager.shared
     @StateObject private var historyManager = RouteHistoryManager()
     
-    @State private var showingSettings = false
-    @State private var showingRouteHistory = false
-    @State private var showingEditProfile = false
-    @State private var showingHelpSupport = false
-    @State private var showingImpressum = false
-    @State private var showingDatenschutz = false
-    @State private var showingAGB = false
+    // Sheets für Unterseiten entfallen – alle Unterseiten öffnen via Push
     
     var body: some View {
         NavigationView {
@@ -34,11 +28,11 @@ struct ProfileView: View {
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
                             
-                            Button("Los, ändere dein Profil!") {
-                                showingEditProfile = true
+                            NavigationLink(destination: EditProfileView().environmentObject(profileManager)) {
+                                Text("Los, ändere dein Profil!")
+                                    .font(.caption)
+                                    .foregroundColor(.blue)
                             }
-                            .font(.caption)
-                            .foregroundColor(.blue)
                             .accessibilityIdentifier("profile.open.edit.button")
                         }
                     }
@@ -238,30 +232,7 @@ struct ProfileView: View {
                 }
             }
         }
-        .sheet(isPresented: $showingSettings) {
-            ProfileSettingsView()
-                .environmentObject(settingsManager)
-        }
-        .sheet(isPresented: $showingRouteHistory) {
-            RouteHistoryView()
-                .environmentObject(historyManager)
-        }
-        .sheet(isPresented: $showingEditProfile) {
-            EditProfileView()
-                .environmentObject(profileManager)
-        }
-        .sheet(isPresented: $showingHelpSupport) {
-            HelpSupportView()
-        }
-        .sheet(isPresented: $showingImpressum) {
-            ImpressumView()
-        }
-        .sheet(isPresented: $showingAGB) {
-            AGBView()
-        }
-        .sheet(isPresented: $showingDatenschutz) {
-            DatenschutzerklaerungView()
-        }
+        // Keine Sheet-Präsentationen mehr für Profil-Unterseiten
     }
     
     private var totalDistance: String {
