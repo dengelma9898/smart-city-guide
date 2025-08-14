@@ -48,12 +48,12 @@ Abnahme-Kriterien
 ### Phase 3 – Quick-Actions via Sheet
 Verifizierbares Ziel: Nur kleine, reversible Aufgaben laufen als Sheet.
 
-- [ ] Avatar ändern: Kleines Sheet mit `.presentationDetents([.medium])` (Kamera/Album).
-- [ ] Bestätigungs-/Fehlerfälle: Saubere Dismiss-Logik, keine NavigationStack-Kopplung.
-- [ ] Keine Unterseite (AGB/DSGVO/Settings/History) nutzt Sheets.
+- [x] Avatar ändern: Kleines Sheet mit `.presentationDetents([.medium])` (Kamera/Album).
+- [x] Bestätigungs-/Fehlerfälle: Saubere Dismiss-Logik, keine NavigationStack-Kopplung.
+- [x] Keine Unterseite (AGB/DSGVO/Settings/History) nutzt Sheets.
 
 Abnahme-Kriterien
-- [ ] Avatar-Flow funktioniert in Isolation; Zurück kehrt exakt zur Profilseite zurück.
+- [x] Avatar-Flow funktioniert in Isolation; Zurück kehrt exakt zur Profilseite zurück.
 
 ---
 

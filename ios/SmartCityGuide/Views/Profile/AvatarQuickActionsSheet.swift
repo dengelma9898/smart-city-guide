@@ -6,6 +6,7 @@ struct AvatarQuickActionsSheet: View {
     @EnvironmentObject var profileManager: UserProfileManager
     @State private var pickerPresented = false
     @State private var selectedItem: PhotosPickerItem?
+    @State private var cameraPresented = false
 
     var body: some View {
         NavigationView {
@@ -14,6 +15,16 @@ struct AvatarQuickActionsSheet: View {
                     .environmentObject(profileManager)
 
                 HStack(spacing: 12) {
+                    if UIImagePickerController.isSourceTypeAvailable(.camera) {
+                        Button {
+                            cameraPresented = true
+                        } label: {
+                            Label("Foto aufnehmen", systemImage: "camera")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.bordered)
+                        .accessibilityIdentifier("profile.avatar.capture")
+                    }
                     Button {
                         pickerPresented = true
                     } label: {
@@ -21,6 +32,7 @@ struct AvatarQuickActionsSheet: View {
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.borderedProminent)
+                    .accessibilityIdentifier("profile.avatar.select")
 
                     Button(role: .destructive) {
                         removeProfileImage()
@@ -29,22 +41,34 @@ struct AvatarQuickActionsSheet: View {
                             .frame(maxWidth: .infinity)
                     }
                     .disabled(profileManager.profile.profileImagePath == nil)
+                    .accessibilityIdentifier("profile.avatar.remove")
                 }
                 .padding(.horizontal)
 
                 Spacer()
             }
+            .accessibilityIdentifier("profile.avatar.sheet")
             .navigationTitle("Profilbild")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Fertig") { dismiss() }
+                        .accessibilityIdentifier("profile.avatar.done")
                 }
             }
         }
         .photosPicker(isPresented: $pickerPresented, selection: $selectedItem, matching: .images)
         .onChange(of: selectedItem) { _, newItem in
             Task { await loadSelectedImage(from: newItem) }
+        }
+        .sheet(isPresented: $cameraPresented) {
+            CameraCaptureView { image in
+                if let jpeg = image.jpegData(compressionQuality: 0.8) {
+                    if let old = profileManager.profile.profileImagePath { ProfileImageHelper.deleteImage(at: old) }
+                    if let newPath = ProfileImageHelper.saveImage(jpeg) { profileManager.setProfileImage(path: newPath) }
+                }
+                cameraPresented = false
+            }
         }
     }
 
