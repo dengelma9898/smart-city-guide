@@ -281,17 +281,19 @@ struct EditProfileView: View {
     var body: some View {
         NavigationView {
             Form {
+                // Foto zuerst anzeigen
+                Section("Dein Foto") {
+                    ProfileImageView()
+                        .environmentObject(profileManager)
+                }
+                
+                // Danach Name/E-Mail
                 Section("Erzähl uns von dir!") {
                     TextField("Name", text: $name)
                         .accessibilityIdentifier("profile.name.textfield")
                     TextField("E-Mail", text: $email)
                         .keyboardType(.emailAddress)
                         .autocapitalization(.none)
-                }
-                
-                Section("Dein Foto") {
-                    ProfileImageView()
-                        .environmentObject(profileManager)
                 }
             }
             .navigationTitle("Profil anpassen")
@@ -304,7 +306,7 @@ struct EditProfileView: View {
                 }
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Fertig!") {
+                    Button("Speichern") {
                         saveProfile()
                         dismiss()
                     }
