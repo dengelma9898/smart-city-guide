@@ -385,6 +385,8 @@ struct ContentView: View {
     } message: {
       Text(quickErrorMessage)
     }
+    // NavigationBar auf der Root-Map verstecken, damit keine graue/Material-Fläche oben sichtbar ist
+    .toolbar(.hidden, for: .navigationBar)
   }
 }
 
