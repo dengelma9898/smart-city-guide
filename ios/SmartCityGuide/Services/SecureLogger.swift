@@ -333,6 +333,47 @@ extension SecureLogger {
         logInfo("Route calculated: \(waypoints) waypoints in \(String(format: "%.2f", duration))s", category: .performance)
     }
     
+    /// Log detailed route performance metrics comparing sequential vs parallel execution
+    /// - Parameters:
+    ///   - waypoints: Number of waypoints in the route
+    ///   - duration: Total time taken for route calculation
+    ///   - parallel: Whether parallel processing was used
+    ///   - concurrentTasks: Number of concurrent tasks (if parallel)
+    ///   - category: Log category (defaults to .performance)
+    func logRoutePerformance(
+        waypoints: Int,
+        duration: TimeInterval,
+        parallel: Bool,
+        concurrentTasks: Int = 1,
+        category: LogCategory = .performance
+    ) {
+        let mode = parallel ? "parallel(\(concurrentTasks))" : "sequential"
+        let throughput = Double(waypoints - 1) / duration // Routes = waypoints - 1
+        let formattedThroughput = String(format: "%.1f", throughput)
+        let formattedDuration = String(format: "%.2f", duration)
+        
+        logInfo("🏎️ Route perf: \(waypoints) wp → \(waypoints - 1) routes in \(formattedDuration)s (\(mode), \(formattedThroughput) routes/s)", category: category)
+    }
+    
+    /// Log route performance baseline for comparison
+    /// - Parameters:
+    ///   - waypoints: Number of waypoints
+    ///   - sequentialDuration: Time taken with sequential processing
+    ///   - parallelDuration: Time taken with parallel processing
+    ///   - improvement: Performance improvement percentage
+    func logRoutePerformanceComparison(
+        waypoints: Int,
+        sequentialDuration: TimeInterval,
+        parallelDuration: TimeInterval,
+        improvement: Double
+    ) {
+        let seqFormatted = String(format: "%.2f", sequentialDuration)
+        let parFormatted = String(format: "%.2f", parallelDuration)
+        let improvementFormatted = String(format: "%.1f", improvement)
+        
+        logInfo("📊 Perf comparison: \(waypoints) wp → seq: \(seqFormatted)s vs par: \(parFormatted)s (\(improvementFormatted)% improvement)", category: .performance)
+    }
+    
     func logUserAction(_ action: String) {
         logInfo("User action: \(action)", category: .ui)
     }
