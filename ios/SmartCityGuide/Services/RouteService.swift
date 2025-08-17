@@ -708,6 +708,41 @@ class RouteService: ObservableObject {
   }
   
   private func generateRoutesBetweenWaypoints(_ waypoints: [RoutePoint]) async throws -> [MKRoute] {
+    let startTime = CFAbsoluteTimeGetCurrent()
+    
+    // Choose implementation based on feature flag
+    let routes: [MKRoute]
+    if FeatureFlags.parallelRouteGenerationEnabled {
+      routes = try await generateRoutesBetweenWaypointsParallel(waypoints)
+    } else {
+      routes = try await generateRoutesBetweenWaypointsSequential(waypoints)
+    }
+    
+    // Log performance metrics if enabled
+    if FeatureFlags.routePerformanceLoggingEnabled {
+      let duration = CFAbsoluteTimeGetCurrent() - startTime
+      SecureLogger.shared.logRoutePerformance(
+        waypoints: waypoints.count,
+        duration: duration,
+        parallel: FeatureFlags.parallelRouteGenerationEnabled,
+        concurrentTasks: FeatureFlags.parallelRouteGenerationEnabled ? 3 : 1
+      )
+      
+      // For development: Log both implementations for comparison (if waypoints >= 4)
+      #if DEBUG
+      if waypoints.count >= 4 {
+        Task {
+          await performRoutePerformanceComparison(waypoints: waypoints, parallelDuration: duration)
+        }
+      }
+      #endif
+    }
+    
+    return routes
+  }
+  
+  /// Sequential route generation (original implementation)
+  private func generateRoutesBetweenWaypointsSequential(_ waypoints: [RoutePoint]) async throws -> [MKRoute] {
     var routes: [MKRoute] = []
     
     for i in 0..<waypoints.count-1 {
@@ -725,6 +760,64 @@ class RouteService: ObservableObject {
     }
     
     return routes
+  }
+  
+  /// Parallel route generation with controlled concurrency
+  private func generateRoutesBetweenWaypointsParallel(_ waypoints: [RoutePoint]) async throws -> [MKRoute] {
+    let semaphore = AsyncSemaphore(maxConcurrent: 3)
+    var routes: [MKRoute?] = Array(repeating: nil, count: waypoints.count - 1)
+    
+    try await withThrowingTaskGroup(of: (Int, MKRoute).self) { group in
+      for i in 0..<waypoints.count-1 {
+        group.addTask {
+          await semaphore.acquire()
+          defer { Task { await semaphore.release() } }
+          
+          if Task.isCancelled { throw CancellationError() }
+          
+          // Rate limiting for task start (not completion)
+          try await RateLimiter.awaitRouteCalculationTick()
+          
+          let route = try await self.generateSingleRoute(
+            from: waypoints[i].coordinate,
+            to: waypoints[i+1].coordinate
+          )
+          return (i, route)
+        }
+      }
+      
+      for try await (index, route) in group {
+        routes[index] = route
+      }
+    }
+    
+    // Convert to non-optional array, maintaining order
+    return routes.compactMap { $0 }
+  }
+  
+  /// Development helper: Compare sequential vs parallel performance for A/B testing
+  private func performRoutePerformanceComparison(waypoints: [RoutePoint], parallelDuration: TimeInterval) async {
+    // Only run comparison if we used parallel mode
+    guard FeatureFlags.parallelRouteGenerationEnabled else { return }
+    
+    do {
+      // Test sequential performance
+      let sequentialStartTime = CFAbsoluteTimeGetCurrent()
+      _ = try await generateRoutesBetweenWaypointsSequential(waypoints)
+      let sequentialDuration = CFAbsoluteTimeGetCurrent() - sequentialStartTime
+      
+      // Calculate improvement
+      let improvement = ((sequentialDuration - parallelDuration) / sequentialDuration) * 100
+      
+      SecureLogger.shared.logRoutePerformanceComparison(
+        waypoints: waypoints.count,
+        sequentialDuration: sequentialDuration,
+        parallelDuration: parallelDuration,
+        improvement: improvement
+      )
+    } catch {
+      SecureLogger.shared.logError("Failed to run performance comparison: \(error)", category: .performance)
+    }
   }
   
   private func generateSingleRoute(
