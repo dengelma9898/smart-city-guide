@@ -28,7 +28,9 @@ struct RoutePlanningView: View {
   @State private var hasLoadedDefaults = false // Track if defaults have been loaded
   @State private var didUserInteract = false // Prevent defaults from overwriting user choices
   
+  let presetMode: RoutePlanningMode?
   let onRouteGenerated: (GeneratedRoute) -> Void
+  let onDismiss: () -> Void
   
   var body: some View {
     NavigationView {
@@ -299,7 +301,7 @@ struct RoutePlanningView: View {
       .toolbar {
         ToolbarItem(placement: .navigationBarTrailing) {
           Button("Fertig") {
-            dismiss()
+            onDismiss()
           }
         }
       }
@@ -331,7 +333,17 @@ struct RoutePlanningView: View {
         )
       }
       .onAppear {
-        loadDefaultSettings()
+        // Set preset mode if provided
+        if let mode = presetMode {
+          planningMode = mode
+          SecureLogger.shared.logDebug("🎛️ Preset planning mode -> \(mode.rawValue)", category: .ui)
+        }
+        
+        // Load default settings if not yet loaded
+        if !hasLoadedDefaults {
+          loadDefaultSettings()
+        }
+        
         // UITEST autopilot: drive manual flow end-to-end for simulator verification
         if ProcessInfo.processInfo.arguments.contains("-UITEST_AUTOPILOT_MANUAL") {
           // Provide a deterministic city and open manual planning automatically
@@ -349,13 +361,6 @@ struct RoutePlanningView: View {
           withAnimation(.easeInOut(duration: 0.3)) {
             loadDefaultSettings()
           }
-        }
-      }
-      // Phase 3: Optional Vorselektion des Planungsmodus vom Startscreen
-      .onReceive(NotificationCenter.default.publisher(for: Notification.Name("PresetPlanningMode"))) { note in
-        if let raw = note.userInfo?["mode"] as? String, let mode = parsePlanningMode(raw) {
-          planningMode = mode
-          SecureLogger.shared.logDebug("🎛️ Preset planning mode -> \(mode.rawValue)", category: .ui)
         }
       }
       .alert("Startort Info", isPresented: $showingStartPointInfo) {
