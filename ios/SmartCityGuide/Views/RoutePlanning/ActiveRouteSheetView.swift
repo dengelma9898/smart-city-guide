@@ -52,7 +52,9 @@ struct ActiveRouteSheetView: View {
                 .padding(.horizontal, 16)
 
               VStack(spacing: 8) {
-                ForEach(intermediateWaypoints().prefix(6).enumerated().map({ $0 }), id: \.offset) { index, wp in
+                let stops = Array(intermediateWaypoints().prefix(6))
+                ForEach(stops.indices, id: \.self) { index in
+                  let wp = stops[index]
                   HStack(spacing: 10) {
                     Text("\(index + 1)")
                       .font(.footnote)
@@ -121,6 +123,12 @@ struct ActiveRouteSheetView: View {
     let hours = minutes / 60
     let remMin = minutes % 60
     return remMin == 0 ? "\(hours) h" : "\(hours) h \(remMin) min"
+  }
+
+  private func intermediateWaypoints() -> [RoutePoint] {
+    let wps = route.waypoints
+    guard wps.count > 2 else { return [] }
+    return Array(wps.dropFirst().dropLast())
   }
 }
 
