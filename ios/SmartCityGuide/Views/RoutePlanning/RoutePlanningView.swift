@@ -298,6 +298,7 @@ struct RoutePlanningView: View {
       .animation(.easeInOut(duration: 0.4), value: settingsManager.isLoading)
       .navigationTitle("Lass uns loslegen!")
       .navigationBarTitleDisplayMode(.large)
+      .accessibilityIdentifier("RoutePlanningView")
       .toolbar {
         ToolbarItem(placement: .navigationBarTrailing) {
           Button("Fertig") {

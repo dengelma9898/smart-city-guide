@@ -103,6 +103,7 @@ struct ActiveRouteSheetView: View {
       }
       .background(Color.clear)
     }
+    .accessibilityIdentifier("ActiveRouteSheetView")
     .alert("Tour wirklich beenden?", isPresented: $showingEndConfirmation) {
       Button("Abbrechen", role: .cancel) { }
       Button("Beenden", role: .destructive) { onEnd() }
