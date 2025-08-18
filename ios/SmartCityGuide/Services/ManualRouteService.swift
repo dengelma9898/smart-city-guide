@@ -189,7 +189,7 @@ final class ManualRouteService: ObservableObject {
             userInfo: [NSLocalizedDescriptionKey: """
             🗺️ Kurze Pause nötig!
             
-            Du warst sehr fleißig beim Planen! Apple's Kartendienst braucht eine kleine Verschnaufpause (ca. 1 Minute), bevor wir weitere Routen berechnen können.
+            Du warst sehr fleißig beim Planen! Unser Kartendienst braucht eine kleine Verschnaufpause (ca. 1 Minute), bevor wir weitere Routen berechnen können.
             
             💡 Das ist völlig normal bei intensiver Nutzung und zeigt, dass unsere App richtig schnell arbeitet!
             

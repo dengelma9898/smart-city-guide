@@ -463,21 +463,21 @@ enum GeoapifyError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .invalidURL:
-            return "Die Geoapify API URL ist ungültig."
+            return "Die Karten-API URL ist ungültig."
         case .invalidResponse(let statusCode):
-            return "Ungültige Antwort vom Geoapify Server. Statuscode: \(statusCode)"
+            return "Ungültige Antwort vom Kartenserver. Statuscode: \(statusCode)"
         case .cityNotFound(let city):
             return "Die Stadt '\(city)' konnte nicht gefunden werden. Bitte überprüfen Sie die Schreibweise."
         case .geocodingFailed(let description):
-            return "Geocoding fehlgeschlagen: \(description)"
+            return "Adressauflösung fehlgeschlagen: \(description)"
         case .searchFailed(let description):
             return "POI-Suche fehlgeschlagen: \(description)"
         case .rateLimitExceeded:
-            return "Zu viele Anfragen an Geoapify API. Bitte warten Sie einen Moment und versuchen Sie es erneut."
+            return "Zu viele Anfragen an unseren Kartendienst. Bitte warten Sie einen Moment und versuchen Sie es erneut."
         case .apiKeyInvalid:
-            return "Geoapify API Key ist ungültig. Bitte konfigurieren Sie einen gültigen API Key."
+            return "Kartendienst-Authentifizierung fehlgeschlagen. Bitte kontaktieren Sie den Support."
         case .quotaExceeded:
-            return "Geoapify API Quota überschritten. Bitte versuchen Sie es später erneut."
+            return "Kartendienst-Kontingent überschritten. Bitte versuchen Sie es später erneut."
         }
     }
 }
