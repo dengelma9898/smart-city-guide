@@ -870,7 +870,16 @@ class RouteService: ObservableObject {
     from start: CLLocationCoordinate2D,
     to end: CLLocationCoordinate2D
   ) async throws -> MKRoute {
-    return try await withCheckedThrowingContinuation { continuation in
+    
+    // Check route cache first if enabled
+    if FeatureFlags.routeCachingEnabled {
+      if let cachedRoute = RouteCacheService.shared.getCachedRoute(from: start, to: end) {
+        return cachedRoute
+      }
+    }
+    
+    // Cache miss - calculate route via MapKit
+    let route = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<MKRoute, Error>) in
       let request = MKDirections.Request()
       request.source = MKMapItem(placemark: MKPlacemark(coordinate: start))
       request.destination = MKMapItem(placemark: MKPlacemark(coordinate: end))
@@ -891,6 +900,13 @@ class RouteService: ObservableObject {
         }
       }
     }
+    
+    // Cache the successful result
+    if FeatureFlags.routeCachingEnabled {
+      RouteCacheService.shared.cacheRoute(route, from: start, to: end)
+    }
+    
+    return route
   }
   
   // MARK: - POI-based Route Generation

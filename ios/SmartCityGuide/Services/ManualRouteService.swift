@@ -176,8 +176,23 @@ final class ManualRouteService: ObservableObject {
       req.transportType = .walking
       let dir = MKDirections(request: req)
       do {
-        let resp = try await dir.calculate()
-        if let route = resp.routes.first { routes.append(route) }
+        // Check route cache first if enabled
+        let route: MKRoute
+        if FeatureFlags.routeCachingEnabled,
+           let cachedRoute = RouteCacheService.shared.getCachedRoute(from: start.coordinate, to: end.coordinate) {
+          route = cachedRoute
+        } else {
+          // Cache miss - calculate via MapKit
+          let resp = try await dir.calculate()
+          guard let calculatedRoute = resp.routes.first else { continue }
+          route = calculatedRoute
+          
+          // Cache the successful result
+          if FeatureFlags.routeCachingEnabled {
+            RouteCacheService.shared.cacheRoute(route, from: start.coordinate, to: end.coordinate)
+          }
+        }
+        routes.append(route)
       } catch {
         // Check for throttling errors and throw user-friendly message
         if error.localizedDescription.lowercased().contains("throttled") ||
