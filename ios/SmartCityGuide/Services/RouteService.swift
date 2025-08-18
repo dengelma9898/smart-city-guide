@@ -129,8 +129,8 @@ class RouteService: ObservableObject {
         )
       }
       
-      // Step 3: Generate routes between waypoints
-      let routes = try await generateRoutesBetweenWaypoints(waypoints)
+      // Step 3: Generate routes between waypoints (for walking time validation, no performance logging)
+      let routes = try await generateRoutesBetweenWaypoints(waypoints, logPerformance: false)
       
       // Step 4: Validate walking time and reduce stops if necessary
       let validatedWaypoints = try await validateAndReduceStopsForWalkingTime(
@@ -141,8 +141,8 @@ class RouteService: ObservableObject {
         customEndpoint: customEndpoint
       )
       
-      // Step 5: Generate final routes for validated waypoints
-      let finalRoutes = try await generateRoutesBetweenWaypoints(validatedWaypoints)
+      // Step 5: Generate final routes for validated waypoints (with performance logging)
+      let finalRoutes = try await generateRoutesBetweenWaypoints(validatedWaypoints, logPerformance: true)
       
       // Step 6: Calculate totals
       let totalDistance = finalRoutes.reduce(0) { $0 + $1.distance }
@@ -710,7 +710,7 @@ class RouteService: ObservableObject {
     return fromLocation.distance(from: toLocation)
   }
   
-  private func generateRoutesBetweenWaypoints(_ waypoints: [RoutePoint]) async throws -> [MKRoute] {
+  private func generateRoutesBetweenWaypoints(_ waypoints: [RoutePoint], logPerformance: Bool = true) async throws -> [MKRoute] {
     let startTime = CFAbsoluteTimeGetCurrent()
     
     // Choose implementation based on feature flag
@@ -721,9 +721,10 @@ class RouteService: ObservableObject {
       routes = try await generateRoutesBetweenWaypointsSequential(waypoints)
     }
     
-    // Log performance metrics if enabled
-    if FeatureFlags.routePerformanceLoggingEnabled {
+    // Log performance metrics if enabled AND requested
+    if FeatureFlags.routePerformanceLoggingEnabled && logPerformance {
       let duration = CFAbsoluteTimeGetCurrent() - startTime
+      
       SecureLogger.shared.logRoutePerformance(
         waypoints: waypoints.count,
         duration: duration,
@@ -1259,8 +1260,8 @@ class RouteService: ObservableObject {
         }
       }
       
-      // Check new walking time
-      let testRoutes = try await generateRoutesBetweenWaypoints(reducedWaypoints)
+      // Check new walking time (no performance logging for intermediate tests)
+      let testRoutes = try await generateRoutesBetweenWaypoints(reducedWaypoints, logPerformance: false)
       let newWalkingTime = testRoutes.reduce(0) { $0 + $1.expectedTravelTime }
       
       logger.info("🗺️ Reduced to \(intermediatePOIs.count) stops - walking time: \(Int(newWalkingTime/60))min")
