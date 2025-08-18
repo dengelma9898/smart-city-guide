@@ -19,6 +19,9 @@ class RouteService: ObservableObject {
   
   private var historyManager: RouteHistoryManager?
   
+  // Performance testing state - prevent infinite A/B testing loops
+  private var hasRunPerformanceComparison = false
+  
   init(historyManager: RouteHistoryManager? = nil) {
     self.historyManager = historyManager
   }
@@ -728,9 +731,10 @@ class RouteService: ObservableObject {
         concurrentTasks: FeatureFlags.parallelRouteGenerationEnabled ? 3 : 1
       )
       
-      // For development: Log both implementations for comparison (if waypoints >= 4)
+      // For development: Log both implementations for comparison (once per session)
       #if DEBUG
-      if waypoints.count >= 4 {
+      if waypoints.count >= 4 && !hasRunPerformanceComparison {
+        hasRunPerformanceComparison = true
         Task {
           await performRoutePerformanceComparison(waypoints: waypoints, parallelDuration: duration)
         }
