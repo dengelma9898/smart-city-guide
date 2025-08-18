@@ -172,6 +172,18 @@ struct ProfileView: View {
                             )
                         }
                         .buttonStyle(PlainButtonStyle())
+                        
+                        #if DEBUG
+                        // Cache Debug (only in debug builds)
+                        NavigationLink(destination: CacheDebugView()) {
+                            ProfileRow(
+                                icon: "internaldrive.fill",
+                                title: "🛠️ Cache Debug",
+                                subtitle: "Performance & Statistics"
+                            )
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                        #endif
                     }
                     .background(
                         RoundedRectangle(cornerRadius: 12)
