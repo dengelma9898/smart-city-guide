@@ -72,6 +72,47 @@ class RouteService: ObservableObject {
     )
   }
   
+  // MARK: - Error Handling
+  
+  /// Convert technical errors to user-friendly messages with transparent MapKit limitations
+  private func handleRouteError(_ error: Error) -> String {
+    let errorString = error.localizedDescription.lowercased()
+    
+    // Check for MapKit throttling errors
+    if errorString.contains("throttled") || 
+       errorString.contains("directions not available") ||
+       errorString.contains("too many requests") ||
+       (error as NSError).domain == "GEOErrorDomain" {
+      return """
+      🗺️ Kurze Pause nötig!
+      
+      Du warst sehr fleißig beim Planen! Apple's Kartendienst braucht eine kleine Verschnaufpause (ca. 1 Minute), bevor wir weitere Routen berechnen können.
+      
+      💡 Das ist völlig normal bei intensiver Nutzung und zeigt, dass unsere App richtig schnell arbeitet!
+      
+      Versuch es gleich nochmal - dann klappt's wieder! ✨
+      """
+    }
+    
+    // Other route-related errors
+    if errorString.contains("route") || errorString.contains("directions") {
+      return "Routen-Berechnung nicht möglich. Prüfe deine Internetverbindung oder versuch es in einem anderen Bereich! 🗺️"
+    }
+    
+    // POI/Location errors  
+    if errorString.contains("not found") || errorString.contains("keine pois") {
+      return "Keine interessanten Orte in diesem Bereich gefunden. Versuch es mit einer anderen Stadt! 🏙️"
+    }
+    
+    // Network errors
+    if errorString.contains("network") || errorString.contains("internet") {
+      return "Internetverbindung unterbrochen. Prüfe dein WLAN oder deine mobile Daten! 📶"
+    }
+    
+    // Fallback for any other errors
+    return "Oops, da ist was schiefgelaufen! Versuch es nochmal - meistens klappt's beim zweiten Mal! 🔄"
+  }
+  
   // MARK: - Internal Route Generation
   private func generateRouteInternal(
     startingLocation: StartingLocation,
@@ -175,7 +216,7 @@ class RouteService: ObservableObject {
       )
       
     } catch {
-      errorMessage = "Fehler beim Erstellen der Route: \(error.localizedDescription)"
+      errorMessage = handleRouteError(error)
     }
     
     isGenerating = false
@@ -255,7 +296,7 @@ class RouteService: ObservableObject {
       )
       
     } catch {
-      errorMessage = "Fehler beim Erstellen der Route: \(error.localizedDescription)"
+      errorMessage = handleRouteError(error)
     }
     
     isGenerating = false

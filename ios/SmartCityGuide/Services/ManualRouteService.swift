@@ -175,8 +175,30 @@ final class ManualRouteService: ObservableObject {
       req.destination = MKMapItem(placemark: MKPlacemark(coordinate: end.coordinate))
       req.transportType = .walking
       let dir = MKDirections(request: req)
-      let resp = try await dir.calculate()
-      if let route = resp.routes.first { routes.append(route) }
+      do {
+        let resp = try await dir.calculate()
+        if let route = resp.routes.first { routes.append(route) }
+      } catch {
+        // Check for throttling errors and throw user-friendly message
+        if error.localizedDescription.lowercased().contains("throttled") ||
+           error.localizedDescription.lowercased().contains("too many requests") ||
+           (error as NSError).domain == "GEOErrorDomain" {
+          throw NSError(
+            domain: "ManualRouteService",
+            code: -3,
+            userInfo: [NSLocalizedDescriptionKey: """
+            🗺️ Kurze Pause nötig!
+            
+            Du warst sehr fleißig beim Planen! Apple's Kartendienst braucht eine kleine Verschnaufpause (ca. 1 Minute), bevor wir weitere Routen berechnen können.
+            
+            💡 Das ist völlig normal bei intensiver Nutzung und zeigt, dass unsere App richtig schnell arbeitet!
+            
+            Versuch es gleich nochmal - dann klappt's wieder! ✨
+            """]
+          )
+        }
+        throw error // Re-throw other errors
+      }
       try await RateLimiter.awaitRouteCalculationTick()
     }
     return routes
