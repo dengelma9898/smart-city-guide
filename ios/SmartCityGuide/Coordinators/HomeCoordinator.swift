@@ -8,10 +8,10 @@ import MapKit
 class HomeCoordinator: ObservableObject {
     
     // MARK: - Dependencies (Injected)
-    private let routeService: RouteServiceProtocol
-    private let historyManager: RouteHistoryManagerProtocol?
-    private let cacheManager: CacheManagerProtocol
-    private let locationManager: LocationManagerProtocol
+    private let routeService: any RouteServiceProtocol
+    private let historyManager: (any RouteHistoryManagerProtocol)?
+    private let cacheManager: any CacheManagerProtocol
+    private let locationManager: any LocationManagerProtocol
     
     // MARK: - Published State
     @Published var activeRoute: GeneratedRoute?
@@ -35,10 +35,10 @@ class HomeCoordinator: ObservableObject {
     
     // MARK: - Initialization
     init(
-        routeService: RouteServiceProtocol,
-        historyManager: RouteHistoryManagerProtocol? = nil,
-        cacheManager: CacheManagerProtocol = CacheManager.shared,
-        locationManager: LocationManagerProtocol
+        routeService: any RouteServiceProtocol,
+        historyManager: (any RouteHistoryManagerProtocol)? = nil,
+        cacheManager: any CacheManagerProtocol,
+        locationManager: any LocationManagerProtocol
     ) {
         self.routeService = routeService
         self.historyManager = historyManager
@@ -57,7 +57,9 @@ class HomeCoordinator: ObservableObject {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            self?.updateFromRouteService()
+            Task { @MainActor in
+                self?.updateFromRouteService()
+            }
         }
         
         // Observe location updates
@@ -67,16 +69,17 @@ class HomeCoordinator: ObservableObject {
             queue: .main
         ) { [weak self] notification in
             if let location = notification.userInfo?["location"] as? CLLocation {
-                self?.currentLocation = location
+                Task { @MainActor in
+                    self?.currentLocation = location
+                }
             }
         }
     }
     
     func setupInitialState() {
-        locationManager.requestLocationPermission()
-        locationManager.startLocationUpdates()
-        
         Task {
+            await locationManager.requestLocationPermission()
+            locationManager.startLocationUpdates()
             await cacheManager.loadFromDisk()
         }
     }
@@ -86,8 +89,15 @@ class HomeCoordinator: ObservableObject {
         errorMessage = routeService.errorMessage
         
         // Handle route generation completion
-        if let newRoute = routeService.generatedRoute, newRoute != activeRoute {
-            handleRouteGenerated(newRoute)
+        if let newRoute = routeService.generatedRoute {
+            // Simple check: if activeRoute is nil or different waypoint count, handle as new route
+            let shouldUpdate = activeRoute == nil || 
+                             activeRoute!.waypoints.count != newRoute.waypoints.count ||
+                             activeRoute!.totalDistance != newRoute.totalDistance
+            
+            if shouldUpdate {
+                handleRouteGenerated(newRoute)
+            }
         }
     }
     
@@ -300,6 +310,63 @@ enum SheetDestination: Identifiable {
         case .planning: return "planning"
         case .activeRoute: return "activeRoute"
         }
+    }
+}
+
+// MARK: - Basic Home Coordinator (Simplified)
+
+/// Simplified coordinator without complex DI for initial migration
+@MainActor
+class BasicHomeCoordinator: ObservableObject {
+    
+    // MARK: - Published State
+    @Published var activeRoute: GeneratedRoute?
+    @Published var presentedSheet: SheetDestination?
+    @Published var isGeneratingRoute = false
+    @Published var errorMessage: String?
+    
+    // MARK: - Direct Service References (Legacy approach)
+    private let routeService = RouteService()
+    private let locationManager = LocationManagerService.shared
+    private let cacheManager = CacheManager.shared
+    
+    init() {
+        // Setup any necessary observers
+    }
+    
+    // MARK: - Route Management
+    
+    func handleRouteGenerated(_ route: GeneratedRoute) {
+        activeRoute = route
+        
+        // Automatically show active route if feature enabled
+        if FeatureFlags.activeRouteBottomSheetEnabled {
+            presentedSheet = .activeRoute
+        } else {
+            presentedSheet = nil
+        }
+        
+        SecureLogger.shared.logInfo("🗺️ Route generated and activated via BasicCoordinator", category: .ui)
+    }
+    
+    func endActiveRoute() {
+        withAnimation(.easeInOut(duration: 0.3)) {
+            activeRoute = nil
+            presentedSheet = nil
+        }
+        SecureLogger.shared.logInfo("🗺️ Active route ended via BasicCoordinator", category: .ui)
+    }
+    
+    // MARK: - Sheet Management
+    
+    func presentSheet(_ destination: SheetDestination) {
+        presentedSheet = destination
+        SecureLogger.shared.logInfo("🗺️ Sheet presented: \(destination)", category: .ui)
+    }
+    
+    func dismissSheet() {
+        presentedSheet = nil
+        SecureLogger.shared.logInfo("🗺️ Sheet dismissed via BasicCoordinator", category: .ui)
     }
 }
 

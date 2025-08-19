@@ -117,9 +117,9 @@ class MockRouteService: RouteServiceProtocol {
         
         // Mock successful route generation
         let mockWaypoints = [
-            RoutePoint(name: "Start", coordinate: CLLocationCoordinate2D(latitude: 49.4521, longitude: 11.0767), category: .attraction),
-            RoutePoint(name: "Mock POI 1", coordinate: CLLocationCoordinate2D(latitude: 49.4530, longitude: 11.0780), category: .museum),
-            RoutePoint(name: "Mock POI 2", coordinate: CLLocationCoordinate2D(latitude: 49.4540, longitude: 11.0790), category: .park)
+            RoutePoint(name: "Start", coordinate: CLLocationCoordinate2D(latitude: 49.4521, longitude: 11.0767), address: "Startpunkt", category: .attraction),
+            RoutePoint(name: "Mock POI 1", coordinate: CLLocationCoordinate2D(latitude: 49.4530, longitude: 11.0780), address: "Mock Museum", category: .museum),
+            RoutePoint(name: "Mock POI 2", coordinate: CLLocationCoordinate2D(latitude: 49.4540, longitude: 11.0790), address: "Mock Park", category: .park)
         ]
         
         let mockRoute = GeneratedRoute(

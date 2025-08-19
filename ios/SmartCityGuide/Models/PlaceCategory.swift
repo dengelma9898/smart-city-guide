@@ -235,6 +235,33 @@ struct CategoryStat {
 // MARK: - PlaceCategory Geoapify Integration
 
 extension PlaceCategory {
+    var displayName: String {
+        return self.rawValue
+    }
+    
+    var iconName: String {
+        switch self {
+        case .attraction: return "star.fill"
+        case .museum: return "building.columns.fill"
+        case .gallery: return "paintbrush.fill"
+        case .artwork: return "paintpalette.fill"
+        case .viewpoint: return "binoculars.fill"
+        case .monument, .memorial: return "flag.fill"
+        case .castle: return "building.2.fill"
+        case .ruins: return "building.columns"
+        case .archaeologicalSite: return "fossil.shell.fill"
+        case .park, .garden: return "tree.fill"
+        case .artsCenter: return "theatermasks.fill"
+        case .townhall: return "building.fill"
+        case .placeOfWorship, .cathedral, .chapel, .monastery, .shrine: return "cross.fill"
+        case .spring, .waterfall: return "drop.fill"
+        case .river, .canal: return "water.waves"
+        case .lake: return "lake"
+        case .nationalPark: return "mountain.2.fill"
+        default: return "mappin.circle.fill"
+        }
+    }
+    
     /// Geoapify Places API Category IDs - Korrigiert basierend auf offizieller Dokumentation
     var geoapifyCategories: [String] {
         switch self {

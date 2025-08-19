@@ -41,6 +41,7 @@
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		E132E2622E49AA8A00C910F9 /* SmartCityGuideUITests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = SmartCityGuideUITests; sourceTree = "<group>"; };
+		E132E3622E53AD3800C910F9 /* Coordinators */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Coordinators; sourceTree = "<group>"; };
 		E1FEF0D42E3E987A00C409C6 /* Views */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Views; sourceTree = "<group>"; };
 		E1FEF0DF2E3E988400C409C6 /* Utilities */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Utilities; sourceTree = "<group>"; };
 		E1FEF0E32E3E988D00C409C6 /* Services */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Services; sourceTree = "<group>"; };
@@ -88,6 +89,7 @@
 		A1234567890ABCDEF0123452 /* SmartCityGuide */ = {
 			isa = PBXGroup;
 			children = (
+				E132E3622E53AD3800C910F9 /* Coordinators */,
 				E1048AC62E447EDA00FD6F70 /* Info.plist */,
 				E1048AC22E43A94000FD6F70 /* Permissions.xcconfig */,
 				E1FEF13C2E3FEF1B00C409C6 /* APIKeys.plist */,
@@ -127,6 +129,7 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
+				E132E3622E53AD3800C910F9 /* Coordinators */,
 				E1FEF0D42E3E987A00C409C6 /* Views */,
 				E1FEF0DF2E3E988400C409C6 /* Utilities */,
 				E1FEF0E32E3E988D00C409C6 /* Services */,

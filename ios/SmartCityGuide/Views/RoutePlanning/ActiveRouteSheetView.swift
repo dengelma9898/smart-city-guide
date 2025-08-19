@@ -10,10 +10,19 @@ struct ActiveRouteSheetView: View {
   var body: some View {
     GeometryReader { proxy in
       let height = proxy.size.height
-      ScrollView(showsIndicators: false) {
-        VStack(spacing: 12) {
-          // Collapsed summary row
-          HStack(spacing: 12) {
+      
+      VStack(spacing: 0) {
+        // Handle indicator with proper spacing
+        RoundedRectangle(cornerRadius: 2.5)
+          .fill(Color.secondary.opacity(0.3))
+          .frame(width: 36, height: 5)
+          .padding(.top, 8)
+          .padding(.bottom, 16)
+        
+        ScrollView(showsIndicators: false) {
+          VStack(spacing: 12) {
+            // Collapsed summary row
+            HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 2) {
               Text(summaryLine)
                 .font(.subheadline)
@@ -26,9 +35,9 @@ struct ActiveRouteSheetView: View {
             Button(action: { showingEndConfirmation = true }) {
               HStack(spacing: 6) {
                 Image(systemName: "stop.fill")
-                  .font(.system(size: 15, weight: .medium))
+                  .font(.system(size: 14, weight: .medium))
                 Text("Tour beenden")
-                  .font(.body)
+                  .font(.subheadline)
                   .fontWeight(.medium)
               }
               .foregroundColor(.white)
@@ -38,9 +47,9 @@ struct ActiveRouteSheetView: View {
             }
             .accessibilityIdentifier("activeRoute.action.end")
           }
-          .padding(.horizontal, 16)
-          .padding(.top, 10)
-          .padding(.bottom, height >= 220 ? 6 : 12)
+          .padding(.horizontal, 20)
+          .padding(.top, 4)
+          .padding(.bottom, height >= 220 ? 8 : 16)
           .accessibilityIdentifier("activeRoute.sheet.collapsed")
 
           // Medium & Large content (appears as soon as there is enough height)
@@ -98,10 +107,11 @@ struct ActiveRouteSheetView: View {
               .padding(.bottom, 8)
             }
           }
+          }
+          .padding(.bottom, 8)
         }
-        .padding(.bottom, 8)
+        .background(Color.clear)
       }
-      .background(Color.clear)
     }
     .accessibilityIdentifier("ActiveRouteSheetView")
     .alert("Tour wirklich beenden?", isPresented: $showingEndConfirmation) {

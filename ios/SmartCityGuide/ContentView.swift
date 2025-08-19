@@ -1,19 +1,6 @@
 import SwiftUI
 import MapKit
 
-// MARK: - Sheet Destination Enum
-enum SheetDestination: Identifiable {
-  case planning(mode: RoutePlanningMode? = nil)
-  case activeRoute
-  
-  var id: String {
-    switch self {
-    case .planning: return "planning"
-    case .activeRoute: return "activeRoute"
-    }
-  }
-}
-
 struct ContentView: View {
   @State private var cameraPosition = MapCameraPosition.region(
     MKCoordinateRegion(
@@ -21,10 +8,11 @@ struct ContentView: View {
       span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)
     )
   )
-  // Centralized Sheet Routing
-  @State private var presentedSheet: SheetDestination?
-  @State private var activeRoute: GeneratedRoute?
-  // Phase 4: Quick‑Planning Flow
+  
+  // MARK: - Phase 4: HomeCoordinator Integration
+  @StateObject private var coordinator: BasicHomeCoordinator
+  
+  // Legacy Services (will be gradually migrated to coordinator)
   @StateObject private var quickRouteService = RouteService()
   @StateObject private var geoapifyService = GeoapifyAPIService.shared
   @State private var isQuickPlanning = false
@@ -35,6 +23,12 @@ struct ContentView: View {
   // Phase 2: Location Features
   @StateObject private var locationService = LocationManagerService.shared
   @State private var showingLocationPermissionAlert = false
+  
+  // MARK: - Initialization
+  init() {
+    // Simplified approach: Use a basic coordinator without complex DI for now
+    _coordinator = StateObject(wrappedValue: BasicHomeCoordinator())
+  }
   
   // Computed properties for Location Button
   private var locationButtonIcon: String {
@@ -60,44 +54,48 @@ struct ContentView: View {
         overlayLayer
       }
     }
-    // Centralized Sheet Routing
-    .sheet(item: $presentedSheet) { sheet in
+    // Phase 4: Coordinator-based Sheet Routing
+    .sheet(item: $coordinator.presentedSheet) { sheet in
       switch sheet {
       case .planning(let mode):
         RoutePlanningView(
           presetMode: mode,
-          onRouteGenerated: { route in
-            activeRoute = route
-            adjustCamera(to: route)
-            // Automatically show active route if feature enabled
-            if FeatureFlags.activeRouteBottomSheetEnabled {
-              presentedSheet = .activeRoute
-            } else {
-              presentedSheet = nil
-            }
-          },
-          onDismiss: { 
-            presentedSheet = nil 
-          }
+          onRouteGenerated: coordinator.handleRouteGenerated,
+          onDismiss: coordinator.dismissSheet
         )
       case .activeRoute:
-        if FeatureFlags.activeRouteBottomSheetEnabled, let route = activeRoute {
-          ActiveRouteSheetView(
-            route: route,
-            onEnd: {
-              withAnimation(.easeInOut(duration: 0.3)) {
-                activeRoute = nil
-                presentedSheet = nil
+        if FeatureFlags.activeRouteBottomSheetEnabled, let route = coordinator.activeRoute {
+          if FeatureFlags.enhancedActiveRouteSheetEnabled {
+            EnhancedActiveRouteSheetView(
+              route: route,
+              onEnd: coordinator.endActiveRoute,
+              onAddStop: {
+                // Enhanced: will implement route modification
+              },
+              onModifyRoute: { modification in
+                // TODO: Implement route modification handler
+                print("🔄 Route modification requested: \(modification)")
               }
-            },
-            onAddStop: {
-              // Placeholder: will open manual add/edit in Phase 3
-            }
-          )
-          .presentationDetents([.height(84), .fraction(0.5), .large])
-          .presentationDragIndicator(.visible)
-          .interactiveDismissDisabled(true)
-          .presentationBackgroundInteraction(.enabled)
+            )
+            .presentationDetents([.height(100), .height(350), .fraction(0.8)])
+            .presentationDragIndicator(.visible)
+            .interactiveDismissDisabled(true)
+            .presentationBackgroundInteraction(.enabled)
+            .presentationContentInteraction(.scrolls)
+          } else {
+            ActiveRouteSheetView(
+              route: route,
+              onEnd: coordinator.endActiveRoute,
+              onAddStop: {
+                // Placeholder: will open manual add/edit in Phase 3
+              }
+            )
+            .presentationDetents([.height(100), .height(350), .fraction(0.8)])
+            .presentationDragIndicator(.visible)
+            .interactiveDismissDisabled(true)
+            .presentationBackgroundInteraction(.enabled)
+            .presentationContentInteraction(.scrolls)
+          }
         } else {
           EmptyView()
         }
@@ -153,10 +151,10 @@ struct ContentView: View {
     .toolbar(.hidden, for: .navigationBar)
     // Statusbar/Top bar: keep map truly fullscreen
     .statusBarHidden(true)
-    .onChange(of: activeRoute != nil) { _, isActive in
+    .onChange(of: coordinator.activeRoute != nil) { _, isActive in
       // Automatically show active route sheet when route becomes active
-      if FeatureFlags.activeRouteBottomSheetEnabled, isActive, presentedSheet == nil {
-        presentedSheet = .activeRoute
+      if FeatureFlags.activeRouteBottomSheetEnabled, isActive, coordinator.presentedSheet == nil {
+        coordinator.presentSheet(.activeRoute)
       }
     }
   }
@@ -257,7 +255,7 @@ extension ContentView {
       if locationService.currentLocation != nil {
         UserAnnotation()
       }
-      if let route = activeRoute {
+      if let route = coordinator.activeRoute {
         ForEach(Array(route.routes.enumerated()), id: \.offset) { _, mkRoute in
           MapPolyline(mkRoute)
             .stroke(.blue, style: StrokeStyle(lineWidth: 4, lineCap: .round, lineJoin: .round))
@@ -283,7 +281,7 @@ extension ContentView {
   @ViewBuilder
   fileprivate var bottomOverlay: some View {
     // 1) Legacy banner only when route active AND sheet feature disabled
-    if let route = activeRoute, !FeatureFlags.activeRouteBottomSheetEnabled {
+    if let route = coordinator.activeRoute, !FeatureFlags.activeRouteBottomSheetEnabled {
       VStack(spacing: 16) {
         HStack(spacing: 12) {
           VStack(alignment: .leading, spacing: 4) {
@@ -307,7 +305,7 @@ extension ContentView {
             .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
         )
         HStack(spacing: 12) {
-          Button(action: { withAnimation(.easeInOut(duration: 0.3)) { activeRoute = nil } }) {
+          Button(action: { coordinator.endActiveRoute() }) {
             HStack(spacing: 6) { Image(systemName: "stop.fill").font(.system(size: 16, weight: .medium)); Text("Tour beenden").font(.body).fontWeight(.medium) }
             .foregroundColor(.white)
             .padding(.horizontal, 20)
@@ -318,7 +316,7 @@ extension ContentView {
                 .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
             )
           }
-          Button(action: { presentedSheet = .planning(mode: nil) }) {
+          Button(action: { coordinator.presentSheet(.planning(mode: nil)) }) {
             HStack(spacing: 6) { Image(systemName: "pencil").font(.system(size: 16, weight: .medium)); Text("Anpassen").font(.body).fontWeight(.medium) }
             .foregroundColor(.blue)
             .padding(.horizontal, 20)
@@ -333,11 +331,11 @@ extension ContentView {
         }
       }
       .padding(.bottom, 50)
-    } else if activeRoute == nil {
+    } else if coordinator.activeRoute == nil {
       VStack(spacing: 12) {
         Button(action: {
           SecureLogger.shared.logUserAction("Tap plan automatic")
-          presentedSheet = .planning(mode: .automatic)
+          coordinator.presentSheet(.planning(mode: .automatic))
         }) {
           HStack(spacing: 10) {
             Image(systemName: "sparkles")
@@ -362,7 +360,7 @@ extension ContentView {
 
         Button(action: {
           SecureLogger.shared.logUserAction("Tap plan manual")
-          presentedSheet = .planning(mode: .manual)
+          coordinator.presentSheet(.planning(mode: .manual))
         }) {
           HStack(spacing: 10) {
             Image(systemName: "hand.point.up.left")
@@ -499,8 +497,7 @@ extension ContentView {
         SecureLogger.shared.logRouteCalculation(waypoints: route.waypoints.count, duration: routeDuration)
         SecureLogger.shared.logInfo("Quick planning total: \(String(format: "%.2f", totalDuration))s", category: .performance)
         await MainActor.run {
-          activeRoute = route
-          adjustCamera(to: route)
+          coordinator.handleRouteGenerated(route)
           isQuickPlanning = false
         }
         Task { await ProximityService.shared.startProximityMonitoring(for: route) }
