@@ -12,9 +12,8 @@ struct POISelectionCardStackView: View {
             ZStack {
                 // Render visible cards (max 3)
                 ForEach(Array(visibleCards.enumerated()), id: \.element.id) { index, card in
-                    POISwipeCardView(
+                    SpotSwipeCardView(
                         card: .constant(card),
-                        enrichedData: enrichedPOIs[card.poi.id],
                         onSwipe: onCardAction
                     )
                     .overlay(alignment: .topLeading) {

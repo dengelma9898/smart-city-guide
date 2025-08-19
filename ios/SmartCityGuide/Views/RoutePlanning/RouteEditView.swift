@@ -157,7 +157,14 @@ struct RouteEditView: View {
                     currentTopCard: currentTopCard,
                     onManualAction: { direction in
                         // Handle manual action based on direction
-                        performManualAction(direction)
+                        switch direction {
+                        case .left:
+                            handleManualAccept()
+                        case .right:
+                            handleManualReject()
+                        default:
+                            break
+                        }
                     }
                 )
             }
