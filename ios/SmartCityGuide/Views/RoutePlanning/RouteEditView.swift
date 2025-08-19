@@ -38,6 +38,9 @@ struct RouteEditView: View {
     /// Route edit service instance
     @StateObject private var editService = RouteEditService()
     
+    /// POI service for alternative finding
+    @StateObject private var poiService = RouteEditPOIService()
+    
     /// Available swipe cards
     @State private var availableCards: [SwipeCard] = []
     
@@ -69,29 +72,26 @@ struct RouteEditView: View {
                 
                 // Main content
                 if isLoadingCards {
-                    loadingView
+                    RouteEditLoadingView()
                 } else if availableCards.isEmpty {
-                    noAlternativesView
+                    RouteEditNoAlternativesView(onCancel: onCancel)
                 } else {
                     mainContentView
                 }
                 
                 // Service error overlay
                 if let errorMessage = editService.errorMessage {
-                    errorOverlay(message: errorMessage)
+                    RouteEditErrorOverlay(
+                        message: errorMessage,
+                        onDismiss: {
+                            // Clear error message
+                        }
+                    )
                 }
                 
                 // Accepting overlay (blocks UI, predictable UX)
                 if isAcceptingUpdate || editService.isGeneratingNewRoute {
-                    VStack(spacing: 16) {
-                        ProgressView()
-                            .scaleEffect(1.2)
-                        Text("Route wird erstellt…")
-                            .font(.body)
-                            .foregroundColor(.secondary)
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(.ultraThinMaterial)
+                    RouteEditAcceptingOverlay()
                 }
             }
             .navigationTitle("Stopp bearbeiten")
@@ -153,7 +153,13 @@ struct RouteEditView: View {
             
             // Manual action buttons
             if !availableCards.isEmpty {
-                manualActionButtons
+                RouteEditActionButtonsView(
+                    currentTopCard: currentTopCard,
+                    onManualAction: { direction in
+                        // Handle manual action based on direction
+                        performManualAction(direction)
+                    }
+                )
             }
             
             Spacer()
@@ -424,17 +430,21 @@ struct RouteEditView: View {
         isLoadingCards = true
         
         Task {
-            // Use ALL discovered POIs instead of filtered subset from RouteEditService
-            let allAvailablePOIs = findAllAvailablePOIs()
+            // Use POI service to find all available alternatives
+            let allAvailablePOIs = poiService.findAllAvailablePOIs(
+                allDiscoveredPOIs: allDiscoveredPOIs,
+                editableSpot: editableSpot,
+                originalRoute: originalRoute
+            )
             
             // Enrich with Wikipedia data (background task)
-            let enrichedData = await editService.enrichAlternativesWithWikipedia(allAvailablePOIs, cityName: cityName)
+            let enrichedData = await poiService.enrichAlternativesWithWikipedia(allAvailablePOIs, cityName: cityName)
             
             await MainActor.run {
                 if allAvailablePOIs.isEmpty {
                     availableCards = []
                 } else {
-                    availableCards = editService.createSwipeCards(
+                    availableCards = poiService.createSwipeCards(
                         from: allAvailablePOIs,
                         enrichedData: enrichedData,
                         originalWaypoint: editableSpot.originalWaypoint,
@@ -447,55 +457,7 @@ struct RouteEditView: View {
         }
     }
     
-    /// Find all available POIs (same logic as RouteBuilderView.findAlternativePOIsWithHistory)
-    private func findAllAvailablePOIs() -> [POI] {
-        // Get previously replaced POIs for this position
-        let replacedPOIs = editableSpot.replacedPOIs
-        
-        // Combine all discovered POIs with replaced POIs
-        let allPossiblePOIs = allDiscoveredPOIs + replacedPOIs
-        
-        return allPossiblePOIs.filter { poi in
-            // Only exclude POIs already in route - NO distance restriction
-            return !isAlreadyInRoute(poi)
-        }
-        .sorted { poi1, poi2 in
-            // Prioritize previously replaced POIs (show them first)
-            let poi1WasReplaced = replacedPOIs.contains { $0.id == poi1.id }
-            let poi2WasReplaced = replacedPOIs.contains { $0.id == poi2.id }
-            
-            if poi1WasReplaced && !poi2WasReplaced {
-                return true
-            } else if !poi1WasReplaced && poi2WasReplaced {
-                return false
-            }
-            
-            // Then sort by category match
-            let categoryMatch1 = poi1.category == editableSpot.originalWaypoint.category
-            let categoryMatch2 = poi2.category == editableSpot.originalWaypoint.category
-            
-            if categoryMatch1 && !categoryMatch2 {
-                return true
-            } else if !categoryMatch1 && categoryMatch2 {
-                return false
-            }
-            
-            // Finally sort by distance
-            let distance1 = calculateDistance(from: poi1.coordinate, to: editableSpot.originalWaypoint.coordinate)
-            let distance2 = calculateDistance(from: poi2.coordinate, to: editableSpot.originalWaypoint.coordinate)
-            return distance1 < distance2
-        }
-        .prefix(50) // Increased limit for maximum alternatives
-        .map { $0 }
-    }
-    
-    /// Check if POI is already in the current route
-    private func isAlreadyInRoute(_ poi: POI) -> Bool {
-        return originalRoute.waypoints.contains { waypoint in
-            poi.name.lowercased() == waypoint.name.lowercased() &&
-            calculateDistance(from: poi.coordinate, to: waypoint.coordinate) < 50 // 50m tolerance
-        }
-    }
+
     
     /// Calculate distance between two coordinates
     private func calculateDistance(from coord1: CLLocationCoordinate2D, to coord2: CLLocationCoordinate2D) -> Double {
