@@ -130,12 +130,19 @@ struct ContentView: View {
     .toolbar(.hidden, for: .navigationBar)
     // Statusbar/Top bar: keep map truly fullscreen
     .statusBarHidden(true)
-    .onChange(of: coordinator.activeRoute != nil) { _, isActive in
-      // Automatically show active route sheet when route becomes active
-      if FeatureFlags.activeRouteBottomSheetEnabled, isActive, coordinator.presentedSheet == nil {
-        coordinator.presentSheet(.activeRoute)
-      }
-    }
+         .onChange(of: coordinator.activeRoute != nil) { _, isActive in
+       // Automatically show active route sheet when route becomes active
+       if FeatureFlags.activeRouteBottomSheetEnabled, isActive, coordinator.presentedSheet == nil {
+         coordinator.presentSheet(.activeRoute)
+       }
+     }
+     .onChange(of: coordinator.activeRoute?.waypoints.count) { _, waypointCount in
+       // Adjust map camera when route is generated
+       if let activeRoute = coordinator.activeRoute, waypointCount != nil {
+         SecureLogger.shared.logInfo("📍 ContentView: New route detected, adjusting map camera", category: .ui)
+         mapService.adjustCamera(to: activeRoute)
+       }
+     }
   }
 }
 

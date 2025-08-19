@@ -511,7 +511,18 @@ class BasicHomeCoordinator: ObservableObject {
                 minimumPOIDistance: .noMinimum,
                 availablePOIs: pois
             )
-            // Result will be handled by updateFromRouteService()
+            
+            // Explicitly handle the route result
+            await MainActor.run {
+                isGeneratingRoute = false
+                if let generatedRoute = routeService.generatedRoute {
+                    SecureLogger.shared.logInfo("🎉 HomeCoordinator: Route generated successfully with \(generatedRoute.waypoints.count) waypoints", category: .ui)
+                    handleRouteGenerated(generatedRoute)
+                } else {
+                    SecureLogger.shared.logWarning("⚠️ HomeCoordinator: Route generation completed but no route available", category: .ui)
+                    errorMessage = routeService.errorMessage ?? "Route generation failed"
+                }
+            }
         } catch {
             await MainActor.run {
                 errorMessage = error.localizedDescription
