@@ -26,16 +26,15 @@ struct ManualRoutePlanningView: View {
     private var geoapifyService: GeoapifyAPIService { coordinator.getGeoapifyService() }
     
     // MARK: - Specialized Services (Keep Local)
-    @StateObject private var wikipediaService = WikipediaService.shared
+    @StateObject private var poiDiscoveryService = ManualRoutePOIDiscoveryService()
+    @StateObject private var routeGenerationService = ManualRouteGenerationService()
     @StateObject private var poiSelection = ManualPOISelection()
-    @StateObject private var manualService = ManualRouteService()
     
     // STATE
     @State private var currentPhase: ManualPlanningPhase = .loading
-    @State private var discoveredPOIs: [POI] = []
-    @State private var enrichedPOIs: [String: WikipediaEnrichedPOI] = [:]
     @State private var showingPOISelection = false
-    // Robust cover trigger tied to data availability
+    
+    // Preview Context for route completion
     struct ManualPreviewContext: Identifiable {
         let id = UUID()
         let route: GeneratedRoute
@@ -44,40 +43,40 @@ struct ManualRoutePlanningView: View {
     }
     @State private var previewContext: ManualPreviewContext?
     @State private var generatedRoute: GeneratedRoute?
-    // Fallback-Präsentation falls item-based Cover nicht greift
     @State private var forcePresentBuilder: Bool = false
     @State private var forceBuilderRoute: GeneratedRoute?
-    @State private var enrichmentProgress: Double = 0.0
-    @State private var errorMessage: String?
     @State private var showingOverviewSheet = false
     @State private var showingSelectionSheet = false
     @State private var showingHelpSheet = false
     
     @State private var pushBuilder: Bool = false
+    
     var body: some View {
         NavigationStack {
             ZStack {
-                // Hidden link removed; replaced with navigationDestination modifier on container
                 switch currentPhase {
                 case .loading:
-                    loadingPOIsView
+                    ManualRouteLoadingView(cityName: config.startingCity)
                 case .enriching:
-                    enrichingPOIsView
+                    ManualRouteEnrichingView(progress: poiDiscoveryService.enrichmentProgress)
                 case .ready, .selecting:
-                    // Direkt den Card-Stack anzeigen
                     poiSelectionView
                 case .generating:
-                    generatingRouteView
+                    ManualRouteGeneratingView(selectedPOICount: poiSelection.selectedPOIs.count)
                 case .completed:
-                    routeCompletedView
+                    ManualRouteCompletedView {
+                        if let route = routeGenerationService.generatedRoute {
+                            previewContext = ManualPreviewContext(route: route, pois: poiDiscoveryService.discoveredPOIs, config: config)
+                        }
+                    }
                 }
             }
             .navigationDestination(isPresented: $pushBuilder) {
-                if let route = finalManualRoute, let pois = finalDiscoveredPOIs {
+                if let route = routeGenerationService.generatedRoute {
                     RouteBuilderView(
                         manualRoute: route,
                         config: config,
-                        discoveredPOIs: pois,
+                        discoveredPOIs: poiDiscoveryService.discoveredPOIs,
                         onRouteGenerated: onRouteGenerated
                     )
                 } else {
@@ -90,40 +89,52 @@ struct ManualRoutePlanningView: View {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Fertig") { dismiss() }
                 }
-                // Generate button (UITEST: immer sichtbar; sonst ab 1 Auswahl)
+                
+                // Generate button (UITEST: always visible; otherwise from 1 selection)
                 ToolbarItem(placement: .navigationBarTrailing) {
                     if poiSelection.canGenerateRoute || ProcessInfo.processInfo.environment["UITEST"] == "1" {
                         Button("Route erstellen") {
                             currentPhase = .generating
-                            generateRoute()
+                            Task {
+                                await routeGenerationService.generateRoute(
+                                    config: config, 
+                                    selectedPOIs: poiSelection.selectedPOIs, 
+                                    discoveredPOIs: poiDiscoveryService.discoveredPOIs
+                                )
+                                if routeGenerationService.generatedRoute != nil {
+                                    currentPhase = .completed
+                                }
+                            }
                         }
-                        .accessibilityLabel("Route erstellen")
-                        .accessibilityIdentifier("manual.create.button")
-                        .accessibilityValue(currentPhase == .generating ? "in-progress" : "ready")
+                        .font(.headline)
+                        .foregroundColor(.blue)
+                        .accessibilityIdentifier("manual.generate.route.button")
                     }
                 }
-                // Options menu (always available)
+                
+                // Overview button (only when ready)
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Menu {
-                        Button { showingOverviewSheet = true } label: {
-                            Label("Übersicht", systemImage: "info.circle")
+                    if currentPhase == .ready && !poiDiscoveryService.discoveredPOIs.isEmpty {
+                        Menu {
+                            Button(action: { showingOverviewSheet = true }) {
+                                Label("Kategorien anzeigen", systemImage: "square.grid.2x2")
+                            }
+                            Button(action: { showingSelectionSheet = true }) {
+                                Label("Auswahl anzeigen", systemImage: "list.bullet")
+                            }
+                            Button(action: { showingHelpSheet = true }) {
+                                Label("Rückgängig-Hilfe", systemImage: "questionmark.circle")
+                            }
+                        } label: {
+                            Image(systemName: "ellipsis.circle")
                         }
-                        Button { showingSelectionSheet = true } label: {
-                            Label("Aktuelle Auswahl", systemImage: "checkmark.circle")
-                        }
-                        Button { showingHelpSheet = true } label: {
-                            Label("Was passiert bei Rückgängig?", systemImage: "arrow.uturn.left.circle")
-                        }
-                        Divider()
-                        Button(role: .destructive) { poiSelection.reset() } label: {
-                            Label("Auswahl zurücksetzen", systemImage: "trash")
-                        }
-                    } label: {
-                        Image(systemName: "ellipsis.circle")
+                        .accessibilityLabel("Optionen")
                     }
-                    .accessibilityLabel("Optionen")
                 }
-                ToolbarItem(placement: .navigationBarTrailing) { selectionCounterView }
+                
+                ToolbarItem(placement: .navigationBarTrailing) { 
+                    ManualRouteSelectionCounterView(selectedCount: poiSelection.selectedPOIs.count)
+                }
             }
             .sheet(isPresented: $showingOverviewSheet) { overviewSheet }
             .sheet(isPresented: $showingSelectionSheet) { selectionSheet }
@@ -136,220 +147,89 @@ struct ManualRoutePlanningView: View {
                     onRouteGenerated: onRouteGenerated
                 )
             }
-            .fullScreenCover(isPresented: $forcePresentBuilder) {
-                if let route = forceBuilderRoute, let pois = finalDiscoveredPOIs {
-                    RouteBuilderView(
-                        manualRoute: route,
-                        config: config,
-                        discoveredPOIs: pois,
-                        onRouteGenerated: onRouteGenerated
-                    )
-                }
-            }
             .onAppear {
-                startPOIDiscovery()
+                Task {
+                    await poiDiscoveryService.discoverPOIs(config: config)
+                    currentPhase = .enriching
+                    
+                    // Wait for enrichment to complete
+                    while poiDiscoveryService.enrichmentProgress < 1.0 && poiDiscoveryService.errorMessage == nil {
+                        try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
+                    }
+                    currentPhase = .ready
+                }
+                
                 // UITEST autopilot: select first few POIs and trigger generation automatically
                 if ProcessInfo.processInfo.arguments.contains("-UITEST_AUTOPILOT_MANUAL") {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
                         // Step through 3 accepts (if available), then tap generate
-                        let picks = min(3, discoveredPOIs.count)
+                        let picks = min(3, poiDiscoveryService.discoveredPOIs.count)
                         for i in 0..<picks {
-                            if i < discoveredPOIs.count {
-                                poiSelection.selectPOI(discoveredPOIs[i])
+                            if i < poiDiscoveryService.discoveredPOIs.count {
+                                poiSelection.selectPOI(poiDiscoveryService.discoveredPOIs[i])
                             }
                         }
                         if picks > 0 {
                             currentPhase = .generating
-                            generateRoute()
+                            Task {
+                                await routeGenerationService.generateRoute(
+                                    config: config, 
+                                    selectedPOIs: poiSelection.selectedPOIs, 
+                                    discoveredPOIs: poiDiscoveryService.discoveredPOIs
+                                )
+                                if routeGenerationService.generatedRoute != nil {
+                                    currentPhase = .completed
+                                }
+                            }
                         }
                     }
                 }
             }
-            .alert("Fehler", isPresented: .constant(errorMessage != nil)) {
+            .alert("Fehler", isPresented: .constant(poiDiscoveryService.errorMessage != nil)) {
                 Button("Erneut versuchen") {
-                    errorMessage = nil
+                    poiDiscoveryService.clearData()
                     currentPhase = .loading
-                    startPOIDiscovery()
+                    Task {
+                        await poiDiscoveryService.discoverPOIs(config: config)
+                        currentPhase = .enriching
+                        while poiDiscoveryService.enrichmentProgress < 1.0 && poiDiscoveryService.errorMessage == nil {
+                            try? await Task.sleep(nanoseconds: 100_000_000)
+                        }
+                        currentPhase = .ready
+                    }
                 }
                 Button("Abbrechen") {
                     dismiss()
                 }
             } message: {
-                if let error = errorMessage {
+                if let error = poiDiscoveryService.errorMessage {
                     Text(error)
                 }
             }
         }
     }
     
-    // MARK: - Loading POIs View
-    
-    private var loadingPOIsView: some View {
-        VStack(spacing: 24) {
-            Spacer()
-            
-            VStack(spacing: 16) {
-                ProgressView()
-                    .scaleEffect(1.2)
-                
-                Text("Entdecke POIs in \(config.startingCity)...")
-                    .font(.title2)
-                    .fontWeight(.semibold)
-                    .multilineTextAlignment(.center)
-                
-                Text("Ich suche nach interessanten Orten für deine Tour")
-                    .font(.body)
-                    .foregroundColor(.secondary)
-                    .multilineTextAlignment(.center)
-            }
-            
-            Spacer()
-        }
-        .padding()
-    }
-    
-    // MARK: - Enriching POIs View
-    
-    private var enrichingPOIsView: some View {
-        VStack(spacing: 24) {
-            Spacer()
-            
-            VStack(spacing: 16) {
-                ProgressView(value: enrichmentProgress, total: 1.0)
-                    .progressViewStyle(LinearProgressViewStyle())
-                    .frame(maxWidth: 200)
-                
-                Text("Lade Wikipedia-Infos...")
-                    .font(.title2)
-                    .fontWeight(.semibold)
-                
-                Text("Bereite interessante Details zu den Orten vor")
-                    .font(.body)
-                    .foregroundColor(.secondary)
-                    .multilineTextAlignment(.center)
-                
-                Text("\(Int(enrichmentProgress * 100))% abgeschlossen")
-                    .font(.caption)
-                    .foregroundColor(.blue)
-            }
-            
-            Spacer()
-        }
-        .padding()
-    }
-    
-    // MARK: - Selection Counter (toolbar)
-    private var selectionCounterView: some View {
-        HStack(spacing: 4) {
-            Image(systemName: "checkmark.circle.fill").foregroundColor(.green)
-            Text("\(poiSelection.selectedPOIs.count)").fontWeight(.semibold)
-        }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 4)
-        .background(Capsule().fill(Color(.systemGray6)))
-    }
-    
     // MARK: - POI Selection View
-    
     private var poiSelectionView: some View {
         POISelectionStackView(
-            availablePOIs: .constant(discoveredPOIs),
+            availablePOIs: .constant(poiDiscoveryService.discoveredPOIs),
             selection: poiSelection,
-            enrichedPOIs: enrichedPOIs,
+            enrichedPOIs: poiDiscoveryService.enrichedPOIs,
             onSelectionComplete: {
                 currentPhase = .ready
             }
         )
     }
-    
-    // MARK: - Generating Route View
-    
-    private var generatingRouteView: some View {
-        VStack(spacing: 24) {
-            Spacer()
-            
-            VStack(spacing: 16) {
-                ProgressView()
-                    .scaleEffect(1.2)
-                
-                Text("Erstelle deine Route...")
-                    .font(.title2)
-                    .fontWeight(.semibold)
-                
-                Text("Optimiere die Reihenfolge deiner \(poiSelection.selectedPOIs.count) ausgewählten POIs")
-                    .font(.body)
-                    .foregroundColor(.secondary)
-                    .multilineTextAlignment(.center)
-                
-                // Debug hint for long-running operations
-                Text("Sollte das länger als 15s dauern, breche ich automatisch ab.")
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
-            }
-            
-            Spacer()
-        }
-        .padding()
-    }
-    
-    // MARK: - Route Completed View
-    
-    private var routeCompletedView: some View {
-        VStack(spacing: 24) {
-            Spacer()
-            
-            VStack(spacing: 16) {
-                Image(systemName: "checkmark.circle.fill")
-                    .font(.system(size: 64))
-                    .foregroundColor(.green)
-                
-                Text("Route erstellt!")
-                    .font(.title2)
-                    .fontWeight(.semibold)
-                    .accessibilityIdentifier("manual.completion.anchor")
-                
-                Text("Deine manuelle Route ist bereit")
-                    .font(.body)
-                    .foregroundColor(.secondary)
-            }
-            
-            Button(action: {
-                if let route = finalManualRoute, let pois = finalDiscoveredPOIs {
-                    previewContext = ManualPreviewContext(route: route, pois: pois, config: config)
-                }
-            }) {
-                Text("Route anzeigen")
-                    .font(.headline)
-                    .fontWeight(.medium)
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
-                    .background(
-                        RoundedRectangle(cornerRadius: 12)
-                            .fill(.blue)
-                    )
-            }
-            .accessibilityIdentifier("manual.route.show.builder.button")
-            .padding(.horizontal)
-            
-            Spacer()
-        }
-        .padding()
-    }
-
-    @State private var finalManualRoute: GeneratedRoute?
-    @State private var finalDiscoveredPOIs: [POI]?
 
     // MARK: - Overview Sheet
     private var overviewSheet: some View {
         NavigationView {
             ScrollView {
-                VStack(spacing: 16) {
-                    Text("\(discoveredPOIs.count) interessante Orte in \(config.startingCity)")
-                        .font(.headline)
-                        .padding(.top, 8)
-                    POICategoriesOverview(pois: discoveredPOIs)
-                    if poiSelection.hasSelections {
+                VStack(alignment: .leading, spacing: 16) {
+                    POICategoriesOverview(pois: poiDiscoveryService.discoveredPOIs)
+                    
+                    if !poiSelection.selectedPOIs.isEmpty {
+                        Divider()
                         SelectedPOIsPreview(selectedPOIs: poiSelection.selectedPOIs)
                     }
                 }
@@ -404,148 +284,6 @@ struct ManualRoutePlanningView: View {
             .toolbar { ToolbarItem(placement: .navigationBarTrailing) { Button("Fertig") { showingHelpSheet = false } } }
         }
     }
-    
-    // MARK: - Business Logic
-    
-    private func startPOIDiscovery() {
-        currentPhase = .loading
-        Task {
-            await discoverPOIs()
-        }
-    }
-    
-    private func discoverPOIs() async {
-        do {
-            // Use starting coordinates if available, otherwise get from city name
-            let coordinates: CLLocationCoordinate2D
-            if let startCoords = config.startingCoordinates {
-                SecureLogger.shared.logDebug("🌍 Manual Route: Using provided coordinates: \(startCoords.latitude), \(startCoords.longitude)", category: .ui)
-                coordinates = startCoords
-            } else {
-                SecureLogger.shared.logDebug("🌍 Manual Route: No coordinates provided, using fallback for city: \(config.startingCity)", category: .ui)
-                // For now, use GeoapifyAPIService to geocode the city
-                let pois = try await geoapifyService.fetchPOIs(
-                    for: config.startingCity,
-                    categories: PlaceCategory.geoapifyEssentialCategories
-                )
-                
-                await MainActor.run {
-                    self.discoveredPOIs = pois
-                    if pois.isEmpty {
-                        self.errorMessage = "Keine POIs in \(config.startingCity) gefunden. Versuche eine andere Stadt."
-                    } else {
-                        self.currentPhase = .enriching
-                        Task {
-                            await enrichPOIs()
-                        }
-                    }
-                }
-                return
-            }
-            
-            // Discover POIs using GeoapifyAPIService
-            let pois = try await geoapifyService.fetchPOIs(
-                at: coordinates,
-                cityName: config.startingCity,
-                categories: PlaceCategory.geoapifyEssentialCategories
-            )
-            
-            await MainActor.run {
-                self.discoveredPOIs = pois
-                if pois.isEmpty {
-                    self.errorMessage = "Keine POIs in \(config.startingCity) gefunden. Versuche eine andere Stadt."
-                } else {
-                    self.currentPhase = .enriching
-                    Task {
-                        await enrichPOIs()
-                    }
-                }
-            }
-        } catch {
-            await MainActor.run {
-                self.errorMessage = "Fehler beim Laden der POIs: \(error.localizedDescription)"
-            }
-        }
-    }
-    
-    private func enrichPOIs() async {
-        let totalPOIs = discoveredPOIs.count
-        guard totalPOIs > 0 else {
-            await MainActor.run {
-                currentPhase = .ready
-            }
-            return
-        }
-        
-        var enrichedData: [String: WikipediaEnrichedPOI] = [:]
-        
-        for (index, poi) in discoveredPOIs.enumerated() {
-            do {
-                let enriched = try await wikipediaService.enrichPOI(poi, cityName: config.startingCity)
-                enrichedData[poi.id] = enriched
-            } catch {
-                // Continue with other POIs even if one fails
-                SecureLogger.shared.logWarning("Failed to enrich POI \(poi.name): \(error.localizedDescription)", category: .data)
-            }
-            
-            // Update progress
-            let progress = Double(index + 1) / Double(totalPOIs)
-            await MainActor.run {
-                enrichmentProgress = progress
-            }
-        }
-        
-        await MainActor.run {
-            self.enrichedPOIs = enrichedData
-            self.currentPhase = .ready
-        }
-    }
-    
-    private func generateRoute() {
-        // Deterministische, synchrone Erzeugung im UITEST-Modus
-        if ProcessInfo.processInfo.environment["UITEST"] == "1" {
-            SecureLogger.shared.logDebug("🟦 ManualRoutePlanningView.generateRoute(UITEST-fast): start (selected=\(poiSelection.selectedPOIs.count))", category: .ui)
-            let startCoord = config.startingCoordinates ?? CLLocationCoordinate2D(latitude: 49.4521, longitude: 11.0767)
-            let start = RoutePoint(name: "Start", coordinate: startCoord, address: config.startingCity, category: .attraction)
-            let poiPoint: RoutePoint = poiSelection.selectedPOIs.first.map { RoutePoint(from: $0) } ?? RoutePoint(name: "Altstadt", coordinate: startCoord, address: config.startingCity)
-            let waypoints = [start, poiPoint]
-            let route = GeneratedRoute(waypoints: waypoints, routes: [], totalDistance: 0, totalTravelTime: 0, totalVisitTime: 0, totalExperienceTime: 0)
-            self.finalManualRoute = route
-            self.finalDiscoveredPOIs = self.discoveredPOIs
-            self.generatedRoute = route
-            self.previewContext = ManualPreviewContext(route: route, pois: self.discoveredPOIs, config: self.config)
-            self.currentPhase = .completed
-            self.forceBuilderRoute = route
-            self.forcePresentBuilder = true
-            self.pushBuilder = true
-            return
-        }
-        Task {
-            SecureLogger.shared.logDebug("🟦 ManualRoutePlanningView.generateRoute: start (selected=\(poiSelection.selectedPOIs.count))", category: .ui)
-            let request = ManualRouteRequest(
-                config: config,
-                selectedPOIs: poiSelection.selectedPOIs,
-                allDiscoveredPOIs: discoveredPOIs
-            )
-            await manualService.generateRoute(request: request)
-            await MainActor.run {
-                if let route = manualService.generatedRoute {
-                    SecureLogger.shared.logDebug("🟩 ManualRoutePlanningView.generateRoute: route ready, presenting builder…", category: .ui)
-                    self.finalManualRoute = route
-                    self.finalDiscoveredPOIs = self.discoveredPOIs
-                    self.generatedRoute = route
-                    self.previewContext = ManualPreviewContext(route: route, pois: self.discoveredPOIs, config: self.config)
-                    self.currentPhase = .completed
-                    self.forceBuilderRoute = route
-                    self.forcePresentBuilder = true
-                    self.pushBuilder = true
-                } else {
-                    SecureLogger.shared.logWarning("🟥 ManualRoutePlanningView.generateRoute: route generation failed: \(manualService.errorMessage ?? "unknown")", category: .ui)
-                    self.currentPhase = .completed
-                }
-            }
-        }
-    }
 }
 
 // MARK: - Helper Views
@@ -575,10 +313,6 @@ struct POICategoriesOverview: View {
                 }
             }
         }
-        .padding()
-        .background(Color(.systemGray6))
-        .cornerRadius(12)
-        .padding(.horizontal)
     }
 }
 
@@ -587,24 +321,18 @@ struct CategoryChip: View {
     let count: Int
     
     var body: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: 4) {
             Text(category.icon)
-                .font(.system(size: 14))
-            
-            Text(category.rawValue)
+                .font(.caption)
+            Text("\(category.displayName) (\(count))")
                 .font(.caption)
                 .fontWeight(.medium)
-            
-            Text("\(count)")
-                .font(.caption)
-                .fontWeight(.bold)
-                .foregroundColor(.blue)
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 4)
         .background(
-            Capsule()
-                .fill(Color(.systemBackground))
+            RoundedRectangle(cornerRadius: 8)
+                .fill(Color(.systemGray6))
         )
     }
 }
@@ -614,76 +342,37 @@ struct SelectedPOIsPreview: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Image(systemName: "checkmark.circle.fill")
-                    .foregroundColor(.green)
-                
-                Text("Deine Auswahl:")
-                    .font(.headline)
-                    .foregroundColor(.primary)
-                
-                Spacer()
-                
-                Text("\(selectedPOIs.count) POIs")
-                    .font(.caption)
-                    .fontWeight(.semibold)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 2)
-                    .background(
-                        Capsule()
-                            .fill(.green.opacity(0.2))
-                    )
-                    .foregroundColor(.green)
+            Text("Deine Auswahl (\(selectedPOIs.count)):")
+                .font(.headline)
+                .foregroundColor(.primary)
+            
+            ForEach(selectedPOIs.prefix(5), id: \.id) { poi in
+                HStack {
+                    Text(poi.category.icon)
+                        .font(.body)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(poi.name)
+                            .font(.body)
+                            .fontWeight(.medium)
+                        Text(poi.fullAddress)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    Spacer()
+                }
+                .padding(.vertical, 2)
             }
             
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
-                    ForEach(selectedPOIs.prefix(5), id: \.id) { poi in
-                        VStack(spacing: 4) {
-                            Text(poi.category.icon)
-                                .font(.system(size: 20))
-                            
-                            Text(poi.name)
-                                .font(.caption2)
-                                .fontWeight(.medium)
-                                .lineLimit(2)
-                                .multilineTextAlignment(.center)
-                        }
-                        .frame(width: 60, height: 60)
-                        .background(
-                            RoundedRectangle(cornerRadius: 8)
-                                .fill(Color(.systemGray6))
-                        )
-                    }
-                    
-                    if selectedPOIs.count > 5 {
-                        VStack {
-                            Text("+\(selectedPOIs.count - 5)")
-                                .font(.caption)
-                                .fontWeight(.bold)
-                            
-                            Text("mehr")
-                                .font(.caption2)
-                        }
-                        .frame(width: 60, height: 60)
-                        .background(
-                            RoundedRectangle(cornerRadius: 8)
-                                .fill(.blue.opacity(0.2))
-                        )
-                        .foregroundColor(.blue)
-                    }
-                }
-                .padding(.horizontal, 2)
+            if selectedPOIs.count > 5 {
+                Text("... und \(selectedPOIs.count - 5) weitere")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .padding(.leading, 24)
             }
         }
-        .padding()
-        .background(Color(.systemGray6))
-        .cornerRadius(12)
-        .padding(.horizontal)
     }
 }
 
-// MARK: - Preview
 #Preview {
     ManualRoutePlanningView(
         config: ManualRouteConfig(
