@@ -2,9 +2,13 @@ import SwiftUI
 
 @main
 struct SmartCityGuideApp: App {
+  // MARK: - App-Level Coordinator
+  @StateObject private var appCoordinator = BasicHomeCoordinator()
+  
   var body: some Scene {
     WindowGroup {
       ContentView()
+        .environmentObject(appCoordinator)
         .id(UUID()) // sorgt für frischen Einstieg bei erneutem Öffnen (optional)
         .onAppear {
           setupCacheManager()

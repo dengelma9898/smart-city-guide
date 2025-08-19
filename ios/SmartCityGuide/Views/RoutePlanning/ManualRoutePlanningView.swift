@@ -19,8 +19,13 @@ struct ManualRoutePlanningView: View {
     let config: ManualRouteConfig
     let onRouteGenerated: (GeneratedRoute) -> Void
     
-    // SERVICES
-    @StateObject private var geoapifyService = GeoapifyAPIService.shared
+    // MARK: - Coordinator (Centralized Services)
+    @EnvironmentObject private var coordinator: BasicHomeCoordinator
+    
+    // MARK: - Services (Via Coordinator)
+    private var geoapifyService: GeoapifyAPIService { coordinator.getGeoapifyService() }
+    
+    // MARK: - Specialized Services (Keep Local)
     @StateObject private var wikipediaService = WikipediaService.shared
     @StateObject private var poiSelection = ManualPOISelection()
     @StateObject private var manualService = ManualRouteService()

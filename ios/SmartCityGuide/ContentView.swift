@@ -2,27 +2,22 @@ import SwiftUI
 import MapKit
 
 struct ContentView: View {
-     // MARK: - Coordinator (Centralized State)
-   @StateObject private var coordinator: BasicHomeCoordinator
+   // MARK: - Coordinator (Centralized State)
+   @EnvironmentObject private var coordinator: BasicHomeCoordinator
    
-   // MARK: - Legacy Services (To be migrated)
+   // MARK: - Services (Via Coordinator)
+   private var quickRouteService: RouteService { coordinator.getRouteService() }
+   private var geoapifyService: GeoapifyAPIService { coordinator.getGeoapifyService() }
+   private var locationService: LocationManagerService { coordinator.getLocationService() }
+   
+   // MARK: - UI-Specific Services (Keep local)
    @StateObject private var mapService = ContentMapService()
-   @StateObject private var quickRouteService = RouteService() // TODO: Replace with coordinator.getRouteService()
-   @StateObject private var geoapifyService = GeoapifyAPIService.shared // TODO: Replace with coordinator.getGeoapifyService()
-   @StateObject private var locationService = LocationManagerService.shared // TODO: Replace with coordinator.getLocationService()
   
-  // MARK: - State
+  // MARK: - Local State (UI-specific only)
   @State private var isQuickPlanning = false
   @State private var quickPlanningMessage = "Wir basteln deine Route!"
   @State private var showingQuickError = false
   @State private var quickErrorMessage = ""
-  @State private var showingLocationPermissionAlert = false
-  
-  // MARK: - Initialization
-  init() {
-    // Simplified approach: Use a basic coordinator without complex DI for now
-    _coordinator = StateObject(wrappedValue: BasicHomeCoordinator())
-  }
   
 
   
@@ -104,16 +99,16 @@ struct ContentView: View {
         locationService.startLocationUpdates()
       }
     }
-    .onChange(of: locationService.isLocationAuthorized) { _, isAuthorized in
-      if isAuthorized {
-        locationService.startLocationUpdates()
-        // Kamera zur User-Location bewegen bei erster Autorisierung
-        if let location = locationService.currentLocation {
-          mapService.centerOnUserLocation(location)
-        }
-      } else {
-        locationService.stopLocationUpdates()
-      }
+         .onChange(of: locationService.isLocationAuthorized) { _, isAuthorized in
+       if isAuthorized {
+         locationService.startLocationUpdates()
+         // Kamera zur User-Location bewegen bei erster Autorisierung
+         if let location = locationService.currentLocation {
+           mapService.centerOnUserLocation(location)
+         }
+       } else {
+         locationService.stopLocationUpdates()
+       }
     }
          .alert("Location-Zugriff erforderlich", isPresented: $coordinator.showingLocationPermissionAlert) {
       Button("Einstellungen öffnen") {
@@ -181,10 +176,10 @@ struct ContentView: View {
   fileprivate var overlayLayer: some View {
     VStack {
       // Top overlay with profile and location buttons
-      ContentTopOverlay(
-        locationService: locationService,
-        onLocationTap: locationButtonTapped
-      )
+               ContentTopOverlay(
+           locationService: locationService,
+           onLocationTap: locationButtonTapped
+         )
 
       Spacer()
 
@@ -199,19 +194,19 @@ struct ContentView: View {
     )
   }
 
-  private func locationButtonTapped() {
-    if !locationService.isLocationAuthorized {
-      if locationService.authorizationStatus == .denied || locationService.authorizationStatus == .restricted {
-        showingLocationPermissionAlert = true
-      } else {
-        Task { @MainActor in
-          await locationService.requestLocationPermission()
-        }
-      }
-    } else if let userLocation = locationService.currentLocation {
-      mapService.centerOnUserLocation(userLocation)
-    }
-  }
+     private func locationButtonTapped() {
+     if !locationService.isLocationAuthorized {
+       if locationService.authorizationStatus == .denied || locationService.authorizationStatus == .restricted {
+         coordinator.showingLocationPermissionAlert = true
+       } else {
+         Task { @MainActor in
+           await locationService.requestLocationPermission()
+         }
+       }
+     } else if let userLocation = locationService.currentLocation {
+       mapService.centerOnUserLocation(userLocation)
+     }
+   }
 
 
   // Extracted bottom overlay to reduce body complexity
@@ -284,10 +279,10 @@ struct ContentView: View {
    fileprivate func startQuickPlanning() async {
     let overallStart = Date()
     // Ensure permission
-    if !locationService.isLocationAuthorized {
-      await MainActor.run { quickPlanningMessage = "Brauch kurz dein OK für den Standort…"; isQuickPlanning = true }
-      await locationService.requestLocationPermission()
-      if !locationService.isLocationAuthorized {
+         if !locationService.isLocationAuthorized {
+       await MainActor.run { quickPlanningMessage = "Brauch kurz dein OK für den Standort…"; isQuickPlanning = true }
+       await locationService.requestLocationPermission()
+       if !locationService.isLocationAuthorized {
         await MainActor.run {
           isQuickPlanning = false
           showingQuickError = true
@@ -297,12 +292,12 @@ struct ContentView: View {
       }
     }
     // Get coordinate (retry once if nil)
-    var current = locationService.currentLocation
-    if current == nil {
-      locationService.startLocationUpdates()
-      try? await Task.sleep(nanoseconds: 800_000_000)
-      current = locationService.currentLocation
-    }
+         var current = locationService.currentLocation
+     if current == nil {
+       locationService.startLocationUpdates()
+       try? await Task.sleep(nanoseconds: 800_000_000)
+       current = locationService.currentLocation
+     }
     guard let loc = current else {
       await MainActor.run {
         showingQuickError = true
@@ -314,7 +309,7 @@ struct ContentView: View {
     do {
       // Fetch POIs around current coordinate
       let fetchStart = Date()
-      let pois = try await geoapifyService.fetchPOIs(
+             let pois = try await geoapifyService.fetchPOIs(
         at: loc.coordinate,
         cityName: "Mein Standort",
         categories: PlaceCategory.geoapifyEssentialCategories,
@@ -325,7 +320,7 @@ struct ContentView: View {
       await MainActor.run { quickPlanningMessage = "Optimiere deine Route…" }
       // Generate route with fixed parameters
       let routeStart = Date()
-      await quickRouteService.generateRoute(
+             await quickRouteService.generateRoute(
         fromCurrentLocation: loc,
         maximumStops: .eight,
         endpointOption: .roundtrip,
@@ -335,7 +330,7 @@ struct ContentView: View {
         availablePOIs: pois
       )
       let routeDuration = Date().timeIntervalSince(routeStart)
-      if let route = quickRouteService.generatedRoute {
+             if let route = quickRouteService.generatedRoute {
         let totalDuration = Date().timeIntervalSince(overallStart)
         SecureLogger.shared.logRouteCalculation(waypoints: route.waypoints.count, duration: routeDuration)
         SecureLogger.shared.logInfo("Quick planning total: \(String(format: "%.2f", totalDuration))s", category: .performance)
@@ -348,7 +343,7 @@ struct ContentView: View {
         await MainActor.run {
           isQuickPlanning = false
           showingQuickError = true
-          quickErrorMessage = quickRouteService.errorMessage ?? "Leider keine Route gefunden."
+                     quickErrorMessage = quickRouteService.errorMessage ?? "Leider keine Route gefunden."
         }
       }
     } catch {

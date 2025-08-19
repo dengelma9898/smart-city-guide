@@ -33,12 +33,11 @@ struct RouteEditView: View {
     /// Callback when editing is cancelled
     let onCancel: () -> Void
     
-    // MARK: - State
+    // MARK: - Coordinator (Centralized Services)
+    @EnvironmentObject private var coordinator: BasicHomeCoordinator
     
-    /// Route edit service instance
+    // MARK: - Specialized Services (Keep Local)
     @StateObject private var editService = RouteEditService()
-    
-    /// POI service for alternative finding
     @StateObject private var poiService = RouteEditPOIService()
     
     /// Available swipe cards

@@ -252,9 +252,15 @@ struct RouteBuilderView: View {
     }
   }
   
-  @StateObject private var routeService = RouteService()
+  // MARK: - Coordinator (Centralized Services)
+  @EnvironmentObject private var coordinator: BasicHomeCoordinator
+  
+  // MARK: - Services (Via Coordinator)
+  private var routeService: RouteService { coordinator.getRouteService() }
+  private var geoapifyService: GeoapifyAPIService { coordinator.getGeoapifyService() }
+  
+  // MARK: - Specialized Services (Keep Local)
   @StateObject private var historyManager = RouteHistoryManager()
-  @StateObject private var geoapifyService = GeoapifyAPIService.shared
   @StateObject private var wikipediaService = RouteWikipediaService()
   @State private var editService: RouteBuilderEditService?
   

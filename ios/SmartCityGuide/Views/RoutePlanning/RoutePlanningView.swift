@@ -4,8 +4,15 @@ import MapKit
 // MARK: - Route Planning View
 struct RoutePlanningView: View {
   @Environment(\.dismiss) private var dismiss
+  
+  // MARK: - Coordinator (Centralized Services)
+  @EnvironmentObject private var coordinator: BasicHomeCoordinator
+  
+  // MARK: - Services (Via Coordinator)
+  private var locationService: LocationManagerService { coordinator.getLocationService() }
+  
+  // MARK: - Specialized Services (Keep Local)
   @StateObject private var settingsManager = ProfileSettingsManager.shared
-  @StateObject private var locationService = LocationManagerService.shared // Phase 3
 
   
   @State private var startingCity = ""
