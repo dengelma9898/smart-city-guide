@@ -9,12 +9,11 @@ struct POISelectionStackView: View {
     let enrichedPOIs: [String: WikipediaEnrichedPOI]
     let onSelectionComplete: () -> Void
     
+    // SERVICES
+    @StateObject private var cardService = POISelectionCardService()
+    
     // STATE
-    @State private var swipeCards: [SwipeCard] = []
-    @State private var currentCardIndex = 0
     @State private var showingSelectionSummary = false
-    @State private var toastMessage: String? = nil
-    @State private var showToast: Bool = false
     
     var body: some View {
         ZStack {
@@ -23,45 +22,67 @@ struct POISelectionStackView: View {
 
             // Content
             Group {
-                if currentCardIndex < swipeCards.count {
-                    cardStackView
-                        .padding(.bottom, 24) // breathing space above bottom bar
+                if cardService.hasCurrentCard() {
+                    POISelectionCardStackView(
+                        visibleCards: cardService.getVisibleCards(),
+                        enrichedPOIs: enrichedPOIs,
+                        onCardAction: { action in
+                            cardService.handleCardAction(action, selection: selection)
+                        }
+                    )
                 } else {
-                    completionView
+                    POISelectionCompletionView(
+                        hasSelections: selection.hasSelections,
+                        selectionCount: selection.selectedPOIs.count,
+                        onComplete: onSelectionComplete,
+                        onRestart: {
+                            cardService.resetToBeginning()
+                        }
+                    )
                 }
             }
         }
-        // Top index badge below the navigation bar
+        // Top progress indicator
         .safeAreaInset(edge: .top) {
-            if currentCardIndex < swipeCards.count {
-                HStack {
-                    indexBadge
-                    Spacer()
-                }
-                .padding(.horizontal, 20)
-                .padding(.top, 4)
+            if cardService.hasCurrentCard() {
+                let progress = cardService.getProgress()
+                POISelectionProgressView(
+                    currentIndex: progress.current,
+                    totalCount: progress.total
+                )
             }
         }
-        // Bottom action bar for primary actions (does not overlap content)
+        // Bottom action bar
         .safeAreaInset(edge: .bottom) {
-            if currentCardIndex < swipeCards.count {
-                actionBar
+            if cardService.hasCurrentCard() {
+                POISelectionActionBar(
+                    hasCurrentCard: cardService.hasCurrentCard(),
+                    selectionCount: selection.selectedPOIs.count,
+                    onAccept: {
+                        cardService.selectCurrentCard(selection: selection)
+                    },
+                    onReject: {
+                        cardService.rejectCurrentCard(selection: selection)
+                    },
+                    onSkip: {
+                        cardService.skipCurrentCard()
+                    },
+                    onViewSelections: {
+                        showingSelectionSummary = true
+                    }
+                )
             }
         }
-        // Toast overlay (bottom)
+        // Toast overlay
         .overlay(alignment: .bottom) {
-            if showToast, let message = toastMessage {
-                Text(message)
-                    .font(.subheadline)
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 10)
-                    .background(Capsule().fill(Color.black.opacity(0.8)))
-                    .padding(.bottom, 90)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-            }
+            POISelectionToastView(
+                message: cardService.toastMessage ?? "",
+                isVisible: cardService.showToast
+            )
         }
-        .onAppear { setupSwipeCards() }
+        .onAppear { 
+            cardService.setupSwipeCards(from: availablePOIs, enrichedPOIs: enrichedPOIs)
+        }
     }
     
     // MARK: - Background
