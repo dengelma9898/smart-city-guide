@@ -489,7 +489,19 @@ class BasicHomeCoordinator: ObservableObject {
         isGeneratingRoute = true
         
         do {
-            // Use the centralized route service with existing API
+            SecureLogger.shared.logInfo("🔍 HomeCoordinator: Fetching POIs for quick planning at \(location.coordinate)", category: .ui)
+            
+            // Fetch POIs using the coordinator's geoapify service
+            let pois = try await geoapifyService.fetchPOIs(
+                at: location.coordinate,
+                cityName: "Mein Standort",
+                categories: PlaceCategory.geoapifyEssentialCategories,
+                radiusMeters: 2000
+            )
+            
+            SecureLogger.shared.logInfo("✅ HomeCoordinator: Found \(pois.count) POIs for quick planning", category: .ui)
+            
+            // Use the centralized route service with POIs
             await routeService.generateRoute(
                 fromCurrentLocation: location,
                 maximumStops: .eight,
@@ -497,13 +509,14 @@ class BasicHomeCoordinator: ObservableObject {
                 customEndpoint: "",
                 maximumWalkingTime: .openEnd,
                 minimumPOIDistance: .noMinimum,
-                availablePOIs: []
+                availablePOIs: pois
             )
             // Result will be handled by updateFromRouteService()
         } catch {
             await MainActor.run {
                 errorMessage = error.localizedDescription
                 isGeneratingRoute = false
+                SecureLogger.shared.logWarning("❌ HomeCoordinator Quick Planning failed: \(error.localizedDescription)", category: .ui)
             }
         }
     }
