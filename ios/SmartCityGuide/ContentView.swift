@@ -87,18 +87,13 @@ struct ContentView: View {
       }
     }
     // Phase 2: Lifecycle & Alerts
-    .onAppear {
-      // Automatisch Location Permission anfordern bei erstem App-Start
-      if locationService.authorizationStatus == .notDetermined {
-        Task { @MainActor in
-          await locationService.requestLocationPermission()
-        }
-      }
-      // Location-Updates starten wenn bereits authorized
-      if locationService.isLocationAuthorized {
-        locationService.startLocationUpdates()
-      }
-    }
+         .onAppear {
+       // Location initialization is now handled by the coordinator
+       // Just start updates if already authorized
+       if locationService.isLocationAuthorized {
+         locationService.startLocationUpdates()
+       }
+     }
          .onChange(of: locationService.isLocationAuthorized) { _, isAuthorized in
        if isAuthorized {
          locationService.startLocationUpdates()
@@ -264,14 +259,18 @@ struct ContentView: View {
   
      /// Enhanced: Start Quick‑Planning with Coordinator features
    fileprivate func startEnhancedQuickPlanning() async {
+     SecureLogger.shared.logInfo("🚀 Enhanced Quick Planning Started!", category: .ui)
+     
      // Use coordinator's location and error management
      guard let location = coordinator.currentLocation ?? locationService.currentLocation else {
+       SecureLogger.shared.logWarning("⚠️ Enhanced Quick Planning: No location available", category: .ui)
        await MainActor.run {
          coordinator.showingLocationPermissionAlert = true
        }
        return
      }
      
+     SecureLogger.shared.logInfo("✅ Enhanced Quick Planning: Using location \(location)", category: .ui)
      await coordinator.startQuickPlanningAt(location: location)
    }
    
