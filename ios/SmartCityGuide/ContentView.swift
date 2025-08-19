@@ -2,12 +2,14 @@ import SwiftUI
 import MapKit
 
 struct ContentView: View {
-  // MARK: - Services
-  @StateObject private var coordinator: BasicHomeCoordinator
-  @StateObject private var mapService = ContentMapService()
-  @StateObject private var quickRouteService = RouteService()
-  @StateObject private var geoapifyService = GeoapifyAPIService.shared
-  @StateObject private var locationService = LocationManagerService.shared
+     // MARK: - Coordinator (Centralized State)
+   @StateObject private var coordinator: BasicHomeCoordinator
+   
+   // MARK: - Legacy Services (To be migrated)
+   @StateObject private var mapService = ContentMapService()
+   @StateObject private var quickRouteService = RouteService() // TODO: Replace with coordinator.getRouteService()
+   @StateObject private var geoapifyService = GeoapifyAPIService.shared // TODO: Replace with coordinator.getGeoapifyService()
+   @StateObject private var locationService = LocationManagerService.shared // TODO: Replace with coordinator.getLocationService()
   
   // MARK: - State
   @State private var isQuickPlanning = false
@@ -24,8 +26,8 @@ struct ContentView: View {
   
 
   
-  var body: some View {
-    NavigationStack {
+     var body: some View {
+     NavigationStack(path: $coordinator.navigationPath) {
       ZStack(alignment: .bottom) {
         // Main map view
         ContentMapView(
@@ -38,7 +40,11 @@ struct ContentView: View {
         overlayLayer
       }
     }
-    // Phase 4: Coordinator-based Sheet Routing
+         // Enhanced: Navigation Destinations
+     .navigationDestination(for: String.self) { destination in
+       navigationDestination(for: destination)
+     }
+     // Enhanced: Coordinator-based Sheet Routing
     .sheet(item: $coordinator.presentedSheet) { sheet in
       switch sheet {
       case .planning(let mode):
@@ -109,7 +115,7 @@ struct ContentView: View {
         locationService.stopLocationUpdates()
       }
     }
-    .alert("Location-Zugriff erforderlich", isPresented: $showingLocationPermissionAlert) {
+         .alert("Location-Zugriff erforderlich", isPresented: $coordinator.showingLocationPermissionAlert) {
       Button("Einstellungen öffnen") {
         if let settingsUrl = URL(string: UIApplication.openSettingsURLString) {
           UIApplication.shared.open(settingsUrl)
@@ -119,11 +125,17 @@ struct ContentView: View {
     } message: {
       Text("Um deine Position auf der Karte zu sehen, aktiviere bitte Location-Services in den Einstellungen.")
     }
-    .alert("Ups, da lief was schief!", isPresented: $showingQuickError) {
-      Button("Okay", role: .cancel) { }
-    } message: {
-      Text(quickErrorMessage)
-    }
+         .alert("Ups, da lief was schief!", isPresented: .constant(coordinator.errorMessage != nil)) {
+       Button("Okay", role: .cancel) { 
+         coordinator.clearError()
+       }
+     } message: {
+       if let error = coordinator.errorMessage {
+         Text(error)
+       } else {
+         Text(quickErrorMessage)
+       }
+     }
     // NavigationBar auf der Root-Map verstecken, damit keine graue/Material-Fläche oben sichtbar ist
     .toolbar(.hidden, for: .navigationBar)
     // Statusbar/Top bar: keep map truly fullscreen
@@ -141,9 +153,30 @@ struct ContentView: View {
   ContentView()
 }
 
-// MARK: - Private helpers
-extension ContentView {
-  // Extracted overlay (top controls + bottom actions + loader) to reduce body complexity
+ // MARK: - Navigation Destinations
+ extension ContentView {
+   
+   @ViewBuilder
+   private func navigationDestination(for destination: String) -> some View {
+     switch destination {
+     case "profile":
+       ProfileView()
+     case "routeHistory":
+       RouteHistoryView()
+     case "settings":
+       ProfileSettingsView()
+     case "help":
+       HelpSupportView()
+     default:
+       Text("Unknown destination: \(destination)")
+         .navigationTitle("Error")
+     }
+   }
+ }
+ 
+ // MARK: - Private helpers
+ extension ContentView {
+   // Extracted overlay (top controls + bottom actions + loader) to reduce body complexity
   @ViewBuilder
   fileprivate var overlayLayer: some View {
     VStack {
@@ -192,11 +225,11 @@ extension ContentView {
       )
     } else if coordinator.activeRoute == nil {
       if FeatureFlags.quickRoutePlanningEnabled {
-        ContentBottomActionBar(
-          onQuickPlan: {
-            SecureLogger.shared.logInfo("⚡️ Quick‑Plan: Trigger gedrückt", category: .ui)
-            Task { await startQuickPlanning() }
-          },
+                   ContentBottomActionBar(
+             onQuickPlan: {
+               SecureLogger.shared.logInfo("⚡️ Quick‑Plan: Trigger gedrückt (via Coordinator)", category: .ui)
+               Task { await startEnhancedQuickPlanning() }
+             },
           onFullPlan: {
             SecureLogger.shared.logUserAction("Tap plan automatic")
             coordinator.presentSheet(.planning(mode: .automatic))
@@ -234,8 +267,21 @@ extension ContentView {
   }
 
   
-  /// Phase 4: Start the Quick‑Planning flow
-  fileprivate func startQuickPlanning() async {
+     /// Enhanced: Start Quick‑Planning with Coordinator features
+   fileprivate func startEnhancedQuickPlanning() async {
+     // Use coordinator's location and error management
+     guard let location = coordinator.currentLocation ?? locationService.currentLocation else {
+       await MainActor.run {
+         coordinator.showingLocationPermissionAlert = true
+       }
+       return
+     }
+     
+     await coordinator.startQuickPlanningAt(location: location)
+   }
+   
+   /// Legacy: Start the Quick‑Planning flow (keep for backward compatibility)
+   fileprivate func startQuickPlanning() async {
     let overallStart = Date()
     // Ensure permission
     if !locationService.isLocationAuthorized {

@@ -315,7 +315,7 @@ enum SheetDestination: Identifiable {
 
 // MARK: - Basic Home Coordinator (Simplified)
 
-/// Simplified coordinator without complex DI for initial migration
+/// Enhanced coordinator with incremental state management improvements
 @MainActor
 class BasicHomeCoordinator: ObservableObject {
     
@@ -325,13 +325,92 @@ class BasicHomeCoordinator: ObservableObject {
     @Published var isGeneratingRoute = false
     @Published var errorMessage: String?
     
-    // MARK: - Direct Service References (Legacy approach)
+    // MARK: - Navigation State (Enhanced)
+    @Published var navigationPath = NavigationPath()
+    
+    // MARK: - Location State (Enhanced)
+    @Published var currentLocation: CLLocation?
+    @Published var showingLocationPermissionAlert = false
+    
+    // MARK: - Service Access (Centralized)
     private let routeService = RouteService()
     private let locationManager = LocationManagerService.shared
+    private let geoapifyService = GeoapifyAPIService.shared
     private let cacheManager = CacheManager.shared
     
     init() {
-        // Setup any necessary observers
+        setupObservers()
+        initializeServices()
+    }
+    
+    // MARK: - Service Access Methods
+    
+    func getRouteService() -> RouteService {
+        return routeService
+    }
+    
+    func getLocationService() -> LocationManagerService {
+        return locationManager
+    }
+    
+    func getGeoapifyService() -> GeoapifyAPIService {
+        return geoapifyService
+    }
+    
+    func getCacheManager() -> CacheManager {
+        return cacheManager
+    }
+    
+    // MARK: - Setup
+    
+    private func setupObservers() {
+        // Location updates
+        NotificationCenter.default.addObserver(
+            forName: .locationManagerDidUpdateLocation,
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            if let location = notification.userInfo?["location"] as? CLLocation {
+                Task { @MainActor in
+                    self?.currentLocation = location
+                }
+            }
+        }
+        
+        // Route service updates
+        NotificationCenter.default.addObserver(
+            forName: .routeServiceStateChanged,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                self?.updateFromRouteService()
+            }
+        }
+    }
+    
+    private func initializeServices() {
+        Task {
+            await locationManager.requestLocationPermission()
+            locationManager.startLocationUpdates()
+            await cacheManager.loadFromDisk()
+        }
+    }
+    
+    private func updateFromRouteService() {
+        isGeneratingRoute = routeService.isGenerating
+        errorMessage = routeService.errorMessage
+        
+        if let newRoute = routeService.generatedRoute {
+            // Only update if it's actually a different route
+            let shouldUpdate = activeRoute == nil || 
+                             activeRoute!.waypoints.count != newRoute.waypoints.count ||
+                             activeRoute!.totalDistance != newRoute.totalDistance
+            
+            if shouldUpdate {
+                handleRouteGenerated(newRoute)
+            }
+        }
     }
     
     // MARK: - Route Management
@@ -357,16 +436,80 @@ class BasicHomeCoordinator: ObservableObject {
         SecureLogger.shared.logInfo("🗺️ Active route ended via BasicCoordinator", category: .ui)
     }
     
-    // MARK: - Sheet Management
+    // MARK: - Sheet Management (Enhanced)
     
     func presentSheet(_ destination: SheetDestination) {
-        presentedSheet = destination
+        withAnimation(.easeInOut(duration: 0.3)) {
+            presentedSheet = destination
+        }
         SecureLogger.shared.logInfo("🗺️ Sheet presented: \(destination)", category: .ui)
     }
     
     func dismissSheet() {
-        presentedSheet = nil
+        withAnimation(.easeInOut(duration: 0.3)) {
+            presentedSheet = nil
+        }
         SecureLogger.shared.logInfo("🗺️ Sheet dismissed via BasicCoordinator", category: .ui)
+    }
+    
+    // MARK: - Navigation Management (Enhanced)
+    
+    func pushView<T: Hashable>(_ destination: T) {
+        navigationPath.append(destination)
+        SecureLogger.shared.logInfo("📱 Navigation push: \(destination)", category: .ui)
+    }
+    
+    func popToRoot() {
+        navigationPath.removeLast(navigationPath.count)
+        SecureLogger.shared.logInfo("📱 Navigation pop to root", category: .ui)
+    }
+    
+    // MARK: - Location Management (Enhanced)
+    
+    func centerMapOnUserLocation() {
+        guard currentLocation != nil else {
+            showingLocationPermissionAlert = true
+            return
+        }
+        // Map centering will be handled by ContentMapService via binding
+        SecureLogger.shared.logInfo("🗺️ Map centered on user location", category: .ui)
+    }
+    
+    // MARK: - Quick Planning (Enhanced)
+    
+    func startQuickPlanningAt(location: CLLocation) async {
+        isGeneratingRoute = true
+        
+        do {
+            // Use the centralized route service with existing API
+            await routeService.generateRoute(
+                fromCurrentLocation: location,
+                maximumStops: .eight,
+                endpointOption: .roundtrip,
+                customEndpoint: "",
+                maximumWalkingTime: .openEnd,
+                minimumPOIDistance: .noMinimum,
+                availablePOIs: []
+            )
+            // Result will be handled by updateFromRouteService()
+        } catch {
+            await MainActor.run {
+                errorMessage = error.localizedDescription
+                isGeneratingRoute = false
+            }
+        }
+    }
+    
+    // MARK: - Error Management (Enhanced)
+    
+    func clearError() {
+        errorMessage = nil
+    }
+    
+    // MARK: - Cleanup
+    
+    deinit {
+        NotificationCenter.default.removeObserver(self)
     }
 }
 
