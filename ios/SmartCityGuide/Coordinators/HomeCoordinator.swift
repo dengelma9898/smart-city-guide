@@ -390,9 +390,17 @@ class BasicHomeCoordinator: ObservableObject {
     }
     
     private func initializeServices() {
-        Task {
-            await locationManager.requestLocationPermission()
-            locationManager.startLocationUpdates()
+        Task { @MainActor in
+            // Check authorization status first
+            if locationManager.authorizationStatus == .notDetermined {
+                await locationManager.requestLocationPermission()
+            }
+            
+            // Start location updates if authorized
+            if locationManager.isLocationAuthorized {
+                locationManager.startLocationUpdates()
+            }
+            
             await cacheManager.loadFromDisk()
         }
     }

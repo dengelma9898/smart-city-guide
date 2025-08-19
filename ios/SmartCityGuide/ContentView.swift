@@ -317,6 +317,14 @@ struct ContentView: View {
       )
       let fetchDuration = Date().timeIntervalSince(fetchStart)
       SecureLogger.shared.logInfo("Quick POI fetch: \(pois.count) results in \(String(format: "%.2f", fetchDuration))s", category: .performance)
+      
+      // Debug POI details
+      if pois.isEmpty {
+        SecureLogger.shared.logWarning("⚠️ Quick Planning: No POIs found at \(loc.coordinate)", category: .ui)
+      } else {
+        SecureLogger.shared.logInfo("✅ Quick Planning: Found \(pois.count) POIs: \(pois.prefix(3).map { $0.name })", category: .ui)
+      }
+      
       await MainActor.run { quickPlanningMessage = "Optimiere deine Route…" }
       // Generate route with fixed parameters
       let routeStart = Date()

@@ -328,17 +328,19 @@ struct RoutePlanningView: View {
         )
       }
       .sheet(isPresented: $showingManualPlanning) {
-        ManualRoutePlanningView(
-          config: ManualRouteConfig(
-            startingCity: startingCity,
-            startingCoordinates: startingCoordinates,
-            usingCurrentLocation: usingCurrentLocation,
-            endpointOption: endpointOption,
-            customEndpoint: customEndpoint,
-            customEndpointCoordinates: customEndpointCoordinates
-          ),
-          onRouteGenerated: onRouteGenerated
-        )
+        NavigationStack {
+          ManualRoutePlanningView(
+            config: ManualRouteConfig(
+              startingCity: startingCity,
+              startingCoordinates: startingCoordinates,
+              usingCurrentLocation: usingCurrentLocation,
+              endpointOption: endpointOption,
+              customEndpoint: customEndpoint,
+              customEndpointCoordinates: customEndpointCoordinates
+            ),
+            onRouteGenerated: onRouteGenerated
+          )
+        }
       }
       .onAppear {
         // Set preset mode if provided
