@@ -9,7 +9,7 @@ struct SmartCityGuideApp: App {
     WindowGroup {
       ContentView()
         .environmentObject(appCoordinator)
-        .id(UUID()) // sorgt für frischen Einstieg bei erneutem Öffnen (optional)
+        // Removed .id(UUID()) as it causes view recreation and performance issues
         .onAppear {
           setupCacheManager()
         }
