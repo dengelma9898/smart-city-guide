@@ -12,9 +12,12 @@ class ContentMapService: ObservableObject {
     
     private let logger = Logger(subsystem: "de.dengelma.smartcity-guide", category: "ContentMap")
     
+    // Track if we're currently showing a route to prevent location interference
+    private var isShowingRoute = false
+    
     @Published var cameraPosition = MapCameraPosition.region(
         MKCoordinateRegion(
-            center: CLLocationCoordinate2D(latitude: 52.5200, longitude: 13.4050), // Berlin default
+            center: CLLocationCoordinate2D(latitude: 49.4500, longitude: 11.0760), // Nuremberg default (closer to user)
             span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)
         )
     )
@@ -28,6 +31,9 @@ class ContentMapService: ObservableObject {
             logger.warning("Cannot adjust camera: route has no waypoints")
             return
         }
+        
+        // Mark that we're showing a route
+        isShowingRoute = true
         
         let coordinates = route.waypoints.map { $0.coordinate }
         let minLat = coordinates.map { $0.latitude }.min() ?? firstWaypoint.coordinate.latitude
@@ -57,6 +63,12 @@ class ContentMapService: ObservableObject {
     /// Center camera on user's current location
     /// - Parameter location: User's current location
     func centerOnUserLocation(_ location: CLLocation) {
+        // Don't interfere if we're currently showing a route
+        if isShowingRoute {
+            logger.info("🗺️ Skipping user location centering - route is active")
+            return
+        }
+        
         logger.info("🗺️ Centering camera on user location")
         
         withAnimation(.easeInOut(duration: 0.8)) {
@@ -67,6 +79,12 @@ class ContentMapService: ObservableObject {
                 )
             )
         }
+    }
+    
+    /// Clear route state (called when route ends)
+    func clearRouteState() {
+        logger.info("🗺️ Clearing route state")
+        isShowingRoute = false
     }
     
     /// Set camera to a specific coordinate with custom zoom

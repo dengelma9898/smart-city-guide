@@ -137,10 +137,13 @@ struct ContentView: View {
        }
      }
      .onChange(of: coordinator.activeRoute?.waypoints.count) { _, waypointCount in
-       // Adjust map camera when route is generated
+       // Adjust map camera when route is generated or cleared
        if let activeRoute = coordinator.activeRoute, waypointCount != nil {
          SecureLogger.shared.logInfo("📍 ContentView: New route detected, adjusting map camera", category: .ui)
          mapService.adjustCamera(to: activeRoute)
+       } else if waypointCount == nil {
+         SecureLogger.shared.logInfo("📍 ContentView: Route cleared, resetting map state", category: .ui)
+         mapService.clearRouteState()
        }
      }
   }
