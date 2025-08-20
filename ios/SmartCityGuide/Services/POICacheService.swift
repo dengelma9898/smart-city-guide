@@ -14,36 +14,82 @@ class POICacheService: ObservableObject {
     
     // MARK: - Cache Management
     
+    /// Get cached POIs for city name only (legacy method)
     func getCachedPOIs(for cityName: String) -> [POI]? {
-        let cacheKey = cityName.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
-        
+        let cacheKey = generateCacheKey(cityName: cityName)
+        return getCachedPOIsInternal(cacheKey: cacheKey, identifier: cityName)
+    }
+    
+    /// Get cached POIs for specific location and radius (enhanced method)
+    func getCachedPOIs(for cityName: String, location: CLLocation, radius: Double) -> [POI]? {
+        let cacheKey = generateCacheKey(cityName: cityName, location: location, radius: radius)
+        let identifier = "\(cityName)@\(location.coordinate.latitude),\(location.coordinate.longitude)@\(Int(radius))m"
+        return getCachedPOIsInternal(cacheKey: cacheKey, identifier: identifier)
+    }
+    
+    /// Cache POIs for city name only (legacy method)
+    func cachePOIs(_ pois: [POI], for cityName: String) {
+        let cacheKey = generateCacheKey(cityName: cityName)
+        cachePOIsInternal(pois, cacheKey: cacheKey, cityName: cityName, location: nil, radius: nil)
+    }
+    
+    /// Cache POIs for specific location and radius (enhanced method)
+    func cachePOIs(_ pois: [POI], for cityName: String, location: CLLocation, radius: Double) {
+        let cacheKey = generateCacheKey(cityName: cityName, location: location, radius: radius)
+        cachePOIsInternal(pois, cacheKey: cacheKey, cityName: cityName, location: location, radius: radius)
+    }
+    
+    // MARK: - Private Cache Implementation
+    
+    private func getCachedPOIsInternal(cacheKey: String, identifier: String) -> [POI]? {
         guard let cachedData = cache[cacheKey] else {
-            logger.info("💾 ❌ Cache miss for '\(cityName)'")
+            logger.info("💾 ❌ Cache miss for '\(identifier)'")
             return nil
         }
         
         // Check if cache is still valid
         if Date().timeIntervalSince(cachedData.timestamp) > cacheExpirationTime {
-            logger.info("💾 ⏰ Cache expired for '\(cityName)'")
+            logger.info("💾 ⏰ Cache expired for '\(identifier)'")
             cache.removeValue(forKey: cacheKey)
             return nil
         }
         
-        logger.info("💾 ✅ Cache hit for '\(cityName)': \(cachedData.pois.count) POIs")
+        logger.info("💾 ✅ Cache hit for '\(identifier)': \(cachedData.pois.count) POIs")
         return cachedData.pois
     }
     
-    func cachePOIs(_ pois: [POI], for cityName: String) {
-        let cacheKey = cityName.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
-        
+    private func cachePOIsInternal(_ pois: [POI], cacheKey: String, cityName: String, location: CLLocation?, radius: Double?) {
         let cachedData = CachedPOIData(
             pois: pois,
             timestamp: Date(),
-            cityName: cityName
+            cityName: cityName,
+            location: location,
+            radius: radius
         )
         
         cache[cacheKey] = cachedData
-        logger.info("💾 💾 Cache store: \(pois.count) POIs for '\(cityName)'")
+        
+        if let location = location, let radius = radius {
+            let identifier = "\(cityName)@\(location.coordinate.latitude),\(location.coordinate.longitude)@\(Int(radius))m"
+            logger.info("💾 💾 Cache store: \(pois.count) POIs for '\(identifier)'")
+        } else {
+            logger.info("💾 💾 Cache store: \(pois.count) POIs for '\(cityName)'")
+        }
+    }
+    
+    // MARK: - Cache Key Generation
+    
+    private func generateCacheKey(cityName: String) -> String {
+        return cityName.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+    
+    private func generateCacheKey(cityName: String, location: CLLocation, radius: Double) -> String {
+        let baseCityKey = cityName.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+        let lat = String(format: "%.4f", location.coordinate.latitude)
+        let lon = String(format: "%.4f", location.coordinate.longitude)
+        let radiusKey = String(format: "%.0f", radius)
+        
+        return "\(baseCityKey)@\(lat),\(lon)@\(radiusKey)m"
     }
     
     func clearCache() {
@@ -91,6 +137,17 @@ private struct CachedPOIData {
     let pois: [POI]
     let timestamp: Date
     let cityName: String
+    let location: CLLocation?
+    let radius: Double?
+    
+    /// Human-readable identifier for logging
+    var identifier: String {
+        if let location = location, let radius = radius {
+            return "\(cityName)@\(String(format: "%.4f", location.coordinate.latitude)),\(String(format: "%.4f", location.coordinate.longitude))@\(Int(radius))m"
+        } else {
+            return cityName
+        }
+    }
 }
 
 // MARK: - POI Selection and Filtering

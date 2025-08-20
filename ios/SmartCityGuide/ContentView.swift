@@ -5,19 +5,17 @@ struct ContentView: View {
    // MARK: - Coordinator (Centralized State)
    @EnvironmentObject private var coordinator: BasicHomeCoordinator
    
-   // MARK: - Services (Via Coordinator)
+   // MARK: - Services
    private var quickRouteService: RouteService { coordinator.getRouteService() }
    private var geoapifyService: GeoapifyAPIService { coordinator.getGeoapifyService() }
-   private var locationService: LocationManagerService { coordinator.getLocationService() }
+   @ObservedObject private var locationService = LocationManagerService.shared
    
-   // MARK: - UI-Specific Services (Keep local)
-   @StateObject private var mapService = ContentMapService()
-  
-  // MARK: - Local State (UI-specific only)
-  @State private var isQuickPlanning = false
-  @State private var quickPlanningMessage = "Wir basteln deine Route!"
-  @State private var showingQuickError = false
-  @State private var quickErrorMessage = ""
+     // MARK: - UI-Specific Services (Keep local)
+  @StateObject private var mapService = ContentMapService()
+  @State private var errorHandler: UnifiedErrorHandler?
+  @State private var didAutoCenterOnFirstFix = false
+ 
+ // MARK: - Local State (UI-specific only)
   
 
   
@@ -33,6 +31,12 @@ struct ContentView: View {
         
         // Overlay layer
         overlayLayer
+        
+        // Quick Planning Loading Overlay (connected to coordinator)
+        ContentQuickPlanningOverlay(
+          message: coordinator.quickPlanningMessage,
+          isVisible: coordinator.isGeneratingRoute
+        )
       }
     }
          // Enhanced: Navigation Destinations
@@ -88,10 +92,20 @@ struct ContentView: View {
     }
     // Phase 2: Lifecycle & Alerts
          .onAppear {
+       // Initialize error handler on main actor
+       Task { @MainActor in
+         errorHandler = UnifiedErrorHandler.shared
+       }
+       
        // Location initialization is now handled by the coordinator
        // Just start updates if already authorized
        if locationService.isLocationAuthorized {
          locationService.startLocationUpdates()
+         // Auto-center if we already have a fix and no active route
+         if coordinator.activeRoute == nil, let loc = locationService.currentLocation, !didAutoCenterOnFirstFix {
+           mapService.centerOnUserLocation(loc)
+           didAutoCenterOnFirstFix = true
+         }
        }
      }
          .onChange(of: locationService.isLocationAuthorized) { _, isAuthorized in
@@ -100,32 +114,29 @@ struct ContentView: View {
          // Kamera zur User-Location bewegen bei erster Autorisierung
          if let location = locationService.currentLocation {
            mapService.centerOnUserLocation(location)
+           didAutoCenterOnFirstFix = true
          }
        } else {
          locationService.stopLocationUpdates()
        }
     }
-         .alert("Location-Zugriff erforderlich", isPresented: $coordinator.showingLocationPermissionAlert) {
-      Button("Einstellungen öffnen") {
-        if let settingsUrl = URL(string: UIApplication.openSettingsURLString) {
-          UIApplication.shared.open(settingsUrl)
+        // Auto-center when first location fix arrives (no active route)
+        .onChange(of: locationService.currentLocation) { _, newLocation in
+          if coordinator.activeRoute == nil, let loc = newLocation, !didAutoCenterOnFirstFix {
+            mapService.centerOnUserLocation(loc)
+            didAutoCenterOnFirstFix = true
+          }
         }
-      }
-      Button("Abbrechen", role: .cancel) { }
-    } message: {
-      Text("Um deine Position auf der Karte zu sehen, aktiviere bitte Location-Services in den Einstellungen.")
-    }
-         .alert("Ups, da lief was schief!", isPresented: .constant(coordinator.errorMessage != nil)) {
-       Button("Okay", role: .cancel) { 
-         coordinator.clearError()
-       }
-     } message: {
-       if let error = coordinator.errorMessage {
-         Text(error)
-       } else {
-         Text(quickErrorMessage)
-       }
-     }
+        .overlay {
+          if let errorHandler = errorHandler, errorHandler.isShowingError, let error = errorHandler.currentError {
+            UnifiedErrorView(
+              error: error,
+              onRetry: { handleErrorRetry() },
+              onDismiss: { errorHandler.dismissError() }
+            )
+            .transition(.opacity.combined(with: .scale))
+          }
+        }
     // NavigationBar auf der Root-Map verstecken, damit keine graue/Material-Fläche oben sichtbar ist
     .toolbar(.hidden, for: .navigationBar)
     // Statusbar/Top bar: keep map truly fullscreen
@@ -191,12 +202,6 @@ struct ContentView: View {
       // Bottom overlay – legacy or primary actions
       bottomOverlay
     }
-    .overlay(
-      ContentQuickPlanningOverlay(
-        message: quickPlanningMessage,
-        isVisible: isQuickPlanning
-      )
-    )
   }
 
      private func locationButtonTapped() {
@@ -233,7 +238,8 @@ struct ContentView: View {
           onFullPlan: {
             SecureLogger.shared.logUserAction("Tap plan automatic")
             coordinator.presentSheet(.planning(mode: .automatic))
-          }
+          },
+          isQuickPlanEnabled: (coordinator.currentLocation ?? locationService.currentLocation) != nil
         )
       } else {
         // Legacy buttons when quick planning disabled
@@ -289,13 +295,11 @@ struct ContentView: View {
     let overallStart = Date()
     // Ensure permission
          if !locationService.isLocationAuthorized {
-       await MainActor.run { quickPlanningMessage = "Brauch kurz dein OK für den Standort…"; isQuickPlanning = true }
+       // Legacy method - message handled by coordinator now
        await locationService.requestLocationPermission()
        if !locationService.isLocationAuthorized {
         await MainActor.run {
-          isQuickPlanning = false
-          showingQuickError = true
-          quickErrorMessage = "Ohne Standortfreigabe kann ich die Schnell‑Route nicht starten."
+          errorHandler?.presentLocationError(message: "Ohne Standortfreigabe kann ich die Schnell‑Route nicht starten.")
         }
         return
       }
@@ -309,12 +313,11 @@ struct ContentView: View {
      }
     guard let loc = current else {
       await MainActor.run {
-        showingQuickError = true
-        quickErrorMessage = "Konnte deinen Standort gerade nicht bestimmen. Versuch es gleich nochmal."
+        errorHandler?.presentLocationError(message: "Konnte deinen Standort gerade nicht bestimmen. Versuch es gleich nochmal.")
       }
       return
     }
-    await MainActor.run { quickPlanningMessage = "Entdecke coole Orte…"; isQuickPlanning = true }
+    // Legacy method - message handled by coordinator now
     do {
       // Fetch POIs around current coordinate
       let fetchStart = Date()
@@ -334,7 +337,7 @@ struct ContentView: View {
         SecureLogger.shared.logInfo("✅ Quick Planning: Found \(pois.count) POIs: \(pois.prefix(3).map { $0.name })", category: .ui)
       }
       
-      await MainActor.run { quickPlanningMessage = "Optimiere deine Route…" }
+      // Legacy method - message handled by coordinator now
       // Generate route with fixed parameters
       let routeStart = Date()
              await quickRouteService.generateRoute(
@@ -353,21 +356,50 @@ struct ContentView: View {
         SecureLogger.shared.logInfo("Quick planning total: \(String(format: "%.2f", totalDuration))s", category: .performance)
         await MainActor.run {
           coordinator.handleRouteGenerated(route)
-          isQuickPlanning = false
         }
         Task { await ProximityService.shared.startProximityMonitoring(for: route) }
       } else {
         await MainActor.run {
-          isQuickPlanning = false
-          showingQuickError = true
-                     quickErrorMessage = quickRouteService.errorMessage ?? "Leider keine Route gefunden."
+          errorHandler?.presentRouteGenerationError(
+            message: quickRouteService.errorMessage ?? "Für deine aktuelle Position konnten keine interessanten Orte gefunden werden."
+          )
         }
       }
     } catch {
       await MainActor.run {
-        isQuickPlanning = false
-        showingQuickError = true
-        quickErrorMessage = "Konnte keine Orte in deiner Nähe laden: \(error.localizedDescription)"
+        errorHandler?.presentError(error, context: "quick planning location")
+      }
+    }
+  }
+  
+  // MARK: - Error Handling
+  
+  private func handleErrorRetry() {
+    // Handle retry based on current error context
+    if let currentError = errorHandler?.currentError {
+      switch currentError.category {
+      case .routeGeneration:
+        // Retry route generation with current settings
+        if locationService.currentLocation != nil {
+          Task {
+            await startQuickPlanning()
+          }
+        }
+      case .locationAccess:
+        // Open settings for location access
+        if let settingsUrl = URL(string: UIApplication.openSettingsURLString) {
+          UIApplication.shared.open(settingsUrl)
+        }
+      case .networkConnectivity:
+        // Retry the last failed operation
+        if locationService.currentLocation != nil {
+          Task {
+            await startQuickPlanning()
+          }
+        }
+      default:
+        // General retry - attempt to refresh current state
+        coordinator.clearError()
       }
     }
   }

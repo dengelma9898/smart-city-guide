@@ -13,9 +13,9 @@ import Foundation
 /// await withThrowingTaskGroup(of: Result.self) { group in
 ///   for item in items {
 ///     group.addTask {
-///       await semaphore.acquire()
-///       defer { Task { await semaphore.release() } }
-///       return try await processItem(item)
+///       return try await semaphore.withPermit {
+///         try await processItem(item)
+///       }
 ///     }
 ///   }
 /// }
@@ -82,8 +82,15 @@ extension AsyncSemaphore {
     /// - Throws: Any error thrown by the operation
     func withPermit<T>(_ operation: @Sendable () async throws -> T) async throws -> T {
         await acquire()
-        defer { Task { await release() } }
-        return try await operation()
+        
+        do {
+            let result = try await operation()
+            release()
+            return result
+        } catch {
+            release()
+            throw error
+        }
     }
     
     /// Execute an operation with automatic permit management (non-throwing version)
@@ -92,8 +99,9 @@ extension AsyncSemaphore {
     /// - Returns: Result of the operation
     func withPermit<T>(_ operation: @Sendable () async -> T) async -> T {
         await acquire()
-        defer { Task { await release() } }
-        return await operation()
+        let result = await operation()
+        release()
+        return result
     }
 }
 

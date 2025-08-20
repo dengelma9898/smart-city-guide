@@ -5,6 +5,7 @@ struct ContentBottomActionBar: View {
     
     let onQuickPlan: () -> Void
     let onFullPlan: () -> Void
+    let isQuickPlanEnabled: Bool
     
     var body: some View {
         HStack(spacing: 16) {
@@ -51,6 +52,8 @@ struct ContentBottomActionBar: View {
                         .shadow(color: .black.opacity(0.15), radius: 6, x: 0, y: 3)
                 )
             }
+            .disabled(!isQuickPlanEnabled)
+            .opacity(isQuickPlanEnabled ? 1.0 : 0.5)
             .accessibilityIdentifier("home.plan.quick")
             .accessibilityLabel("Schnell planen")
         }
@@ -62,7 +65,8 @@ struct ContentBottomActionBar: View {
 #Preview {
     ContentBottomActionBar(
         onQuickPlan: { print("Quick plan tapped") },
-        onFullPlan: { print("Full plan tapped") }
+        onFullPlan: { print("Full plan tapped") },
+        isQuickPlanEnabled: true
     )
     .background(Color.gray.opacity(0.2))
 }

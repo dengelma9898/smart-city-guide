@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import UIKit
 
 // MARK: - Active Route Sheet Mode
 
@@ -37,9 +38,9 @@ struct RouteProgress {
 
 struct UserNavigationContext {
     let isActivelyNavigating: Bool
-    let lastMovementTime: Date
+    var lastMovementTime: Date
     let currentSpeed: Double // m/s
-    let isStationary: Bool
+    var isStationary: Bool
     let timeOfDay: TimeOfDay
     let weatherCondition: WeatherCondition
 }
@@ -84,9 +85,33 @@ enum RouteHaptics {
     case routeCompleted
     
     func trigger() {
-        // Implementation would use UIKit haptics
-        // For now, just a placeholder
-        print("Haptic feedback: \(self)")
+        DispatchQueue.main.async {
+            switch self {
+            case .lightImpact:
+                let feedback = UIImpactFeedbackGenerator(style: .light)
+                feedback.impactOccurred()
+                
+            case .mediumImpact:
+                let feedback = UIImpactFeedbackGenerator(style: .medium)
+                feedback.impactOccurred()
+                
+            case .waypointReached:
+                let feedback = UINotificationFeedbackGenerator()
+                feedback.notificationOccurred(.success)
+                
+            case .routeModified:
+                let feedback = UIImpactFeedbackGenerator(style: .medium)
+                feedback.impactOccurred()
+                
+            case .routeCompleted:
+                let feedback = UINotificationFeedbackGenerator()
+                feedback.notificationOccurred(.success)
+                // Double haptic for completion celebration
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    feedback.notificationOccurred(.success)
+                }
+            }
+        }
     }
 }
 

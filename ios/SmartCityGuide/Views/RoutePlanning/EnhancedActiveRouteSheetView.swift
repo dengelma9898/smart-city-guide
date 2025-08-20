@@ -189,12 +189,60 @@ struct EnhancedActiveRouteSheetView: View {
     
     private func markWaypointVisited() {
         RouteHaptics.waypointReached.trigger()
-        // TODO: Implement waypoint visited logic
+        
+        guard let currentProgress = progress else { return }
+        
+        withAnimation(.spring()) {
+            // Mark current waypoint as completed
+            let nextIndex = min(currentProgress.currentWaypointIndex + 1, route.waypoints.count - 1)
+            
+            progress = RouteProgress(
+                completedWaypoints: currentProgress.completedWaypoints + 1,
+                currentWaypointIndex: nextIndex,
+                totalWaypoints: currentProgress.totalWaypoints,
+                elapsedTime: currentProgress.elapsedTime + 10 * 60, // Add 10 min estimated stop time
+                remainingTime: max(0, currentProgress.remainingTime - 15 * 60) // Reduce remaining time
+            )
+            
+            // Update user context
+            userContext.lastMovementTime = Date()
+            userContext.isStationary = false
+        }
+        
+        SecureLogger.shared.logInfo("🎯 Waypoint marked as visited: \(currentProgress.currentWaypointIndex)", category: .ui)
+        
+        // Check if route is completed
+        if progress?.completedWaypoints == route.waypoints.count {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                onEnd()
+            }
+        }
     }
     
     private func skipWaypoint() {
         RouteHaptics.routeModified.trigger()
-        // TODO: Implement waypoint skipping logic
+        
+        guard let currentProgress = progress else { return }
+        guard currentProgress.currentWaypointIndex < route.waypoints.count - 1 else { return }
+        
+        withAnimation(.spring()) {
+            // Skip to next waypoint without marking as completed
+            let nextIndex = min(currentProgress.currentWaypointIndex + 1, route.waypoints.count - 1)
+            
+            progress = RouteProgress(
+                completedWaypoints: currentProgress.completedWaypoints,
+                currentWaypointIndex: nextIndex,
+                totalWaypoints: currentProgress.totalWaypoints,
+                elapsedTime: currentProgress.elapsedTime,
+                remainingTime: max(0, currentProgress.remainingTime - 5 * 60) // Slightly reduce time
+            )
+            
+            // Update user context
+            userContext.lastMovementTime = Date()
+            userContext.isStationary = false
+        }
+        
+        SecureLogger.shared.logInfo("⏭️ Waypoint skipped: \(currentProgress.currentWaypointIndex)", category: .ui)
     }
     
     // MARK: - Computed Properties

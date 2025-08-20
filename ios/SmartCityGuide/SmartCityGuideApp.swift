@@ -1,4 +1,5 @@
 import SwiftUI
+import UserNotifications
 
 @main
 struct SmartCityGuideApp: App {
@@ -12,6 +13,7 @@ struct SmartCityGuideApp: App {
         // Removed .id(UUID()) as it causes view recreation and performance issues
         .onAppear {
           setupCacheManager()
+          setupNotificationPermissions()
         }
     }
   }
@@ -30,6 +32,22 @@ struct SmartCityGuideApp: App {
             }
           }
         }
+      }
+    }
+  }
+  
+  /// Setup notification permissions für POI-Proximity-Benachrichtigungen
+  private func setupNotificationPermissions() {
+    Task {
+      // Check current permission status
+      await ProximityService.shared.checkNotificationPermission()
+      
+      // Delay the permission request a bit to not overwhelm first-time users
+      try? await Task.sleep(nanoseconds: 2_000_000_000) // 2 seconds
+      
+      // Only request if still not determined (nicht bei denied/authorized)
+      if ProximityService.shared.notificationPermissionStatus == .notDetermined {
+        let _ = await ProximityService.shared.requestNotificationPermission()
       }
     }
   }

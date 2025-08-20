@@ -332,6 +332,9 @@ class BasicHomeCoordinator: ObservableObject {
     @Published var currentLocation: CLLocation?
     @Published var showingLocationPermissionAlert = false
     
+    // MARK: - Quick Planning State (Enhanced)
+    @Published var quickPlanningMessage = "Wir basteln deine Route!"
+    
     // MARK: - Service Access (Centralized)
     private let routeService = RouteService()
     private let locationManager = LocationManagerService.shared
@@ -487,6 +490,7 @@ class BasicHomeCoordinator: ObservableObject {
     
     func startQuickPlanningAt(location: CLLocation) async {
         isGeneratingRoute = true
+        self.quickPlanningMessage = "Entdecke coole Orte…"
         
         do {
             SecureLogger.shared.logInfo("🔍 HomeCoordinator: Fetching POIs for quick planning at \(location.coordinate)", category: .ui)
@@ -500,6 +504,8 @@ class BasicHomeCoordinator: ObservableObject {
             )
             
             SecureLogger.shared.logInfo("✅ HomeCoordinator: Found \(pois.count) POIs for quick planning", category: .ui)
+            
+            self.quickPlanningMessage = "Optimiere deine Route…"
             
             // Use the centralized route service with POIs
             await routeService.generateRoute(
@@ -515,6 +521,7 @@ class BasicHomeCoordinator: ObservableObject {
             // Explicitly handle the route result
             await MainActor.run {
                 isGeneratingRoute = false
+                self.quickPlanningMessage = "Wir basteln deine Route!"
                 if let generatedRoute = routeService.generatedRoute {
                     SecureLogger.shared.logInfo("🎉 HomeCoordinator: Route generated successfully with \(generatedRoute.waypoints.count) waypoints", category: .ui)
                     handleRouteGenerated(generatedRoute)
@@ -527,6 +534,7 @@ class BasicHomeCoordinator: ObservableObject {
             await MainActor.run {
                 errorMessage = error.localizedDescription
                 isGeneratingRoute = false
+                self.quickPlanningMessage = "Wir basteln deine Route!"
                 SecureLogger.shared.logWarning("❌ HomeCoordinator Quick Planning failed: \(error.localizedDescription)", category: .ui)
             }
         }

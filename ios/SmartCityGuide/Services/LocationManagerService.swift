@@ -302,6 +302,8 @@ class LocationManagerService: ObservableObject {
         currentLocation = location
         updateLocationAvailability()
         errorMessage = nil
+        // Notify UI/Coordinators explicitly to avoid stale UI states
+        NotificationCenter.default.post(name: Notification.Name("LocationManagerDidUpdateLocation"), object: nil, userInfo: ["location": location])
         
         // Phase 4: Trigger proximity check for active routes
         Task {
@@ -361,6 +363,10 @@ class LocationManagerService: ObservableObject {
         case .authorizedWhenInUse, .authorizedAlways:
             errorMessage = nil
             logger.info("Location-Permission gewährt")
+            // Start immediate one-shot request and continuous updates
+            // to ensure UI can react right after permission was granted
+            locationManager.requestLocation()
+            startLocationUpdates()
         case .denied, .restricted:
             errorMessage = "Location-Zugriff verweigert. Du kannst ihn in den Einstellungen aktivieren."
             logger.warning("Location-Permission verweigert")

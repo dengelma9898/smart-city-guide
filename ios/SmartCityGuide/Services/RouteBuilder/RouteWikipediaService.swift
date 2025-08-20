@@ -18,8 +18,8 @@ class RouteWikipediaService: ObservableObject {
   
   // MARK: - Initialization
   
-  init(wikipediaService: WikipediaService = .shared) {
-    self.wikipediaService = wikipediaService
+  init(wikipediaService: WikipediaService? = nil) {
+    self.wikipediaService = wikipediaService ?? WikipediaService.shared
   }
   
   // MARK: - Public Interface

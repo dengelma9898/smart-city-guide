@@ -447,6 +447,10 @@ struct FAQCategory {
                 FAQ(
                     question: "Kann ich die App für andere Städte nutzen?",
                     answer: "Ja! Die App funktioniert für Städte weltweit. Gib einfach den Namen deiner gewünschten Stadt ein und die App findet automatisch interessante Orte dort."
+                ),
+                FAQ(
+                    question: "Warum sehe ich ein Lade‑Overlay bei der Schnell‑Planung?",
+                    answer: "Während die Schnell‑Planung läuft, berechnen wir die optimale Reihenfolge, prüfen Gehzeiten und laden Ortsdaten. Damit du siehst, dass etwas passiert, zeigen wir ein kurzes Lade‑Overlay mit Status‑Text (z. B. 'Entdecke coole Orte…' ➝ 'Optimiere deine Route…'). Sobald die Route fertig ist, verschwindet das Overlay automatisch."
                 )
             ]
         ),
@@ -487,6 +491,10 @@ struct FAQCategory {
                 FAQ(
                     question: "Wie funktionieren die Standort-Benachrichtigungen?",
                     answer: "Wenn du eine Route startest und sowohl Benachrichtigungen als auch Standort erlaubst, bekommst du eine Mitteilung, sobald du einem interessanten Ort auf deiner Route nahe kommst (ca. 25 Meter). So verpasst du garantiert nichts! Die Benachrichtigungen funktionieren auch, wenn die App im Hintergrund läuft."
+                ),
+                FAQ(
+                    question: "Warum fragt die App beim Start nach Benachrichtigungen?",
+                    answer: "Wir erinnern dich unterwegs an spannende Spots in deiner Nähe. Damit das zuverlässig klappt, fragt die App frühzeitig nach Benachrichtigungs‑Rechten. Wir senden nur für aktive Routen Hinweise – keine Werbung. Du kannst die Berechtigung jederzeit in den iOS‑Einstellungen ändern."
                 ),
                 FAQ(
                     question: "Kann ich die App ohne Location-Permission verwenden?",

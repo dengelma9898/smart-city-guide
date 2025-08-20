@@ -15,10 +15,10 @@ class ManualRoutePOIDiscoveryService: ObservableObject {
     private let wikipediaService: WikipediaService
     private let logger = SecureLogger.shared
     
-    init(geoapifyService: GeoapifyAPIService = GeoapifyAPIService.shared,
-         wikipediaService: WikipediaService = WikipediaService.shared) {
-        self.geoapifyService = geoapifyService
-        self.wikipediaService = wikipediaService
+    init(geoapifyService: GeoapifyAPIService? = nil,
+         wikipediaService: WikipediaService? = nil) {
+        self.geoapifyService = geoapifyService ?? GeoapifyAPIService.shared
+        self.wikipediaService = wikipediaService ?? WikipediaService.shared
     }
     
     func discoverPOIs(config: ManualRouteConfig) async {
