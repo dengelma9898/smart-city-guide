@@ -15,6 +15,7 @@ class RouteService: ObservableObject {
   
   @Published var isGenerating = false
   @Published var generatedRoute: GeneratedRoute?
+  private var lastDiscoveredPOIs: [POI] = []
   @Published var errorMessage: String?
   
   private var historyManager: RouteHistoryManager?
@@ -172,6 +173,7 @@ class RouteService: ObservableObject {
       // Step 2: Generate route using POIs with new filters
       let waypoints: [RoutePoint]
       if let pois = availablePOIs, !pois.isEmpty {
+        lastDiscoveredPOIs = pois
         waypoints = try await findOptimalRouteWithNewFilters(
           startLocation: startLocation,
           availablePOIs: pois,
@@ -267,6 +269,7 @@ class RouteService: ObservableObject {
       let waypoints: [RoutePoint]
       if let pois = availablePOIs, !pois.isEmpty {
         // Use provided POIs for route generation
+        lastDiscoveredPOIs = pois
         waypoints = try await findOptimalRouteWithPOIs(
           startLocation: startLocation,
           availablePOIs: pois,
@@ -913,4 +916,10 @@ class RouteService: ObservableObject {
   // - POIDiscoveryService: POI finding, filtering, geographic distribution
   // - RouteOptimizationService: TSP optimization, visit duration estimation  
   // - RouteValidationService: Walking time validation, legacy conversion
+  
+  // MARK: - Wikipedia Integration Support
+  
+  func getDiscoveredPOIs() async -> [POI]? {
+    return lastDiscoveredPOIs.isEmpty ? nil : lastDiscoveredPOIs
+  }
 }

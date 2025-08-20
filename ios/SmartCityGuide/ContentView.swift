@@ -60,7 +60,7 @@ struct ContentView: View {
             onAddStop: {
               // Placeholder: will open manual add/edit in Phase 3
             },
-            enrichedPOIs: nil // TODO: Connect coordinator.enrichedPOIs
+            enrichedPOIs: coordinator.enrichedPOIs
           )
           .presentationDetents([.height(100), .height(350), .fraction(0.8)])
           .presentationDragIndicator(.visible)

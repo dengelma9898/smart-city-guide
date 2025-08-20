@@ -35,6 +35,9 @@ protocol RouteServiceProtocol: ObservableObject {
     // Cache and state management
     func clearErrorMessage()
     func resetGeneratedRoute()
+    
+    // Wikipedia integration support
+    func getDiscoveredPOIs() async -> [POI]?
 }
 
 // MARK: - Route History Protocol
@@ -161,6 +164,10 @@ class MockRouteService: RouteServiceProtocol {
     
     func resetGeneratedRoute() {
         generatedRoute = nil
+    }
+    
+    func getDiscoveredPOIs() async -> [POI]? {
+        return nil
     }
 }
 

@@ -8,17 +8,18 @@ import MapKit
 class HomeCoordinator: ObservableObject {
     
     // MARK: - Dependencies (Injected)
-    private let routeService: any RouteServiceProtocol
+    internal let routeService: any RouteServiceProtocol
     private let historyManager: (any RouteHistoryManagerProtocol)?
     private let cacheManager: any CacheManagerProtocol
     private let locationManager: any LocationManagerProtocol
+    internal let wikipediaService: RouteWikipediaService
     
     // MARK: - Published State
     @Published var activeRoute: GeneratedRoute?
     @Published var presentedSheet: SheetDestination?
     @Published var isGeneratingRoute = false
     @Published var errorMessage: String?
-    @Published var enrichedPOIs: [String: WikipediaEnrichedPOI]?
+    @Published var enrichedPOIs: [String: WikipediaEnrichedPOI] = [:]
     
     // MARK: - Quick Planning State
     @Published var quickPlanningLocation: CLLocation?
@@ -39,12 +40,14 @@ class HomeCoordinator: ObservableObject {
         routeService: any RouteServiceProtocol,
         historyManager: (any RouteHistoryManagerProtocol)? = nil,
         cacheManager: any CacheManagerProtocol,
-        locationManager: any LocationManagerProtocol
+        locationManager: any LocationManagerProtocol,
+        wikipediaService: RouteWikipediaService? = nil
     ) {
         self.routeService = routeService
         self.historyManager = historyManager
         self.cacheManager = cacheManager
         self.locationManager = locationManager
+        self.wikipediaService = wikipediaService ?? RouteWikipediaService()
         
         setupObservers()
     }
@@ -149,6 +152,9 @@ class HomeCoordinator: ObservableObject {
     func handleRouteGenerated(_ route: GeneratedRoute) {
         activeRoute = route
         adjustCameraToRoute(route)
+        
+        // Start Wikipedia enrichment in background
+        startWikipediaEnrichment(for: route)
         
         // Save to history if manager is available
         historyManager?.saveRoute(route, routeLength: .medium, endpointOption: .roundtrip)
@@ -337,12 +343,14 @@ class BasicHomeCoordinator: ObservableObject {
     
     // MARK: - Quick Planning State (Enhanced)
     @Published var quickPlanningMessage = "Wir basteln deine Route!"
+    @Published var enrichedPOIs: [String: WikipediaEnrichedPOI] = [:]
     
     // MARK: - Service Access (Centralized)
-    private let routeService = RouteService()
+    internal let routeService = RouteService()
     private let locationManager = LocationManagerService.shared
     private let geoapifyService = GeoapifyAPIService.shared
     private let cacheManager = CacheManager.shared
+    internal let wikipediaService = RouteWikipediaService()
     
     init() {
         setupObservers()
@@ -431,6 +439,9 @@ class BasicHomeCoordinator: ObservableObject {
     
     func handleRouteGenerated(_ route: GeneratedRoute) {
         activeRoute = route
+        
+        // Start Wikipedia enrichment in background
+        startWikipediaEnrichment(for: route)
         
         // Transition: close planning sheet first so the map shows the route,
         // then present the single Active Route sheet after a brief delay

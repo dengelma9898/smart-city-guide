@@ -325,6 +325,10 @@ struct FAQCategory {
                     answer: "Im Modus \"Automatisch\" sucht die App passende Orte und erstellt die komplette Route für dich. Im Modus \"Manuell erstellen\" wählst du die POIs per Swipe selbst aus, und die App optimiert anschließend Reihenfolge und Gehwege (TSP mit echten Gehzeiten)."
                 ),
                 FAQ(
+                    question: "Warum schließt sich das Planungsmenü nach \"Los geht's!\"?",
+                    answer: "Das ist unser neuer Single-Sheet-Flow! Nach der Routengenerierung siehst du die Route sofort auf der Karte. Danach öffnet sich automatisch das Aktive-Routen-Menü, wo du die Route starten, bearbeiten und POIs hinzufügen kannst. So hast du alles übersichtlich in einem einzigen Menü, ohne mehrere Ebenen."
+                ),
+                FAQ(
                     question: "Wie funktioniert die POI-Auswahl (Swipe)?",
                     answer: "Auf der Karte siehst du POI-Karten: Nach links swipen oder Haken-Button = übernehmen, nach rechts oder X-Button = überspringen. Der Zähler in der Fußleiste zeigt dir jederzeit, wie viele POIs du bereits ausgewählt hast."
                 ),

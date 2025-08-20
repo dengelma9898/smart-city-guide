@@ -4,7 +4,7 @@ struct ActiveRouteSheetView: View {
   let route: GeneratedRoute
   let onEnd: () -> Void
   let onAddStop: () -> Void
-  let enrichedPOIs: [String: WikipediaEnrichedPOI]?
+  let enrichedPOIs: [String: WikipediaEnrichedPOI]
   
   @State private var showingEndConfirmation = false
   @State private var currentStopIndex = 0 // Track which POI is next
@@ -71,8 +71,8 @@ struct ActiveRouteSheetView: View {
                   VStack(spacing: 0) {
                     // POI Row
                     HStack(spacing: 12) {
-                      // POI Image oder Index
-                      if let imageURL = mockWikipediaImageURL(for: wp),
+                      // POI Image oder Index (Real Wikipedia images with fallback)
+                      if let imageURL = wikipediaImageURL(for: wp) ?? mockWikipediaImageURL(for: wp),
                          let url = URL(string: imageURL) {
                         AsyncImage(url: url) { imagePhase in
                           switch imagePhase {
@@ -206,8 +206,6 @@ struct ActiveRouteSheetView: View {
   }
   
   private func wikipediaImageURL(for waypoint: RoutePoint) -> String? {
-    guard let enrichedPOIs = enrichedPOIs else { return nil }
-    
     // Find enriched POI by name match
     let matchingPOI = enrichedPOIs.values.first { enrichedPOI in
       enrichedPOI.basePOI.name.lowercased() == waypoint.name.lowercased() ||
