@@ -18,6 +18,7 @@ class HomeCoordinator: ObservableObject {
     @Published var presentedSheet: SheetDestination?
     @Published var isGeneratingRoute = false
     @Published var errorMessage: String?
+    @Published var enrichedPOIs: [String: WikipediaEnrichedPOI]?
     
     // MARK: - Quick Planning State
     @Published var quickPlanningLocation: CLLocation?
@@ -152,11 +153,13 @@ class HomeCoordinator: ObservableObject {
         // Save to history if manager is available
         historyManager?.saveRoute(route, routeLength: .medium, endpointOption: .roundtrip)
         
-        // Automatically show active route if feature enabled
+        // Transition: close planning sheet first so the map shows the route,
+        // then present the single Active Route sheet after a brief delay
+        presentedSheet = nil
         if FeatureFlags.activeRouteBottomSheetEnabled {
-            presentedSheet = .activeRoute
-        } else {
-            presentedSheet = nil
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
+                self?.presentedSheet = .activeRoute
+            }
         }
         
         SecureLogger.shared.logInfo("🗺️ Route generated and activated via Coordinator", category: .ui)
@@ -429,11 +432,13 @@ class BasicHomeCoordinator: ObservableObject {
     func handleRouteGenerated(_ route: GeneratedRoute) {
         activeRoute = route
         
-        // Automatically show active route if feature enabled
+        // Transition: close planning sheet first so the map shows the route,
+        // then present the single Active Route sheet after a brief delay
+        presentedSheet = nil
         if FeatureFlags.activeRouteBottomSheetEnabled {
-            presentedSheet = .activeRoute
-        } else {
-            presentedSheet = nil
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
+                self?.presentedSheet = .activeRoute
+            }
         }
         
         SecureLogger.shared.logInfo("🗺️ Route generated and activated via BasicCoordinator", category: .ui)
@@ -487,6 +492,141 @@ class BasicHomeCoordinator: ObservableObject {
     }
     
     // MARK: - Quick Planning (Enhanced)
+    
+    func startCustomPlanningAt(
+        location: CLLocation,
+        maximumStops: MaximumStops,
+        endpointOption: EndpointOption,
+        customEndpoint: String,
+        maximumWalkingTime: MaximumWalkingTime,
+        minimumPOIDistance: MinimumPOIDistance
+    ) async {
+        isGeneratingRoute = true
+        self.quickPlanningMessage = "Entdecke coole Orte…"
+        
+        do {
+            SecureLogger.shared.logInfo("🔍 HomeCoordinator: Fetching POIs for custom planning at \(location.coordinate)", category: .ui)
+            
+            // Fetch POIs using the coordinator's geoapify service
+            let pois = try await geoapifyService.fetchPOIs(
+                at: location.coordinate,
+                cityName: "Mein Standort",
+                categories: PlaceCategory.geoapifyEssentialCategories,
+                radiusMeters: 2000
+            )
+            
+            SecureLogger.shared.logInfo("✅ HomeCoordinator: Found \(pois.count) POIs for custom planning", category: .ui)
+            
+            self.quickPlanningMessage = "Optimiere deine Route…"
+            
+            // Use the centralized route service with custom parameters
+            await routeService.generateRoute(
+                fromCurrentLocation: location,
+                maximumStops: maximumStops,
+                endpointOption: endpointOption,
+                customEndpoint: customEndpoint,
+                maximumWalkingTime: maximumWalkingTime,
+                minimumPOIDistance: minimumPOIDistance,
+                availablePOIs: pois
+            )
+            
+            // Explicitly handle the route result
+            await MainActor.run {
+                isGeneratingRoute = false
+                self.quickPlanningMessage = "Wir basteln deine Route!"
+                if let generatedRoute = routeService.generatedRoute {
+                    SecureLogger.shared.logInfo("🎉 HomeCoordinator: Custom route generated successfully with \(generatedRoute.waypoints.count) waypoints", category: .ui)
+                    handleRouteGenerated(generatedRoute)
+                } else {
+                    SecureLogger.shared.logWarning("⚠️ HomeCoordinator: Custom route generation completed but no route available", category: .ui)
+                    errorMessage = routeService.errorMessage ?? "Route generation failed"
+                }
+            }
+        } catch {
+            await MainActor.run {
+                errorMessage = error.localizedDescription
+                isGeneratingRoute = false
+                self.quickPlanningMessage = "Wir basteln deine Route!"
+                SecureLogger.shared.logWarning("❌ HomeCoordinator Custom Planning failed: \(error.localizedDescription)", category: .ui)
+            }
+        }
+    }
+    
+    func startCityPlanningFor(
+        city: String,
+        maximumStops: MaximumStops,
+        endpointOption: EndpointOption,
+        customEndpoint: String,
+        maximumWalkingTime: MaximumWalkingTime,
+        minimumPOIDistance: MinimumPOIDistance
+    ) async {
+        isGeneratingRoute = true
+        self.quickPlanningMessage = "Suche POIs in \(city)…"
+        
+        do {
+            SecureLogger.shared.logInfo("🔍 HomeCoordinator: Starting city planning for \(city)", category: .ui)
+            
+            self.quickPlanningMessage = "Optimiere deine Route…"
+            
+            // Convert route length from walking time  
+            let routeLength: RouteLength = {
+                switch maximumWalkingTime {
+                case .thirtyMin: return .short
+                case .sixtyMin: return .medium
+                case .ninetyMin: return .long
+                case .openEnd: return .long
+                @unknown default: return .medium
+                }
+            }()
+            
+            // Use the centralized route service for city-based planning
+            await routeService.generateRoute(
+                startingCity: city,
+                numberOfPlaces: maximumStops.intValue,
+                endpointOption: endpointOption,
+                customEndpoint: customEndpoint,
+                routeLength: routeLength,
+                availablePOIs: nil
+            )
+            
+            // Explicitly handle the route result
+            await MainActor.run {
+                isGeneratingRoute = false
+                self.quickPlanningMessage = "Wir basteln deine Route!"
+                if let generatedRoute = routeService.generatedRoute {
+                    SecureLogger.shared.logInfo("🎉 HomeCoordinator: City route generated successfully with \(generatedRoute.waypoints.count) waypoints", category: .ui)
+                    handleRouteGenerated(generatedRoute)
+                } else {
+                    SecureLogger.shared.logWarning("⚠️ HomeCoordinator: City route generation completed but no route available", category: .ui)
+                    errorMessage = routeService.errorMessage ?? "Route generation failed"
+                }
+            }
+        } catch {
+            await MainActor.run {
+                errorMessage = error.localizedDescription
+                isGeneratingRoute = false
+                self.quickPlanningMessage = "Wir basteln deine Route!"
+                SecureLogger.shared.logWarning("❌ HomeCoordinator City Planning failed: \(error.localizedDescription)", category: .ui)
+            }
+        }
+    }
+    
+    func startManualRouteFlow(route: GeneratedRoute) async {
+        await MainActor.run {
+            isGeneratingRoute = true
+            self.quickPlanningMessage = "Route wird optimiert…"
+        }
+        
+        // Brief delay to show the loading animation
+        try? await Task.sleep(nanoseconds: 300_000_000) // 300ms
+        
+        await MainActor.run {
+            isGeneratingRoute = false
+            self.quickPlanningMessage = "Wir basteln deine Route!"
+            SecureLogger.shared.logInfo("🎉 HomeCoordinator: Manual route activated with \(route.waypoints.count) waypoints", category: .ui)
+            handleRouteGenerated(route)
+        }
+    }
     
     func startQuickPlanningAt(location: CLLocation) async {
         isGeneratingRoute = true

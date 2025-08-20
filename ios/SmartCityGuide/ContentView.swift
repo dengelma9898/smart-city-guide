@@ -54,37 +54,19 @@ struct ContentView: View {
         )
       case .activeRoute:
         if FeatureFlags.activeRouteBottomSheetEnabled, let route = coordinator.activeRoute {
-          if FeatureFlags.enhancedActiveRouteSheetEnabled {
-            EnhancedActiveRouteSheetView(
-              route: route,
-              onEnd: coordinator.endActiveRoute,
-              onAddStop: {
-                // Enhanced: will implement route modification
-              },
-              onModifyRoute: { modification in
-                // TODO: Implement route modification handler
-                print("🔄 Route modification requested: \(modification)")
-              }
-            )
-            .presentationDetents([.height(100), .height(350), .fraction(0.8)])
-            .presentationDragIndicator(.visible)
-            .interactiveDismissDisabled(true)
-            .presentationBackgroundInteraction(.enabled)
-            .presentationContentInteraction(.scrolls)
-          } else {
-            ActiveRouteSheetView(
-              route: route,
-              onEnd: coordinator.endActiveRoute,
-              onAddStop: {
-                // Placeholder: will open manual add/edit in Phase 3
-              }
-            )
-            .presentationDetents([.height(100), .height(350), .fraction(0.8)])
-            .presentationDragIndicator(.visible)
-            .interactiveDismissDisabled(true)
-            .presentationBackgroundInteraction(.enabled)
-            .presentationContentInteraction(.scrolls)
-          }
+          ActiveRouteSheetView(
+            route: route,
+            onEnd: coordinator.endActiveRoute,
+            onAddStop: {
+              // Placeholder: will open manual add/edit in Phase 3
+            },
+            enrichedPOIs: nil // TODO: Connect coordinator.enrichedPOIs
+          )
+          .presentationDetents([.height(100), .height(350), .fraction(0.8)])
+          .presentationDragIndicator(.visible)
+          .interactiveDismissDisabled(true)
+          .presentationBackgroundInteraction(.enabled)
+          .presentationContentInteraction(.scrolls)
         } else {
           EmptyView()
         }

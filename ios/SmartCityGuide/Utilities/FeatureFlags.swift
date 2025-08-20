@@ -10,7 +10,7 @@ enum FeatureFlags {
     
 
     
-    // Phase 5: UX Active Route Enhancements (DISABLED - too complex)
+    // Phase 5: UX Active Route Enhancements (DISABLED - zu komplex)
     static let enhancedActiveRouteSheetEnabled: Bool = false
     static let routeModificationEnabled: Bool = false
     static let smartNavigationHintsEnabled: Bool = false
