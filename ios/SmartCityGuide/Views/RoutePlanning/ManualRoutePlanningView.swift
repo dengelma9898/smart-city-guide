@@ -64,11 +64,8 @@ struct ManualRoutePlanningView: View {
                 case .generating:
                     ManualRouteGeneratingView(selectedPOICount: poiSelection.selectedPOIs.count)
                 case .completed:
-                    ManualRouteCompletedView {
-                        if let route = routeGenerationService.generatedRoute {
-                            previewContext = ManualPreviewContext(route: route, pois: poiDiscoveryService.discoveredPOIs, config: config)
-                        }
-                    }
+                    // This phase is now skipped - route goes directly to coordinator
+                    EmptyView()
                 }
             }
             .navigationDestination(isPresented: $pushBuilder) {
@@ -95,14 +92,17 @@ struct ManualRoutePlanningView: View {
                     if poiSelection.canGenerateRoute || ProcessInfo.processInfo.environment["UITEST"] == "1" {
                         Button("Route erstellen") {
                             currentPhase = .generating
+                            
                             Task {
-                                await routeGenerationService.generateRoute(
-                                    config: config, 
-                                    selectedPOIs: poiSelection.selectedPOIs, 
-                                    discoveredPOIs: poiDiscoveryService.discoveredPOIs
-                                )
-                                if routeGenerationService.generatedRoute != nil {
-                                    currentPhase = .completed
+                                // Generate the route first
+                                if let route = try? await generateManualRoute() {
+                                    // Once generated, close the POI selection sheet and go to map
+                                    await MainActor.run {
+                                        dismiss()
+                                    }
+                                    
+                                    // Start the coordinator flow (loading + map + active route sheet)
+                                    await coordinator.startManualRouteFlow(route: route)
                                 }
                             }
                         }
@@ -139,14 +139,6 @@ struct ManualRoutePlanningView: View {
             .sheet(isPresented: $showingOverviewSheet) { overviewSheet }
             .sheet(isPresented: $showingSelectionSheet) { selectionSheet }
             .sheet(isPresented: $showingHelpSheet) { undoHelpSheet }
-            .fullScreenCover(item: $previewContext) { ctx in
-                RouteBuilderView(
-                    manualRoute: ctx.route,
-                    config: ctx.config,
-                    discoveredPOIs: ctx.pois,
-                    onRouteGenerated: onRouteGenerated
-                )
-            }
             .onAppear {
                 Task {
                     await poiDiscoveryService.discoverPOIs(config: config)
@@ -172,13 +164,15 @@ struct ManualRoutePlanningView: View {
                         if picks > 0 {
                             currentPhase = .generating
                             Task {
-                                await routeGenerationService.generateRoute(
-                                    config: config, 
-                                    selectedPOIs: poiSelection.selectedPOIs, 
-                                    discoveredPOIs: poiDiscoveryService.discoveredPOIs
-                                )
-                                if routeGenerationService.generatedRoute != nil {
-                                    currentPhase = .completed
+                                // Generate the route first
+                                if let route = try? await generateManualRoute() {
+                                    // Once generated, close the POI selection sheet and go to map
+                                    await MainActor.run {
+                                        dismiss()
+                                    }
+                                    
+                                    // Start the coordinator flow (loading + map + active route sheet)
+                                    await coordinator.startManualRouteFlow(route: route)
                                 }
                             }
                         }
@@ -207,6 +201,22 @@ struct ManualRoutePlanningView: View {
                 }
             }
         }
+    }
+    
+    // MARK: - Route Generation
+    
+    private func generateManualRoute() async throws -> GeneratedRoute {
+        await routeGenerationService.generateRoute(
+            config: config, 
+            selectedPOIs: poiSelection.selectedPOIs, 
+            discoveredPOIs: poiDiscoveryService.discoveredPOIs
+        )
+        
+        guard let route = routeGenerationService.generatedRoute else {
+            throw NSError(domain: "ManualRouteGeneration", code: 1, userInfo: [NSLocalizedDescriptionKey: "Konnte keine Route erstellen"])
+        }
+        
+        return route
     }
     
     // MARK: - POI Selection View

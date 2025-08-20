@@ -25,7 +25,7 @@ struct RoutePlanningView: View {
   @State private var customEndpointCoordinates: CLLocationCoordinate2D? = nil // NEW: Store endpoint coordinates
   @State private var maximumWalkingTime: MaximumWalkingTime = .sixtyMin
   @State private var minimumPOIDistance: MinimumPOIDistance = .twoFifty
-  @State private var showingRouteBuilder = false
+
   @State private var showingManualPlanning = false // NEW: Show manual planning sheet
   @State private var showingStartPointInfo = false
   @State private var showingStopsInfo = false
@@ -272,9 +272,41 @@ struct RoutePlanningView: View {
             "🧭 UI Params → start='\(usingCurrentLocation ? "Mein Standort" : startingCity)' stops=\(maximumStops.rawValue) maxTime=\(maximumWalkingTime.rawValue) minDist=\(minimumPOIDistance.rawValue) currentLocation=\(usingCurrentLocation)",
             category: .ui
           )
+          
+          // Start route generation directly instead of opening another sheet
           if planningMode == .automatic {
-            showingRouteBuilder = true
+            // Close the planning sheet immediately to show the map
+            onDismiss()
+            
+            // Use the same flow as quick planning but with custom parameters
+            Task {
+              if usingCurrentLocation {
+                // Use current location - exactly like quick planning
+                let currentLocation = coordinator.currentLocation ?? locationService.currentLocation
+                if let location = currentLocation {
+                  await coordinator.startCustomPlanningAt(
+                    location: location,
+                    maximumStops: maximumStops,
+                    endpointOption: endpointOption,
+                    customEndpoint: customEndpoint,
+                    maximumWalkingTime: maximumWalkingTime,
+                    minimumPOIDistance: minimumPOIDistance
+                  )
+                }
+              } else {
+                // City-based planning - we need to add this to coordinator
+                await coordinator.startCityPlanningFor(
+                  city: startingCity,
+                  maximumStops: maximumStops,
+                  endpointOption: endpointOption,
+                  customEndpoint: customEndpoint,
+                  maximumWalkingTime: maximumWalkingTime,
+                  minimumPOIDistance: minimumPOIDistance
+                )
+              }
+            }
           } else {
+            // Manual planning: Keep the POI selection sheet flow
             showingManualPlanning = true
           }
         }) {
@@ -313,20 +345,7 @@ struct RoutePlanningView: View {
           }
         }
       }
-      .sheet(isPresented: $showingRouteBuilder) {
-        RouteBuilderView(
-          startingCity: startingCity,
-          startingCoordinates: startingCoordinates,
-          usingCurrentLocation: usingCurrentLocation, // Phase 3
-          maximumStops: maximumStops,
-          endpointOption: endpointOption,
-          customEndpoint: customEndpoint,
-          customEndpointCoordinates: customEndpointCoordinates,
-          maximumWalkingTime: maximumWalkingTime,
-          minimumPOIDistance: minimumPOIDistance,
-          onRouteGenerated: onRouteGenerated
-        )
-      }
+
       .sheet(isPresented: $showingManualPlanning) {
         NavigationStack {
           ManualRoutePlanningView(
@@ -476,6 +495,8 @@ struct RoutePlanningView: View {
     
     SecureLogger.shared.logDebug("📱 RoutePlanningView: Loaded settings defaults - Stops: \(maximumStops.rawValue), Time: \(maximumWalkingTime.rawValue), Distance: \(minimumPOIDistance.rawValue)", category: .ui)
   }
+  
+
   
   // MARK: - Phase 3 Helpers
   /// Toleranter Parser für Modus‑Strings (unterstützt RawValues und englische Kurzformen)
