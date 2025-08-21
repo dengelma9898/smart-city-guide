@@ -349,6 +349,10 @@ class BasicHomeCoordinator: ObservableObject {
     @Published var cachedPOIsForAlternatives: [POI] = []
     @Published var pendingRouteChanges = false
     
+    // Track pending modifications for route optimization
+    private var pendingDeletions: Set<String> = [] // POI IDs to delete
+    private var pendingReplacements: [String: POI] = [:] // Original POI ID -> Replacement POI
+    
     // MARK: - Service Access (Centralized)
     internal let routeService = RouteService()
     private let locationManager = LocationManagerService.shared
@@ -425,6 +429,87 @@ class BasicHomeCoordinator: ObservableObject {
         SecureLogger.shared.logInfo("🔄 HomeCoordinator: Found \(limitedAlternatives.count) POI alternatives for '\(originalPOI.name)'", category: .ui)
         
         return limitedAlternatives
+    }
+    
+    /// Delete a POI from the active route and mark changes as pending
+    func deletePOI(waypoint: RoutePoint, at index: Int) -> Bool {
+        guard let currentRoute = activeRoute else {
+            SecureLogger.shared.logError("❌ HomeCoordinator: No active route for POI deletion", category: .ui)
+            return false
+        }
+        
+        // Validate deletion is safe (accounting for already pending deletions)
+        let currentIntermediateWaypoints = currentRoute.waypoints.filter { wp in
+            wp != currentRoute.waypoints.first && wp != currentRoute.waypoints.last
+        }
+        
+        // Count how many would remain after this deletion and existing pending deletions
+        let remainingAfterDeletion = currentIntermediateWaypoints.filter { wp in
+            // Don't count if it's the one we're deleting now
+            if wp == waypoint { return false }
+            // Don't count if it's already pending deletion
+            if let poiId = wp.poiId, pendingDeletions.contains(poiId) { return false }
+            return true
+        }
+        
+        if remainingAfterDeletion.count < 1 {
+            SecureLogger.shared.logWarning("⚠️ HomeCoordinator: Cannot delete POI - would leave no intermediate stops", category: .ui)
+            return false
+        }
+        
+        // Track the deletion
+        if let poiId = waypoint.poiId {
+            pendingDeletions.insert(poiId)
+        } else {
+            // For waypoints without POI ID, use name+coordinate as identifier
+            let identifier = "\(waypoint.name)_\(waypoint.coordinate.latitude)_\(waypoint.coordinate.longitude)"
+            pendingDeletions.insert(identifier)
+        }
+        
+        // Mark as pending changes
+        pendingRouteChanges = true
+        
+        SecureLogger.shared.logInfo("🗑️ HomeCoordinator: POI deletion queued for optimization - '\(waypoint.name)' (Total pending deletions: \(pendingDeletions.count))", category: .ui)
+        
+        return true
+    }
+    
+    /// Replace a POI in the active route and mark changes as pending
+    func replacePOI(original: RoutePoint, with alternative: POI) -> Bool {
+        guard activeRoute != nil else {
+            SecureLogger.shared.logError("❌ HomeCoordinator: No active route for POI replacement", category: .ui)
+            return false
+        }
+        
+        // Track the replacement
+        if let poiId = original.poiId {
+            pendingReplacements[poiId] = alternative
+        } else {
+            // For waypoints without POI ID, use name+coordinate as identifier
+            let identifier = "\(original.name)_\(original.coordinate.latitude)_\(original.coordinate.longitude)"
+            pendingReplacements[identifier] = alternative
+        }
+        
+        // Mark as pending changes
+        pendingRouteChanges = true
+        
+        SecureLogger.shared.logInfo("🔄 HomeCoordinator: POI replacement queued for optimization - '\(original.name)' → '\(alternative.name)' (Total pending replacements: \(pendingReplacements.count))", category: .ui)
+        
+        return true
+    }
+    
+    /// Get count of pending route modifications
+    func getPendingChangesCount() -> (deletions: Int, replacements: Int) {
+        return (deletions: pendingDeletions.count, replacements: pendingReplacements.count)
+    }
+    
+    /// Clear all pending route modifications
+    func clearPendingChanges() {
+        pendingDeletions.removeAll()
+        pendingReplacements.removeAll()
+        pendingRouteChanges = false
+        
+        SecureLogger.shared.logInfo("🧹 HomeCoordinator: Cleared all pending route changes", category: .ui)
     }
     
     // MARK: - Setup

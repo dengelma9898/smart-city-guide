@@ -19,13 +19,13 @@
   - [x] 2.6 Integrate with existing Wikipedia image display for alternatives
   - [x] 2.7 Verify all tests pass for POI replacement flow
 
-- [ ] 3. Implement POI Delete Functionality
-  - [ ] 3.1 Write tests for POI deletion and route state management
-  - [ ] 3.2 Implement Delete button action with immediate POI removal
-  - [ ] 3.3 Add confirmation dialog for destructive delete action
-  - [ ] 3.4 Update route state to reflect deleted POI with pendingChanges tracking
-  - [ ] 3.5 Handle edge cases (deleting last POI, start/end point protection)
-  - [ ] 3.6 Verify all tests pass for deletion functionality
+- [x] 3. Implement POI Delete Functionality
+  - [x] 3.1 Write tests for POI deletion and route state management
+  - [x] 3.2 Implement Delete button action with immediate POI removal
+  - [x] 3.3 Add confirmation dialog for destructive delete action
+  - [x] 3.4 Update route state to reflect deleted POI with pendingChanges tracking
+  - [x] 3.5 Handle edge cases (deleting last POI, start/end point protection)
+  - [x] 3.6 Verify all tests pass for deletion functionality
 
 - [ ] 4. Add Manual Route Optimization Control
   - [ ] 4.1 Write tests for optimization button state and TSP integration

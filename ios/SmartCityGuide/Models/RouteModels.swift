@@ -3,7 +3,7 @@ import MapKit
 import CoreLocation
 
 // MARK: - Route Models
-struct RoutePoint {
+struct RoutePoint: Equatable {
   /// Eindeutige Zuordnung zum ursprünglichen POI (falls vorhanden)
   let poiId: String?
   let name: String
@@ -64,6 +64,16 @@ struct RoutePoint {
     self.operatingHours = poi.operatingHours
     
     self.pointOfInterestCategory = nil
+  }
+  
+  // MARK: - Equatable Conformance
+  static func == (lhs: RoutePoint, rhs: RoutePoint) -> Bool {
+    return lhs.poiId == rhs.poiId &&
+           lhs.name == rhs.name &&
+           lhs.coordinate.latitude == rhs.coordinate.latitude &&
+           lhs.coordinate.longitude == rhs.coordinate.longitude &&
+           lhs.address == rhs.address &&
+           lhs.category == rhs.category
   }
 }
 

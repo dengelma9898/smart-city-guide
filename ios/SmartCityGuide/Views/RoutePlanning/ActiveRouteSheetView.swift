@@ -228,35 +228,60 @@ struct ActiveRouteSheetView: View {
   }
   
   private func confirmDeletePOI(at index: Int, waypoint: RoutePoint) {
-    // TODO: Implement actual POI deletion logic
-    // This would involve updating the route state and potentially triggering reoptimization
-    print("Deleting POI at index \(index): \(waypoint.name)")
-    hapticTrigger.toggle()
+    // Use HomeCoordinator for POI deletion logic
+    let deletionSuccessful = coordinator.deletePOI(waypoint: waypoint, at: index)
+    
+    if deletionSuccessful {
+      print("✅ POI deletion queued for optimization: \(waypoint.name)")
+      
+      // Trigger haptic feedback for successful deletion
+      hapticTrigger.toggle()
+    } else {
+      print("❌ POI deletion failed: Cannot delete \(waypoint.name)")
+      
+      // Show error feedback to user (could be implemented as toast/alert)
+      // For now, just different haptic pattern
+      hapticTrigger.toggle()
+    }
   }
   
   private func replacePOI(original: RoutePoint, with alternative: POI) {
-    // TODO: Implement actual POI replacement logic
-    // This would involve updating the route state and triggering reoptimization
-    print("Replacing POI '\(original.name)' with '\(alternative.name)'")
+    // Use HomeCoordinator for POI replacement logic
+    let replacementSuccessful = coordinator.replacePOI(original: original, with: alternative)
     
-    // Mark that route changes are pending
-    coordinator.pendingRouteChanges = true
-    
-    // Close the edit sheet
-    showingPOIEditSheet = false
-    selectedPOIForEdit = nil
-    
-    // Trigger haptic feedback
-    hapticTrigger.toggle()
+    if replacementSuccessful {
+      print("✅ POI replacement queued for optimization: '\(original.name)' → '\(alternative.name)'")
+      
+      // Close the edit sheet
+      showingPOIEditSheet = false
+      selectedPOIForEdit = nil
+      
+      // Trigger haptic feedback for successful replacement
+      hapticTrigger.toggle()
+    } else {
+      print("❌ POI replacement failed: Cannot replace '\(original.name)'")
+      
+      // Keep sheet open and show error feedback
+      hapticTrigger.toggle()
+    }
   }
   
   private func optimizeRoute() {
-    // TODO: Implement actual route reoptimization logic
-    // This would trigger TSP optimization with the modified waypoints
-    print("🔄 Optimizing route with pending changes...")
+    // Get pending changes summary
+    let pendingChanges = coordinator.getPendingChangesCount()
+    print("🔄 Optimizing route with pending changes: \(pendingChanges.deletions) deletions, \(pendingChanges.replacements) replacements")
     
-    // Clear pending changes flag
-    coordinator.pendingRouteChanges = false
+    // TODO: Implement actual route reoptimization logic
+    // This would:
+    // 1. Apply all pending deletions and replacements to route waypoints
+    // 2. Trigger TSP optimization with the modified waypoints
+    // 3. Update the active route with optimized result
+    // 4. Clear pending changes after successful optimization
+    
+    // For now, just clear pending changes to simulate optimization completion
+    coordinator.clearPendingChanges()
+    
+    print("✅ Route optimization completed (simulated)")
     
     // Trigger haptic feedback
     hapticTrigger.toggle()
