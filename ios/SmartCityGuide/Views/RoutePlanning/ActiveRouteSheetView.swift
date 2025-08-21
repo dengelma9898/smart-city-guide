@@ -281,24 +281,7 @@ struct ActiveRouteSheetView: View {
     return matchingPOI?.wikipediaImageURL
   }
   
-  // Mock Wikipedia images for demonstration
-  private func mockWikipediaImageURL(for waypoint: RoutePoint) -> String? {
-    // Use Unsplash for demo images based on category
-    let seed = waypoint.name.lowercased().replacingOccurrences(of: " ", with: "")
-    
-    switch waypoint.category {
-    case .attraction:
-      return "https://picsum.photos/seed/\(seed)/300/300"
-    case .museum:
-      return "https://picsum.photos/seed/museum\(seed)/300/300"
-    case .park:
-      return "https://picsum.photos/seed/park\(seed)/300/300"
-    case .nationalPark:
-      return "https://picsum.photos/seed/nature\(seed)/300/300"
-    @unknown default:
-      return "https://picsum.photos/seed/default\(seed)/300/300"
-    }
-  }
+
   
   private func walkingTimeIndicator(for index: Int) -> some View {
     HStack(spacing: 8) {
@@ -350,8 +333,8 @@ struct POIRowView: View {
   
   var body: some View {
     HStack(spacing: 12) {
-      // POI Image oder Index (Real Wikipedia images with fallback)
-      if let imageURL = wikipediaImageURL(for: waypoint) ?? mockWikipediaImageURL(for: waypoint),
+      // POI Image oder Index (Only Wikipedia images)
+      if let imageURL = wikipediaImageURL(for: waypoint),
          let url = URL(string: imageURL) {
         AsyncImage(url: url) { imagePhase in
           switch imagePhase {
@@ -446,24 +429,7 @@ struct POIRowView: View {
     return matchingPOI?.wikipediaImageURL
   }
   
-  // Mock Wikipedia images for demonstration
-  private func mockWikipediaImageURL(for waypoint: RoutePoint) -> String? {
-    // Use Unsplash for demo images based on category
-    let seed = waypoint.name.lowercased().replacingOccurrences(of: " ", with: "")
-    
-    switch waypoint.category {
-    case .attraction:
-      return "https://picsum.photos/seed/\(seed)/300/300"
-    case .museum:
-      return "https://picsum.photos/seed/museum\(seed)/300/300"
-    case .park:
-      return "https://picsum.photos/seed/park\(seed)/300/300"
-    case .nationalPark:
-      return "https://picsum.photos/seed/nature\(seed)/300/300"
-    @unknown default:
-      return "https://picsum.photos/seed/default\(seed)/300/300"
-    }
-  }
+
 }
 
 
