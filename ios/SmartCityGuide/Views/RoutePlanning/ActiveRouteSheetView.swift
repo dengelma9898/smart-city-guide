@@ -61,9 +61,8 @@ struct ActiveRouteSheetView: View {
           .padding(.bottom, height >= 220 ? 8 : 16)
           .accessibilityIdentifier("activeRoute.sheet.collapsed")
 
-          // Medium & Large content (appears as soon as there is enough height)
-          if height >= 220 {
-            VStack(alignment: .leading, spacing: 10) {
+          // Medium & Large content (always present but controlled by opacity/height)
+          VStack(alignment: .leading, spacing: 10) {
               Text("Nächste Stopps")
                 .font(.caption)
                 .foregroundColor(.secondary)
@@ -124,7 +123,9 @@ struct ActiveRouteSheetView: View {
               .padding(.top, 4)
               .padding(.bottom, 8)
             }
-          }
+            .opacity(height >= 220 ? 1.0 : 0.0)
+            .frame(height: height >= 220 ? nil : 0)
+            .clipped()
           }
           .padding(.bottom, 8)
         }
