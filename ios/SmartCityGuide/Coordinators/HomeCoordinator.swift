@@ -345,6 +345,10 @@ class BasicHomeCoordinator: ObservableObject {
     @Published var quickPlanningMessage = "Wir basteln deine Route!"
     @Published var enrichedPOIs: [String: WikipediaEnrichedPOI] = [:]
     
+    // MARK: - POI Management State
+    @Published var cachedPOIsForAlternatives: [POI] = []
+    @Published var pendingRouteChanges = false
+    
     // MARK: - Service Access (Centralized)
     internal let routeService = RouteService()
     private let locationManager = LocationManagerService.shared
@@ -373,6 +377,54 @@ class BasicHomeCoordinator: ObservableObject {
     
     func getCacheManager() -> CacheManager {
         return cacheManager
+    }
+    
+    // MARK: - POI Management Methods
+    
+    /// Get cached POI alternatives for route editing
+    func getCachedPOIAlternatives() -> [POI] {
+        return cachedPOIsForAlternatives
+    }
+    
+    /// Update cached POIs when route is generated
+    func updateCachedPOIsForAlternatives(_ pois: [POI]) {
+        cachedPOIsForAlternatives = pois
+        SecureLogger.shared.logInfo("🗃️ HomeCoordinator: Updated cached POIs for alternatives - \(pois.count) POIs available", category: .ui)
+    }
+    
+    /// Get POI alternatives for a specific location, excluding current route POIs
+    func getPOIAlternatives(for originalPOI: RoutePoint, excludingRouteWaypoints: [RoutePoint]) -> [POI] {
+        let routePOIIds = Set(excludingRouteWaypoints.compactMap { $0.poiId })
+        
+        // Filter cached POIs to exclude current route POIs and the original POI
+        let availableAlternatives = cachedPOIsForAlternatives.filter { poi in
+            // Exclude if it's already in the route
+            if routePOIIds.contains(poi.id) {
+                return false
+            }
+            
+            // Exclude if it's the original POI (by name/location similarity)
+            let distance = CLLocation(latitude: poi.latitude, longitude: poi.longitude)
+                .distance(from: CLLocation(latitude: originalPOI.coordinate.latitude, longitude: originalPOI.coordinate.longitude))
+            
+            return distance > 50 // Exclude if within 50 meters of original
+        }
+        
+        // Sort by proximity to original location (maintain geographic coherence)
+        let sortedAlternatives = availableAlternatives.sorted { poi1, poi2 in
+            let distance1 = CLLocation(latitude: poi1.latitude, longitude: poi1.longitude)
+                .distance(from: CLLocation(latitude: originalPOI.coordinate.latitude, longitude: originalPOI.coordinate.longitude))
+            let distance2 = CLLocation(latitude: poi2.latitude, longitude: poi2.longitude)
+                .distance(from: CLLocation(latitude: originalPOI.coordinate.latitude, longitude: originalPOI.coordinate.longitude))
+            return distance1 < distance2
+        }
+        
+        // Return top 5 alternatives for swipe card interface
+        let limitedAlternatives = Array(sortedAlternatives.prefix(5))
+        
+        SecureLogger.shared.logInfo("🔄 HomeCoordinator: Found \(limitedAlternatives.count) POI alternatives for '\(originalPOI.name)'", category: .ui)
+        
+        return limitedAlternatives
     }
     
     // MARK: - Setup
@@ -547,6 +599,10 @@ class BasicHomeCoordinator: ObservableObject {
                 self.quickPlanningMessage = "Wir basteln deine Route!"
                 if let generatedRoute = routeService.generatedRoute {
                     SecureLogger.shared.logInfo("🎉 HomeCoordinator: Custom route generated successfully with \(generatedRoute.waypoints.count) waypoints", category: .ui)
+                    
+                    // Store cached POIs for later alternatives
+                    updateCachedPOIsForAlternatives(pois)
+                    
                     handleRouteGenerated(generatedRoute)
                 } else {
                     SecureLogger.shared.logWarning("⚠️ HomeCoordinator: Custom route generation completed but no route available", category: .ui)
@@ -590,6 +646,14 @@ class BasicHomeCoordinator: ObservableObject {
                 }
             }()
             
+            // Fetch POIs for the city first to cache them for alternatives
+            let cityPOIs = try await geoapifyService.fetchPOIs(
+                for: city,
+                categories: PlaceCategory.geoapifyEssentialCategories
+            )
+            
+            SecureLogger.shared.logInfo("✅ HomeCoordinator: Found \(cityPOIs.count) POIs for city planning in \(city)", category: .ui)
+            
             // Use the centralized route service for city-based planning
             await routeService.generateRoute(
                 startingCity: city,
@@ -597,7 +661,7 @@ class BasicHomeCoordinator: ObservableObject {
                 endpointOption: endpointOption,
                 customEndpoint: customEndpoint,
                 routeLength: routeLength,
-                availablePOIs: nil
+                availablePOIs: cityPOIs
             )
             
             // Explicitly handle the route result
@@ -606,6 +670,10 @@ class BasicHomeCoordinator: ObservableObject {
                 self.quickPlanningMessage = "Wir basteln deine Route!"
                 if let generatedRoute = routeService.generatedRoute {
                     SecureLogger.shared.logInfo("🎉 HomeCoordinator: City route generated successfully with \(generatedRoute.waypoints.count) waypoints", category: .ui)
+                    
+                    // Store cached POIs for later alternatives
+                    updateCachedPOIsForAlternatives(cityPOIs)
+                    
                     handleRouteGenerated(generatedRoute)
                 } else {
                     SecureLogger.shared.logWarning("⚠️ HomeCoordinator: City route generation completed but no route available", category: .ui)
@@ -675,6 +743,10 @@ class BasicHomeCoordinator: ObservableObject {
                 self.quickPlanningMessage = "Wir basteln deine Route!"
                 if let generatedRoute = routeService.generatedRoute {
                     SecureLogger.shared.logInfo("🎉 HomeCoordinator: Route generated successfully with \(generatedRoute.waypoints.count) waypoints", category: .ui)
+                    
+                    // Store cached POIs for later alternatives
+                    updateCachedPOIsForAlternatives(pois)
+                    
                     handleRouteGenerated(generatedRoute)
                 } else {
                     SecureLogger.shared.logWarning("⚠️ HomeCoordinator: Route generation completed but no route available", category: .ui)

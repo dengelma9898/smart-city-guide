@@ -6,6 +6,8 @@ struct ActiveRouteSheetView: View {
   let onAddStop: () -> Void
   let enrichedPOIs: [String: WikipediaEnrichedPOI]
   
+  @EnvironmentObject var coordinator: BasicHomeCoordinator
+  
   @State private var showingEndConfirmation = false
   @State private var currentStopIndex = 0 // Track which POI is next
   @State private var showingPOIEditSheet = false
@@ -101,20 +103,45 @@ struct ActiveRouteSheetView: View {
               .frame(height: CGFloat(stops.count * 60 + (stops.count - 1) * 30)) // Approximate height
               .accessibilityIdentifier("activeRoute.pois.list")
 
-              HStack {
-                Spacer()
-                Button(action: onAddStop) {
-                  HStack(spacing: 6) {
-                    Image(systemName: "plus.circle.fill").font(.system(size: 16, weight: .semibold))
-                    Text("Stopp hinzufügen").font(.body).fontWeight(.medium)
+              VStack(spacing: 8) {
+                // Optimize Route Button (shown when there are pending changes)
+                if coordinator.pendingRouteChanges {
+                  Button(action: optimizeRoute) {
+                    HStack(spacing: 8) {
+                      Image(systemName: "arrow.triangle.2.circlepath")
+                        .font(.system(size: 16, weight: .semibold))
+                      Text("Route optimieren")
+                        .font(.body)
+                        .fontWeight(.medium)
+                    }
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(
+                      RoundedRectangle(cornerRadius: 14)
+                        .fill(Color.orange)
+                    )
                   }
-                  .padding(.horizontal, 14)
-                  .padding(.vertical, 10)
-                  .background(RoundedRectangle(cornerRadius: 14).fill(Color.blue.opacity(0.15)))
+                  .accessibilityIdentifier("route.optimize")
+                  .transition(.move(edge: .top).combined(with: .opacity))
+                  .padding(.horizontal, 16)
                 }
-                .accessibilityIdentifier("activeRoute.action.addStop")
+                
+                HStack {
+                  Spacer()
+                  Button(action: onAddStop) {
+                    HStack(spacing: 6) {
+                      Image(systemName: "plus.circle.fill").font(.system(size: 16, weight: .semibold))
+                      Text("Stopp hinzufügen").font(.body).fontWeight(.medium)
+                    }
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
+                    .background(RoundedRectangle(cornerRadius: 14).fill(Color.blue.opacity(0.15)))
+                  }
+                  .accessibilityIdentifier("activeRoute.action.addStop")
+                }
+                .padding(.horizontal, 16)
               }
-              .padding(.horizontal, 16)
               .padding(.top, 4)
               .padding(.bottom, 8)
             }
@@ -146,9 +173,20 @@ struct ActiveRouteSheetView: View {
     }
     .sheet(isPresented: $showingPOIEditSheet) {
       if let selectedPOI = selectedPOIForEdit {
-        POIAlternativesSheetView(originalPOI: selectedPOI, enrichedPOIs: enrichedPOIs) { alternativePOI in
-          replacePOI(original: selectedPOI, with: alternativePOI)
-        }
+        let alternatives = coordinator.getPOIAlternatives(
+          for: selectedPOI,
+          excludingRouteWaypoints: route.waypoints
+        )
+        
+        POIAlternativesSheetView(
+          originalPOI: selectedPOI,
+          alternativePOIs: alternatives,
+          excludingRouteWaypoints: route.waypoints,
+          enrichedPOIs: enrichedPOIs,
+          onSelectAlternative: { alternativePOI in
+            replacePOI(original: selectedPOI, with: alternativePOI)
+          }
+        )
         .accessibilityIdentifier("poi.alternatives.sheet")
       }
     }
@@ -196,11 +234,31 @@ struct ActiveRouteSheetView: View {
     hapticTrigger.toggle()
   }
   
-  private func replacePOI(original: RoutePoint, with alternative: RoutePoint) {
-    // TODO: Implement POI replacement logic
-    // This would involve updating the route and triggering reoptimization
-    print("Replacing POI \(original.name) with \(alternative.name)")
+  private func replacePOI(original: RoutePoint, with alternative: POI) {
+    // TODO: Implement actual POI replacement logic
+    // This would involve updating the route state and triggering reoptimization
+    print("Replacing POI '\(original.name)' with '\(alternative.name)'")
+    
+    // Mark that route changes are pending
+    coordinator.pendingRouteChanges = true
+    
+    // Close the edit sheet
     showingPOIEditSheet = false
+    selectedPOIForEdit = nil
+    
+    // Trigger haptic feedback
+    hapticTrigger.toggle()
+  }
+  
+  private func optimizeRoute() {
+    // TODO: Implement actual route reoptimization logic
+    // This would trigger TSP optimization with the modified waypoints
+    print("🔄 Optimizing route with pending changes...")
+    
+    // Clear pending changes flag
+    coordinator.pendingRouteChanges = false
+    
+    // Trigger haptic feedback
     hapticTrigger.toggle()
   }
 
@@ -418,46 +476,192 @@ struct POIRowView: View {
   }
 }
 
-// MARK: - POI Alternatives Sheet (Placeholder)
+// MARK: - POI Alternatives Sheet with Swipe Cards
 struct POIAlternativesSheetView: View {
   let originalPOI: RoutePoint
+  let alternativePOIs: [POI]
+  let excludingRouteWaypoints: [RoutePoint]
   let enrichedPOIs: [String: WikipediaEnrichedPOI]
-  let onSelectAlternative: (RoutePoint) -> Void
+  let onSelectAlternative: (POI) -> Void
+  
+  @Environment(\.dismiss) private var dismiss
+  @State private var selectedAlternative: POI?
+  @State private var topCard: SwipeCard?
   
   var body: some View {
     NavigationView {
-      VStack {
-        Text("POI-Alternativen für")
-          .font(.headline)
-        Text(originalPOI.name)
-          .font(.title2)
-          .fontWeight(.bold)
+      VStack(spacing: 0) {
+        // Header with original POI info
+        POIReplacementHeaderView(originalPOI: originalPOI)
         
-        Spacer()
-        
-        // TODO: Implement swipe card view for alternatives
-        Text("Hier werden alternative POIs als Swipe-Cards angezeigt")
-          .foregroundColor(.secondary)
-          .padding()
-        
-        Button("Alternative auswählen") {
-          // Placeholder: select first alternative
-          onSelectAlternative(originalPOI)
+        if !alternativePOIs.isEmpty {
+          // Swipe card stack for alternatives
+          SwipeCardStackView(
+            pois: alternativePOIs,
+            enrichedData: enrichedPOIs,
+            originalWaypoint: originalPOI,
+            onCardAction: { action in
+              handleCardAction(action)
+            },
+            onStackEmpty: {
+              // When no more alternatives, close sheet
+              dismiss()
+            },
+            onTopCardChanged: { card in
+              topCard = card
+            }
+          )
+          .frame(maxHeight: 420)
+          .padding(.horizontal, 16)
+          .accessibilityIdentifier("poi.alternative.card")
+          
+          // Action buttons
+          POIAlternativeActionBar(
+            hasTopCard: topCard != nil,
+            onAccept: {
+              if let top = topCard {
+                handleCardAction(.accept(top.poi))
+              }
+            },
+            onReject: {
+              if let top = topCard {
+                handleCardAction(.reject(top.poi))
+              }
+            }
+          )
+          .padding(.horizontal, 16)
+          .padding(.bottom, 16)
+          
+        } else {
+          // No alternatives available
+          VStack(spacing: 16) {
+            Image(systemName: "location.slash")
+              .font(.system(size: 48))
+              .foregroundColor(.secondary)
+            
+            Text("Keine Alternativen gefunden")
+              .font(.headline)
+            
+            Text("Für diesen POI sind leider keine passenden Alternativen in der Nähe verfügbar.")
+              .font(.body)
+              .foregroundColor(.secondary)
+              .multilineTextAlignment(.center)
+              .padding(.horizontal)
+            
+            Spacer()
+          }
+          .padding(.top, 40)
         }
-        .buttonStyle(.borderedProminent)
-        .accessibilityIdentifier("poi.alternative.card")
-        
-        Spacer()
       }
       .navigationTitle("POI ersetzen")
       .navigationBarTitleDisplayMode(.inline)
       .toolbar {
         ToolbarItem(placement: .navigationBarLeading) {
           Button("Abbrechen") {
-            // Will be handled by parent sheet dismissal
+            dismiss()
           }
         }
       }
+    }
+  }
+  
+  private func handleCardAction(_ action: SwipeAction) {
+    switch action {
+    case .accept(let poi):
+      selectedAlternative = poi
+      onSelectAlternative(poi)
+      dismiss()
+    case .reject(_):
+      // Card will be automatically removed by SwipeCardStackView
+      break
+    case .skip:
+      // Card will be skipped by SwipeCardStackView
+      break
+    }
+  }
+}
+
+// MARK: - POI Replacement Header
+struct POIReplacementHeaderView: View {
+  let originalPOI: RoutePoint
+  
+  var body: some View {
+    VStack(spacing: 8) {
+      Text("Ersatz für")
+        .font(.caption)
+        .foregroundColor(.secondary)
+      
+      HStack(spacing: 12) {
+        // Original POI category icon
+        Image(systemName: originalPOI.category.iconName)
+          .font(.title2)
+          .foregroundColor(.blue)
+          .frame(width: 32, height: 32)
+          .background(Circle().fill(Color.blue.opacity(0.1)))
+        
+        VStack(alignment: .leading, spacing: 2) {
+          Text(originalPOI.name)
+            .font(.headline)
+            .lineLimit(1)
+          Text(originalPOI.address)
+            .font(.caption)
+            .foregroundColor(.secondary)
+            .lineLimit(1)
+        }
+        
+        Spacer()
+      }
+      .padding(.horizontal, 16)
+      .padding(.vertical, 12)
+      .background(RoundedRectangle(cornerRadius: 12).fill(Color(.systemGray6)))
+      .padding(.horizontal, 16)
+    }
+    .padding(.top, 8)
+    .padding(.bottom, 16)
+  }
+}
+
+// MARK: - POI Alternative Action Bar
+struct POIAlternativeActionBar: View {
+  let hasTopCard: Bool
+  let onAccept: () -> Void
+  let onReject: () -> Void
+  
+  var body: some View {
+    HStack(spacing: 24) {
+      // Reject button
+      Button(action: onReject) {
+        HStack(spacing: 8) {
+          Image(systemName: "xmark")
+            .font(.system(size: 18, weight: .semibold))
+          Text("Ablehnen")
+            .font(.body)
+            .fontWeight(.medium)
+        }
+        .foregroundColor(.white)
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 14)
+        .background(RoundedRectangle(cornerRadius: 14).fill(Color.red))
+      }
+      .disabled(!hasTopCard)
+      .opacity(hasTopCard ? 1.0 : 0.5)
+      
+      // Accept button
+      Button(action: onAccept) {
+        HStack(spacing: 8) {
+          Image(systemName: "checkmark")
+            .font(.system(size: 18, weight: .semibold))
+          Text("Auswählen")
+            .font(.body)
+            .fontWeight(.medium)
+        }
+        .foregroundColor(.white)
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 14)
+        .background(RoundedRectangle(cornerRadius: 14).fill(Color.green))
+      }
+      .disabled(!hasTopCard)
+      .opacity(hasTopCard ? 1.0 : 0.5)
     }
   }
 }
