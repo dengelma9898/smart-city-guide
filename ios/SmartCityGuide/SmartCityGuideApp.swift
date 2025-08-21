@@ -14,6 +14,7 @@ struct SmartCityGuideApp: App {
         .onAppear {
           setupCacheManager()
           setupNotificationPermissions()
+          preloadProfileSettings()
         }
     }
   }
@@ -48,6 +49,21 @@ struct SmartCityGuideApp: App {
       // Only request if still not determined (nicht bei denied/authorized)
       if ProximityService.shared.notificationPermissionStatus == .notDetermined {
         let _ = await ProximityService.shared.requestNotificationPermission()
+      }
+    }
+  }
+  
+  /// Preload ProfileSettings beim App-Start für instant availability
+  private func preloadProfileSettings() {
+    Task {
+      // Trigger ProfileSettingsManager initialization früh beim App-Start
+      // Das stellt sicher, dass beim ersten Öffnen der RoutePlanningView 
+      // die Settings bereits geladen sind
+      let settingsManager = ProfileSettingsManager.shared
+      
+      // Warte bis das Loading abgeschlossen ist
+      while settingsManager.isLoading {
+        try? await Task.sleep(nanoseconds: 100_000_000) // 100ms
       }
     }
   }
