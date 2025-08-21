@@ -27,14 +27,14 @@
   - [x] 3.5 Handle edge cases (deleting last POI, start/end point protection)
   - [x] 3.6 Verify all tests pass for deletion functionality
 
-- [ ] 4. Add Manual Route Optimization Control
-  - [ ] 4.1 Write tests for optimization button state and TSP integration
-  - [ ] 4.2 Create prominent "Optimize Route" FloatingActionButton component
-  - [ ] 4.3 Implement pendingChanges state to show/hide optimization button
-  - [ ] 4.4 Add manual optimization trigger with existing TSP service integration
-  - [ ] 4.5 Implement loading state during route reoptimization
-  - [ ] 4.6 Handle optimization errors and rate limiting gracefully
-  - [ ] 4.7 Verify all tests pass for manual optimization flow
+- [x] 4. Add Manual Route Optimization Control
+  - [x] 4.1 Write tests for optimization button state and TSP integration
+  - [x] 4.2 Create prominent "Optimize Route" FloatingActionButton component
+  - [x] 4.3 Implement pendingChanges state to show/hide optimization button
+  - [x] 4.4 Add manual optimization trigger with existing TSP service integration
+  - [x] 4.5 Implement loading state during route reoptimization
+  - [x] 4.6 Handle optimization errors and rate limiting gracefully
+  - [x] 4.7 Verify all tests pass for manual optimization flow
 
 - [ ] 5. Implement Unsaved Changes Protection
   - [ ] 5.1 Write tests for unsaved changes detection and modal warnings

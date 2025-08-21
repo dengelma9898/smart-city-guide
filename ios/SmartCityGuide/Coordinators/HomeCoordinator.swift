@@ -3,6 +3,30 @@ import SwiftUI
 import CoreLocation
 import MapKit
 
+// MARK: - Route Optimization Errors
+enum RouteOptimizationError: LocalizedError {
+    case noActiveRoute
+    case insufficientWaypoints
+    case tspOptimizationFailed
+    case networkError(Error)
+    case rateLimitExceeded
+    
+    var errorDescription: String? {
+        switch self {
+        case .noActiveRoute:
+            return "Keine aktive Route gefunden"
+        case .insufficientWaypoints:
+            return "Nicht genügend Wegpunkte für Optimierung"
+        case .tspOptimizationFailed:
+            return "Route-Optimierung fehlgeschlagen"
+        case .networkError(let error):
+            return "Netzwerkfehler: \(error.localizedDescription)"
+        case .rateLimitExceeded:
+            return "Zu viele Optimierungsanfragen. Bitte warten Sie einen Moment."
+        }
+    }
+}
+
 /// Central coordinator for app-level state management and navigation
 @MainActor
 class HomeCoordinator: ObservableObject {
@@ -347,16 +371,14 @@ class BasicHomeCoordinator: ObservableObject {
     
     // MARK: - POI Management State
     @Published var cachedPOIsForAlternatives: [POI] = []
-    @Published var pendingRouteChanges = false
     
-    // Track pending modifications for route optimization
-    private var pendingDeletions: Set<String> = [] // POI IDs to delete
-    private var pendingReplacements: [String: POI] = [:] // Original POI ID -> Replacement POI
+    // Note: POI modifications are applied immediately with route regeneration
     
     // MARK: - Service Access (Centralized)
     internal let routeService = RouteService()
     private let locationManager = LocationManagerService.shared
     private let geoapifyService = GeoapifyAPIService.shared
+    private let tspService = RouteTSPService()
     private let cacheManager = CacheManager.shared
     internal let wikipediaService = RouteWikipediaService()
     
@@ -431,86 +453,119 @@ class BasicHomeCoordinator: ObservableObject {
         return limitedAlternatives
     }
     
-    /// Delete a POI from the active route and mark changes as pending
-    func deletePOI(waypoint: RoutePoint, at index: Int) -> Bool {
+    /// Delete a POI from the active route and immediately regenerate route
+    func deletePOI(waypoint: RoutePoint, at index: Int) async -> Bool {
         guard let currentRoute = activeRoute else {
             SecureLogger.shared.logError("❌ HomeCoordinator: No active route for POI deletion", category: .ui)
             return false
         }
         
-        // Validate deletion is safe (accounting for already pending deletions)
+        // Validate deletion is safe
         let currentIntermediateWaypoints = currentRoute.waypoints.filter { wp in
             wp != currentRoute.waypoints.first && wp != currentRoute.waypoints.last
         }
         
-        // Count how many would remain after this deletion and existing pending deletions
-        let remainingAfterDeletion = currentIntermediateWaypoints.filter { wp in
-            // Don't count if it's the one we're deleting now
-            if wp == waypoint { return false }
-            // Don't count if it's already pending deletion
-            if let poiId = wp.poiId, pendingDeletions.contains(poiId) { return false }
-            return true
-        }
-        
-        if remainingAfterDeletion.count < 1 {
+        if currentIntermediateWaypoints.count <= 1 {
             SecureLogger.shared.logWarning("⚠️ HomeCoordinator: Cannot delete POI - would leave no intermediate stops", category: .ui)
             return false
         }
         
-        // Track the deletion
-        if let poiId = waypoint.poiId {
-            pendingDeletions.insert(poiId)
-        } else {
-            // For waypoints without POI ID, use name+coordinate as identifier
-            let identifier = "\(waypoint.name)_\(waypoint.coordinate.latitude)_\(waypoint.coordinate.longitude)"
-            pendingDeletions.insert(identifier)
+        // Immediately remove POI from active route
+        var newWaypoints = currentRoute.waypoints
+        newWaypoints.removeAll { wp in wp == waypoint }
+        
+        SecureLogger.shared.logInfo("🗑️ HomeCoordinator: POI '\(waypoint.name)' deleted, regenerating route...", category: .ui)
+        
+        // Immediately regenerate route with new waypoints
+        do {
+            let routeGenerationService = RouteGenerationService()
+            
+            // Optimize waypoint order first
+            let optimizedWaypoints = tspService.optimizeWaypointOrder(newWaypoints)
+            
+            // Generate complete new route
+            let newRoute = try await routeGenerationService.generateCompleteRoute(from: optimizedWaypoints)
+            
+            // Update active route with regenerated route
+            activeRoute = newRoute
+            
+            SecureLogger.shared.logInfo("✅ HomeCoordinator: Route regenerated after POI deletion", category: .ui)
+            
+            return true
+            
+        } catch {
+            SecureLogger.shared.logError("❌ HomeCoordinator: Route regeneration failed after deletion: \(error.localizedDescription)", category: .ui)
+            
+            // Fallback: Keep the modified route without regeneration
+            let fallbackRoute = GeneratedRoute(
+                waypoints: newWaypoints,
+                routes: currentRoute.routes,
+                totalDistance: currentRoute.totalDistance,
+                totalTravelTime: currentRoute.totalTravelTime,
+                totalVisitTime: currentRoute.totalVisitTime,
+                totalExperienceTime: currentRoute.totalExperienceTime
+            )
+            activeRoute = fallbackRoute
+            
+            return true
         }
-        
-        // Mark as pending changes
-        pendingRouteChanges = true
-        
-        SecureLogger.shared.logInfo("🗑️ HomeCoordinator: POI deletion queued for optimization - '\(waypoint.name)' (Total pending deletions: \(pendingDeletions.count))", category: .ui)
-        
-        return true
     }
     
-    /// Replace a POI in the active route and mark changes as pending
-    func replacePOI(original: RoutePoint, with alternative: POI) -> Bool {
-        guard activeRoute != nil else {
+    /// Replace a POI in the active route and immediately regenerate route
+    func replacePOI(original: RoutePoint, with alternative: POI) async -> Bool {
+        guard let currentRoute = activeRoute else {
             SecureLogger.shared.logError("❌ HomeCoordinator: No active route for POI replacement", category: .ui)
             return false
         }
         
-        // Track the replacement
-        if let poiId = original.poiId {
-            pendingReplacements[poiId] = alternative
+        // Find and replace the POI in waypoints
+        var newWaypoints = currentRoute.waypoints
+        if let index = newWaypoints.firstIndex(of: original) {
+            let replacementWaypoint = RoutePoint(from: alternative)
+            newWaypoints[index] = replacementWaypoint
+            
+            SecureLogger.shared.logInfo("🔄 HomeCoordinator: POI '\(original.name)' replaced with '\(alternative.name)', regenerating route...", category: .ui)
+            
+            // Immediately regenerate route with replaced waypoint
+            do {
+                let routeGenerationService = RouteGenerationService()
+                
+                // Optimize waypoint order first
+                let optimizedWaypoints = tspService.optimizeWaypointOrder(newWaypoints)
+                
+                // Generate complete new route
+                let newRoute = try await routeGenerationService.generateCompleteRoute(from: optimizedWaypoints)
+                
+                // Update active route with regenerated route
+                activeRoute = newRoute
+                
+                SecureLogger.shared.logInfo("✅ HomeCoordinator: Route regenerated after POI replacement", category: .ui)
+                
+                return true
+                
+            } catch {
+                SecureLogger.shared.logError("❌ HomeCoordinator: Route regeneration failed after replacement: \(error.localizedDescription)", category: .ui)
+                
+                // Fallback: Keep the modified route without regeneration
+                let fallbackRoute = GeneratedRoute(
+                    waypoints: newWaypoints,
+                    routes: currentRoute.routes,
+                    totalDistance: currentRoute.totalDistance,
+                    totalTravelTime: currentRoute.totalTravelTime,
+                    totalVisitTime: currentRoute.totalVisitTime,
+                    totalExperienceTime: currentRoute.totalExperienceTime
+                )
+                activeRoute = fallbackRoute
+                
+                return true
+            }
         } else {
-            // For waypoints without POI ID, use name+coordinate as identifier
-            let identifier = "\(original.name)_\(original.coordinate.latitude)_\(original.coordinate.longitude)"
-            pendingReplacements[identifier] = alternative
+            SecureLogger.shared.logError("❌ HomeCoordinator: Could not find original POI for replacement", category: .ui)
+            return false
         }
-        
-        // Mark as pending changes
-        pendingRouteChanges = true
-        
-        SecureLogger.shared.logInfo("🔄 HomeCoordinator: POI replacement queued for optimization - '\(original.name)' → '\(alternative.name)' (Total pending replacements: \(pendingReplacements.count))", category: .ui)
-        
-        return true
     }
     
-    /// Get count of pending route modifications
-    func getPendingChangesCount() -> (deletions: Int, replacements: Int) {
-        return (deletions: pendingDeletions.count, replacements: pendingReplacements.count)
-    }
-    
-    /// Clear all pending route modifications
-    func clearPendingChanges() {
-        pendingDeletions.removeAll()
-        pendingReplacements.removeAll()
-        pendingRouteChanges = false
-        
-        SecureLogger.shared.logInfo("🧹 HomeCoordinator: Cleared all pending route changes", category: .ui)
-    }
+
     
     // MARK: - Setup
     

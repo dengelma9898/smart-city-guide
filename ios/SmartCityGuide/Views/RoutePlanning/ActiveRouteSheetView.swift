@@ -104,28 +104,7 @@ struct ActiveRouteSheetView: View {
               .accessibilityIdentifier("activeRoute.pois.list")
 
               VStack(spacing: 8) {
-                // Optimize Route Button (shown when there are pending changes)
-                if coordinator.pendingRouteChanges {
-                  Button(action: optimizeRoute) {
-                    HStack(spacing: 8) {
-                      Image(systemName: "arrow.triangle.2.circlepath")
-                        .font(.system(size: 16, weight: .semibold))
-                      Text("Route optimieren")
-                        .font(.body)
-                        .fontWeight(.medium)
-                    }
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-                    .background(
-                      RoundedRectangle(cornerRadius: 14)
-                        .fill(Color.orange)
-                    )
-                  }
-                  .accessibilityIdentifier("route.optimize")
-                  .transition(.move(edge: .top).combined(with: .opacity))
-                  .padding(.horizontal, 16)
-                }
+                // Route optimization happens automatically now - no button needed
                 
                 HStack {
                   Spacer()
@@ -171,6 +150,7 @@ struct ActiveRouteSheetView: View {
         Text("Möchtest du \"\(selected.waypoint.name)\" wirklich aus deiner Tour löschen?")
       }
     }
+
     .sheet(isPresented: $showingPOIEditSheet) {
       if let selectedPOI = selectedPOIForEdit {
         let alternatives = coordinator.getPOIAlternatives(
@@ -228,64 +208,49 @@ struct ActiveRouteSheetView: View {
   }
   
   private func confirmDeletePOI(at index: Int, waypoint: RoutePoint) {
-    // Use HomeCoordinator for POI deletion logic
-    let deletionSuccessful = coordinator.deletePOI(waypoint: waypoint, at: index)
-    
-    if deletionSuccessful {
-      print("✅ POI deletion queued for optimization: \(waypoint.name)")
+    // Use HomeCoordinator for POI deletion logic with route regeneration
+    Task { @MainActor in
+      let deletionSuccessful = await coordinator.deletePOI(waypoint: waypoint, at: index)
       
-      // Trigger haptic feedback for successful deletion
-      hapticTrigger.toggle()
-    } else {
-      print("❌ POI deletion failed: Cannot delete \(waypoint.name)")
-      
-      // Show error feedback to user (could be implemented as toast/alert)
-      // For now, just different haptic pattern
-      hapticTrigger.toggle()
+      if deletionSuccessful {
+        print("✅ POI deleted and route regenerated: \(waypoint.name)")
+        
+        // Trigger haptic feedback for successful deletion
+        hapticTrigger.toggle()
+      } else {
+        print("❌ POI deletion failed: Cannot delete \(waypoint.name)")
+        
+        // Show error feedback to user (could be implemented as toast/alert)
+        // For now, just different haptic pattern
+        hapticTrigger.toggle()
+      }
     }
   }
   
   private func replacePOI(original: RoutePoint, with alternative: POI) {
-    // Use HomeCoordinator for POI replacement logic
-    let replacementSuccessful = coordinator.replacePOI(original: original, with: alternative)
-    
-    if replacementSuccessful {
-      print("✅ POI replacement queued for optimization: '\(original.name)' → '\(alternative.name)'")
+    // Use HomeCoordinator for POI replacement logic with route regeneration
+    Task { @MainActor in
+      let replacementSuccessful = await coordinator.replacePOI(original: original, with: alternative)
       
-      // Close the edit sheet
-      showingPOIEditSheet = false
-      selectedPOIForEdit = nil
-      
-      // Trigger haptic feedback for successful replacement
-      hapticTrigger.toggle()
-    } else {
-      print("❌ POI replacement failed: Cannot replace '\(original.name)'")
-      
-      // Keep sheet open and show error feedback
-      hapticTrigger.toggle()
+      if replacementSuccessful {
+        print("✅ POI replaced and route regenerated: '\(original.name)' → '\(alternative.name)'")
+        
+        // Close the edit sheet
+        showingPOIEditSheet = false
+        selectedPOIForEdit = nil
+        
+        // Trigger haptic feedback for successful replacement
+        hapticTrigger.toggle()
+      } else {
+        print("❌ POI replacement failed: Cannot replace '\(original.name)'")
+        
+        // Keep sheet open and show error feedback
+        hapticTrigger.toggle()
+      }
     }
   }
   
-  private func optimizeRoute() {
-    // Get pending changes summary
-    let pendingChanges = coordinator.getPendingChangesCount()
-    print("🔄 Optimizing route with pending changes: \(pendingChanges.deletions) deletions, \(pendingChanges.replacements) replacements")
-    
-    // TODO: Implement actual route reoptimization logic
-    // This would:
-    // 1. Apply all pending deletions and replacements to route waypoints
-    // 2. Trigger TSP optimization with the modified waypoints
-    // 3. Update the active route with optimized result
-    // 4. Clear pending changes after successful optimization
-    
-    // For now, just clear pending changes to simulate optimization completion
-    coordinator.clearPendingChanges()
-    
-    print("✅ Route optimization completed (simulated)")
-    
-    // Trigger haptic feedback
-    hapticTrigger.toggle()
-  }
+
 
   // MARK: - Helper Views & Functions
   
@@ -500,6 +465,8 @@ struct POIRowView: View {
     }
   }
 }
+
+
 
 // MARK: - POI Alternatives Sheet with Swipe Cards
 struct POIAlternativesSheetView: View {
