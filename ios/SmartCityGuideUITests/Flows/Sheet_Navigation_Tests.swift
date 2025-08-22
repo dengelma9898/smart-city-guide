@@ -133,14 +133,4 @@ final class Sheet_Navigation_Tests: XCTestCase {
 }
 
 // MARK: - Helper Extensions
-extension XCUIElement {
-    func clearAndType(text: String) {
-        // Clear existing text
-        self.doubleTap()
-        self.typeText(text)
-    }
-    
-    func waitForExists(timeout: TimeInterval = 5) -> Bool {
-        return self.waitForExistence(timeout: timeout)
-    }
-}
+// Duplicates removed; helpers are defined in Helpers/TestApp.swift

@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import CoreLocation
 import os.log
 
 /// Unified service for managing POI selection card logic across all flows
@@ -41,7 +42,8 @@ class UnifiedSwipeService: ObservableObject {
     func configure(
         with configuration: SwipeFlowConfiguration,
         availablePOIs: [POI],
-        enrichedPOIs: [String: WikipediaEnrichedPOI]
+        enrichedPOIs: [String: WikipediaEnrichedPOI],
+        referenceCoordinate: CLLocationCoordinate2D? = nil
     ) {
         logger.info("🎴 Configuring UnifiedSwipeService for flow: \(configuration.description)")
         
@@ -53,11 +55,19 @@ class UnifiedSwipeService: ObservableObject {
         logger.info("🎴 Filtered \(availablePOIs.count) POIs to \(filteredPOIs.count) for current flow")
         
         // Create swipe cards
-        let cards = filteredPOIs.map { poi in
-            SwipeCard(
+        let cards: [SwipeCard] = filteredPOIs.map { poi in
+            let distance: Double
+            if let ref = referenceCoordinate {
+                let from = CLLocation(latitude: poi.latitude, longitude: poi.longitude)
+                let to = CLLocation(latitude: ref.latitude, longitude: ref.longitude)
+                distance = from.distance(from: to)
+            } else {
+                distance = 0
+            }
+            return SwipeCard(
                 poi: poi,
                 enrichedData: enrichedPOIs[poi.id],
-                distanceFromOriginal: 0, // Will be calculated based on context
+                distanceFromOriginal: distance,
                 category: poi.category,
                 wasReplaced: false
             )

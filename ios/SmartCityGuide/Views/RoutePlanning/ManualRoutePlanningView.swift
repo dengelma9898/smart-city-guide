@@ -226,6 +226,7 @@ struct ManualRoutePlanningView: View {
             availablePOIs: poiDiscoveryService.discoveredPOIs,
             enrichedPOIs: poiDiscoveryService.enrichedPOIs,
             selection: poiSelection,
+            referenceCoordinate: config.startingCoordinates,
             onSelectionComplete: {
                 currentPhase = .ready
             },

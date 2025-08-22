@@ -14,6 +14,9 @@ struct ContentView: View {
   @StateObject private var mapService = ContentMapService()
   @State private var errorHandler: UnifiedErrorHandler?
   @State private var didAutoCenterOnFirstFix = false
+  // Add-POI Flow State
+  @State private var showingAddPOISheet = false
+  @StateObject private var addPOISelection = ManualPOISelection()
  
  // MARK: - Local State (UI-specific only)
   
@@ -39,6 +42,48 @@ struct ContentView: View {
         )
       }
     }
+    // Add-POI Flow Sheet using UnifiedSwipeView
+    .sheet(isPresented: $showingAddPOISheet, onDismiss: { addPOISelection.reset() }) {
+      NavigationView {
+        Group {
+          if let route = coordinator.activeRoute {
+            let filteredPOIs: [POI] = coordinator.cachedPOIsForAlternatives.filter { poi in
+              !route.waypoints.contains { wp in
+                poi.name.lowercased() == wp.name.lowercased() &&
+                CLLocation(latitude: poi.latitude, longitude: poi.longitude)
+                  .distance(from: CLLocation(latitude: wp.coordinate.latitude, longitude: wp.coordinate.longitude)) < 50
+              }
+            }
+            UnifiedSwipeView(
+              configuration: .addPOI,
+              availablePOIs: filteredPOIs,
+              enrichedPOIs: coordinator.enrichedPOIs,
+              selection: addPOISelection,
+              referenceCoordinate: coordinator.currentLocation?.coordinate,
+              onDismiss: { showingAddPOISheet = false }
+            )
+            .navigationTitle("POIs hinzufügen")
+          } else {
+            Text("Keine aktive Route")
+              .navigationTitle("POIs hinzufügen")
+          }
+        }
+        .toolbar {
+          ToolbarItem(placement: .navigationBarLeading) {
+            Button("Abbrechen") { showingAddPOISheet = false }
+          }
+          ToolbarItem(placement: .navigationBarTrailing) {
+            Button("Übernehmen") {
+              let count = addPOISelection.selectedPOIs.count
+              SecureLogger.shared.logInfo("✅ Add-POI: Übernehmen gedrückt (\(count) POIs)", category: .ui)
+              Task { await applyAddedPOIs() }
+            }
+            .disabled(addPOISelection.selectedPOIs.isEmpty)
+          }
+        }
+        .tint(.blue)
+      }
+    }
          // Enhanced: Navigation Destinations
      .navigationDestination(for: String.self) { destination in
        navigationDestination(for: destination)
@@ -58,7 +103,8 @@ struct ContentView: View {
             route: route,
             onEnd: coordinator.endActiveRoute,
             onAddStop: {
-              // Placeholder: will open manual add/edit in Phase 3
+              SecureLogger.shared.logInfo("➕ ContentView: onAddStop tapped (ActiveRouteSheet)", category: .ui)
+              showingAddPOISheet = true
             },
             enrichedPOIs: coordinator.enrichedPOIs
           )
@@ -382,6 +428,47 @@ struct ContentView: View {
       default:
         // General retry - attempt to refresh current state
         coordinator.clearError()
+      }
+    }
+  }
+
+  /// Apply selected POIs from add flow into the active route and re-optimize
+  fileprivate func applyAddedPOIs() async {
+    guard let route = coordinator.activeRoute else {
+      SecureLogger.shared.logWarning("⚠️ Add-POI: No active route to apply to", category: .ui)
+      await MainActor.run { showingAddPOISheet = false }
+      return
+    }
+    let pois = addPOISelection.selectedPOIs
+    if pois.isEmpty {
+      await MainActor.run { showingAddPOISheet = false }
+      return
+    }
+
+    // Merge new POIs with existing waypoints
+    var newWaypoints = route.waypoints
+    for poi in pois {
+      newWaypoints.insert(RoutePoint(from: poi), at: max(1, newWaypoints.count - 1))
+    }
+
+    SecureLogger.shared.logInfo("🔄 Add-POI: Re-optimizing route with +\(pois.count) POIs", category: .ui)
+
+    // Re-generate optimized route via coordinator utilities
+    do {
+      let routeGenerationService = RouteGenerationService()
+      let tsp = RouteTSPService()
+      let optimized = tsp.optimizeWaypointOrder(newWaypoints)
+      let updated = try await routeGenerationService.generateCompleteRoute(from: optimized)
+      await MainActor.run {
+        coordinator.handleRouteGenerated(updated)
+        addPOISelection.reset()
+        showingAddPOISheet = false
+      }
+    } catch {
+      SecureLogger.shared.logError("❌ Add-POI: Failed to re-optimize route: \(error.localizedDescription)", category: .ui)
+      await MainActor.run {
+        addPOISelection.reset()
+        showingAddPOISheet = false
       }
     }
   }

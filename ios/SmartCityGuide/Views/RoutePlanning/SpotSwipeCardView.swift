@@ -94,8 +94,10 @@ struct SpotSwipeCardView: View {
                 // Title and category
                 titleSection
                 
-                // Distance badge
-                distanceBadge
+                // Distance badge (only when a meaningful distance is available)
+                if card.distanceFromOriginal > 0.0 {
+                    distanceBadge
+                }
                 
                 // Description
                 descriptionSection

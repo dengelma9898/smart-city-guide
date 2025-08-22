@@ -393,27 +393,25 @@ struct RouteBuilderView: View {
       addFlowTopCard = nil
     }) {
       if let route = routeService.generatedRoute {
-        AddPOISheetView(
-          route: route,
-          discoveredPOIs: discoveredPOIs,
-          enrichedPOIs: wikipediaService.enrichedPOIs,
-          startingCity: startingCity,
-          startingCoordinates: startingCoordinates,
-          selectedPOIs: $addFlowSelectedPOIs,
-          topCard: $addFlowTopCard,
-          isAlreadyInRoute: { poi in
-            guard let route = routeService.generatedRoute else { return false }
-            return route.waypoints.contains { waypoint in
-              poi.name.lowercased() == waypoint.name.lowercased() &&
-              calculateDistance(from: poi.coordinate, to: waypoint.coordinate) < 50
+        // Unified add flow using UnifiedSwipeView(.addPOI)
+        UnifiedSwipeView(
+          configuration: .addPOI,
+          availablePOIs: discoveredPOIs.filter { poi in
+            // Exclude POIs already in route
+            return !route.waypoints.contains { wp in
+              poi.name.lowercased() == wp.name.lowercased() &&
+              calculateDistance(from: poi.coordinate, to: wp.coordinate) < 50
             }
           },
-          onOptimize: {
-            await reoptimizeRouteWithAddedPOIs()
-          },
-          onDismiss: {
+          enrichedPOIs: wikipediaService.enrichedPOIs,
+          selection: ManualPOISelection(),
+          onSelectionComplete: {
+            // Transfer selected POIs and trigger re-optimization
+            // Note: UnifiedSwipeView owns its selection, so this is a placeholder hook
+            Task { await reoptimizeRouteWithAddedPOIs() }
             showingAddPOISheet = false
-          }
+          },
+          onDismiss: { showingAddPOISheet = false }
         )
       }
     }

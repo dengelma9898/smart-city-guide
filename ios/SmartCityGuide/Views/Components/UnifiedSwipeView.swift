@@ -26,6 +26,9 @@ struct UnifiedSwipeView: View {
     /// Manual POI selection state (for manual/add flows)
     @ObservedObject var selection: ManualPOISelection
     
+    // Optional reference coordinate for distance badges
+    let referenceCoordinate: CLLocationCoordinate2D?
+
     // MARK: - Callbacks
     
     /// Called when selection is completed (manual/add flows)
@@ -40,6 +43,8 @@ struct UnifiedSwipeView: View {
     // MARK: - State
     
     @StateObject private var swipeService = UnifiedSwipeService()
+    // Optional: coordinator may not always be provided in previews
+    @EnvironmentObject private var coordinator: BasicHomeCoordinator
     @State private var showingConfirmation = false
     @Environment(\.colorScheme) private var colorScheme
     
@@ -59,6 +64,7 @@ struct UnifiedSwipeView: View {
         availablePOIs: [POI],
         enrichedPOIs: [String: WikipediaEnrichedPOI] = [:],
         selection: ManualPOISelection,
+        referenceCoordinate: CLLocationCoordinate2D? = nil,
         onSelectionComplete: @escaping () -> Void = {},
         onPOISelected: ((POI) -> Void)? = nil,
         onDismiss: @escaping () -> Void
@@ -67,6 +73,7 @@ struct UnifiedSwipeView: View {
         self.availablePOIs = availablePOIs
         self.enrichedPOIs = enrichedPOIs
         self.selection = selection
+        self.referenceCoordinate = referenceCoordinate
         self.onSelectionComplete = onSelectionComplete
         self.onPOISelected = onPOISelected
         self.onDismiss = onDismiss
@@ -305,10 +312,7 @@ struct UnifiedSwipeView: View {
                 manualActionButtons
             }
             
-            // Flow-specific buttons (Manual flow uses header button only)
-            if configuration.showConfirmButton && selection.hasSelections {
-                confirmButton
-            }
+            // Flow-specific buttons are moved to the hosting sheet header for consistency
         }
     }
     
@@ -514,10 +518,24 @@ struct UnifiedSwipeView: View {
     // MARK: - Setup
     
     private func setupSwipeService() {
+        // Try to derive a reasonable reference coordinate for distance badges
+        var reference: CLLocationCoordinate2D? = nil
+        // Priority 1: explicit reference passed in
+        if let explicit = referenceCoordinate {
+            reference = explicit
+        }
+        if configuration.isEditFlow {
+            // In edit flow, ActiveRouteSheet passes alternatives; the header already shows original
+            // Distances are less relevant here; keep nil and hide when 0
+            reference = nil
+        } else if reference == nil, let start = coordinator.currentLocation?.coordinate {
+            reference = start
+        }
         swipeService.configure(
             with: configuration,
             availablePOIs: availablePOIs,
-            enrichedPOIs: enrichedPOIs
+            enrichedPOIs: enrichedPOIs,
+            referenceCoordinate: reference
         )
     }
 }

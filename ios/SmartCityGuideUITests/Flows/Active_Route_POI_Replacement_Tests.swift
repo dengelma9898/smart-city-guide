@@ -266,25 +266,5 @@ final class Active_Route_POI_Replacement_Tests: XCTestCase {
     }
 }
 
-// MARK: - XCUIElement Extensions (if not already defined)
-extension XCUIElement {
-    func clearAndType(text: String) {
-        guard self.exists else { return }
-        self.tap()
-        
-        // Clear existing text
-        let selectAll = self.coordinate(withNormalizedOffset: CGVector(dx: 0, dy: 0))
-        selectAll.press(forDuration: 1.0)
-        
-        if self.value as? String != nil {
-            let deleteString = String(repeating: XCUIKeyboardKey.delete.rawValue, count: (self.value as? String)?.count ?? 0)
-            self.typeText(deleteString)
-        }
-        
-        self.typeText(text)
-    }
-    
-    func waitForExists(timeout: TimeInterval = 5.0) -> Bool {
-        return self.waitForExistence(timeout: timeout)
-    }
-}
+// MARK: - XCUIElement Extensions
+// Duplicates removed; helpers are defined in Helpers/TestApp.swift

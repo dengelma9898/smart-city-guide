@@ -37,7 +37,7 @@ enum SwipeFlowConfiguration {
     var showConfirmButton: Bool {
         switch self {
         case .addPOI:
-            return true
+            return false
         case .manual, .editPOI:
             return false
         }
@@ -136,7 +136,7 @@ enum SwipeFlowConfiguration {
     var showToastMessages: Bool {
         switch self {
         case .addPOI:
-            return true
+            return false
         case .manual, .editPOI:
             return false
         }

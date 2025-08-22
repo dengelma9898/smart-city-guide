@@ -59,68 +59,66 @@ struct ActiveRouteSheetView: View {
         .padding(.bottom, 12)
         .accessibilityIdentifier("activeRoute.sheet.collapsed")
         
-        // SCROLLABLE CONTENT - POI Liste
-        if height >= 220 {
-          ScrollView(showsIndicators: false) {
-            VStack(alignment: .leading, spacing: 10) {
-              Text("Nächste Stopps")
-                .font(.caption)
-                .foregroundColor(.secondary)
-                .padding(.horizontal, 16)
+        // EINZIGER SCROLLBEREICH: POI-Liste (List) – kein verschachteltes ScrollView
+        let stops = Array(intermediateWaypoints().prefix(6))
+        List {
+          // Header-Zeile
+          Text("Nächste Stopps")
+            .font(.caption)
+            .foregroundColor(.secondary)
+            .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+            .listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
 
-              // SwiftUI List for native swipe actions
-              let stops = Array(intermediateWaypoints().prefix(6))
-              List {
-                ForEach(stops.indices, id: \.self) { index in
-                  let wp = stops[index]
-                  let isNextStop = index == currentStopIndex
-                  
-                  POIRowView(
-                    waypoint: wp,
-                    index: index,
-                    isNextStop: isNextStop,
-                    enrichedPOIs: enrichedPOIs,
-                    onEditPOI: { handleEditPOI(at: index, waypoint: wp) },
-                    onDeletePOI: { handleDeletePOI(at: index, waypoint: wp) }
-                  )
-                  .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
-                  .listRowBackground(Color.clear)
-                  .listRowSeparator(.hidden)
-                  .accessibilityIdentifier("poi.row.\(index)")
-                  
-                  // Walking time to next stop as separate list item (if not last)
-                  if index < stops.count - 1 {
-                    walkingTimeIndicator(for: index)
-                      .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 4, trailing: 16))
-                      .listRowBackground(Color.clear)
-                      .listRowSeparator(.hidden)
-                  }
-                }
-              }
-              .listStyle(.plain)
-              .frame(height: CGFloat(stops.count * 60 + max(0, stops.count - 1) * 30))
-              .accessibilityIdentifier("activeRoute.pois.list")
+          ForEach(stops.indices, id: \.self) { index in
+            let wp = stops[index]
+            let isNextStop = index == currentStopIndex
 
-              // "Stopp hinzufügen" Button
-              HStack {
-                Spacer()
-                Button(action: onAddStop) {
-                  HStack(spacing: 6) {
-                    Image(systemName: "plus.circle.fill").font(.system(size: 16, weight: .semibold))
-                    Text("Stopp hinzufügen").font(.body).fontWeight(.medium)
-                  }
-                  .padding(.horizontal, 14)
-                  .padding(.vertical, 10)
-                  .background(RoundedRectangle(cornerRadius: 14).fill(Color.blue.opacity(0.15)))
-                }
-                .accessibilityIdentifier("activeRoute.action.addStop")
-              }
-              .padding(.horizontal, 16)
-              .padding(.top, 4)
-              .padding(.bottom, 8)
+            POIRowView(
+              waypoint: wp,
+              index: index,
+              isNextStop: isNextStop,
+              enrichedPOIs: enrichedPOIs,
+              onEditPOI: { handleEditPOI(at: index, waypoint: wp) },
+              onDeletePOI: { handleDeletePOI(at: index, waypoint: wp) }
+            )
+            .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+            .listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
+            .accessibilityIdentifier("poi.row.\(index)")
+
+            if index < stops.count - 1 {
+              walkingTimeIndicator(for: index)
+                .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 4, trailing: 16))
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
             }
           }
+
+          // Integrierter Button: Stopp hinzufügen
+          HStack {
+            Spacer(minLength: 0)
+            Button(action: {
+              SecureLogger.shared.logInfo("➕ ActiveRouteSheetView: Add Stop button tapped", category: .ui)
+              onAddStop()
+            }) {
+              HStack(spacing: 6) {
+                Image(systemName: "plus.circle.fill").font(.system(size: 16, weight: .semibold))
+                Text("Stopp hinzufügen").font(.body).fontWeight(.medium)
+              }
+              .padding(.horizontal, 14)
+              .padding(.vertical, 10)
+              .background(RoundedRectangle(cornerRadius: 14).fill(Color.blue.opacity(0.15)))
+            }
+            .accessibilityIdentifier("activeRoute.action.addStop")
+            Spacer(minLength: 0)
+          }
+          .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 12, trailing: 16))
+          .listRowBackground(Color.clear)
+          .listRowSeparator(.hidden)
         }
+        .listStyle(.plain)
+        .accessibilityIdentifier("activeRoute.pois.list")
       }
       .background(Color.clear)
     }
