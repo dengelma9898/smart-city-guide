@@ -330,7 +330,7 @@ struct FAQCategory {
                 ),
                 FAQ(
                     question: "Wie funktioniert die POI-Auswahl (Swipe)?",
-                    answer: "Auf der Karte siehst du POI-Karten: Nach links swipen oder Haken-Button = übernehmen, nach rechts oder X-Button = überspringen. Der Zähler in der Fußleiste zeigt dir jederzeit, wie viele POIs du bereits ausgewählt hast."
+                    answer: "Auf der Karte siehst du POI-Karten: Nach links swipen oder Haken-Button = übernehmen, nach rechts oder X-Button = überspringen. Oben im Bildschirm findest du die Auswahl-Info – die große Bestätigungsfläche unten wurde entfernt. Die Route erstellst du im Manual‑Flow über den Button \"Route erstellen\" in der Kopfzeile."
                 ),
                 FAQ(
                     question: "Was passiert bei \"Rückgängig\"?",
