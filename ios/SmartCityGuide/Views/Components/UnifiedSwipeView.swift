@@ -77,7 +77,7 @@ struct UnifiedSwipeView: View {
             // Background
             backgroundView
             
-            // Main content
+            // Main content with proper spacing
             VStack(spacing: 0) {
                 // Top progress/counter area
                 if configuration.showSelectionCounter {
@@ -86,12 +86,13 @@ struct UnifiedSwipeView: View {
                         .padding(.horizontal, 20)
                 }
                 
-                // Card stack area
+                // Card stack area with adjusted frame
                 Spacer()
                 
                 if swipeService.hasCurrentCard() {
                     cardStackArea
-                        .frame(maxHeight: configuration.isEditFlow ? 380 : 420)
+                        .frame(maxHeight: configuration.isEditFlow ? 320 : 420)
+                        .padding(.horizontal, 20)
                 } else {
                     // Auto-recycle for edit flow, otherwise show empty state
                     if configuration.isEditFlow && swipeService.canRecycleCards() {
@@ -101,18 +102,18 @@ struct UnifiedSwipeView: View {
                     }
                 }
                 
+                // Fixed spacer to ensure separation
                 Spacer()
-                
-                // Additional spacing for edit flow to prevent overlap
-                if configuration.isEditFlow {
-                    Spacer()
-                        .frame(minHeight: 40)
+                    .frame(minHeight: configuration.isEditFlow ? 80 : 40)
+            }
+            .safeAreaInset(edge: .bottom) {
+                // Action buttons as safe area inset to prevent overlap
+                if swipeService.hasCurrentCard() || (configuration.isManualFlow && !swipeService.hasCurrentCard()) {
+                    bottomActionArea
+                        .padding(.bottom, 20)
+                        .padding(.horizontal, 20)
+                        .background(Color(.systemBackground))
                 }
-                
-                // Bottom action area
-                bottomActionArea
-                    .padding(.bottom, 20)
-                    .padding(.horizontal, 20)
             }
         }
         .onAppear {
