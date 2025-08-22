@@ -1,7 +1,7 @@
 import SwiftUI
 import CoreLocation
 
-// MARK: - POI Selection Stack View
+// MARK: - POI Selection Stack View (Deprecated Wrapper)
 struct POISelectionStackView: View {
     // BINDING DATA
     @Binding var availablePOIs: [POI]
@@ -9,80 +9,16 @@ struct POISelectionStackView: View {
     let enrichedPOIs: [String: WikipediaEnrichedPOI]
     let onSelectionComplete: () -> Void
     
-    // SERVICES
-    @StateObject private var cardService = POISelectionCardService()
-    
-    // STATE
-    @State private var showingSelectionSummary = false
-    
     var body: some View {
-        ZStack {
-            // Background
-            backgroundView
-
-            // Content
-            Group {
-                if cardService.hasCurrentCard() {
-                    POISelectionCardStackView(
-                        visibleCards: cardService.getVisibleCards(),
-                        enrichedPOIs: enrichedPOIs,
-                        onCardAction: { action in
-                            cardService.handleCardAction(action, selection: selection)
-                        }
-                    )
-                } else {
-                    POISelectionCompletionView(
-                        hasSelections: selection.hasSelections,
-                        selectionCount: selection.selectedPOIs.count,
-                        onComplete: onSelectionComplete,
-                        onRestart: {
-                            cardService.resetToBeginning()
-                        }
-                    )
-                }
-            }
-        }
-        // Top progress indicator
-        .safeAreaInset(edge: .top) {
-            if cardService.hasCurrentCard() {
-                let progress = cardService.getProgress()
-                POISelectionProgressView(
-                    currentIndex: progress.current,
-                    totalCount: progress.total
-                )
-            }
-        }
-        // Bottom action bar
-        .safeAreaInset(edge: .bottom) {
-            if cardService.hasCurrentCard() {
-                POISelectionActionBar(
-                    hasCurrentCard: cardService.hasCurrentCard(),
-                    selectionCount: selection.selectedPOIs.count,
-                    onAccept: {
-                        cardService.selectCurrentCard(selection: selection)
-                    },
-                    onReject: {
-                        cardService.rejectCurrentCard(selection: selection)
-                    },
-                    onSkip: {
-                        cardService.skipCurrentCard()
-                    },
-                    onViewSelections: {
-                        showingSelectionSummary = true
-                    }
-                )
-            }
-        }
-        // Toast overlay
-        .overlay(alignment: .bottom) {
-            POISelectionToastView(
-                message: cardService.toastMessage ?? "",
-                isVisible: cardService.showToast
-            )
-        }
-        .onAppear { 
-            cardService.setupSwipeCards(from: availablePOIs, enrichedPOIs: enrichedPOIs)
-        }
+        // Delegate to UnifiedSwipeView to avoid duplication
+        UnifiedSwipeView(
+            configuration: .manual,
+            availablePOIs: availablePOIs,
+            enrichedPOIs: enrichedPOIs,
+            selection: selection,
+            onSelectionComplete: onSelectionComplete,
+            onDismiss: {}
+        )
     }
     
     // MARK: - Background
