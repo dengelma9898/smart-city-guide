@@ -29,13 +29,13 @@
   - [x] 3.6 Maintain sheet presentation and selectedPOIs array integration
   - [x] 3.7 Verify all Manual and Add flow tests pass
 
-- [ ] 4. Integrate Edit POI Flow
-  - [ ] 4.1 Write tests for Edit flow integration in ActiveRouteSheetView
-  - [ ] 4.2 Replace POIAlternativesSheetView with UnifiedSwipeView
-  - [ ] 4.3 Configure Edit flow with auto-confirm and immediate close behavior
-  - [ ] 4.4 Implement POI filtering to exclude active route POIs and replaced POI
-  - [ ] 4.5 Integrate with HomeCoordinator replacePOI method
-  - [ ] 4.6 Verify all Edit flow tests pass
+- [x] 4. Integrate Edit POI Flow
+  - [x] 4.1 Write tests for Edit flow integration in ActiveRouteSheetView
+  - [x] 4.2 Replace POIAlternativesSheetView with UnifiedSwipeView
+  - [x] 4.3 Configure Edit flow with auto-confirm and immediate close behavior
+  - [x] 4.4 Implement POI filtering to exclude active route POIs and replaced POI
+  - [x] 4.5 Integrate with HomeCoordinator replacePOI method
+  - [x] 4.6 Verify all Edit flow tests pass
 
 - [ ] 5. Update Tests and Clean Legacy Code
   - [ ] 5.1 Update existing UI tests for backward compatibility with unified component
