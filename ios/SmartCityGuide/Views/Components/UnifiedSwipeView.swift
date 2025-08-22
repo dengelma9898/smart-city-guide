@@ -125,8 +125,8 @@ struct UnifiedSwipeView: View {
             setupSwipeService()
         }
         .overlay(alignment: .bottom) {
-            // Toast overlay
-            if swipeService.showToast, let message = swipeService.toastMessage {
+            // Manual flow: no toasts; keep for Add flow only
+            if configuration.showToastMessages, swipeService.showToast, let message = swipeService.toastMessage {
                 toastView(message: message)
                     .padding(.bottom, 100)
             }
@@ -305,11 +305,9 @@ struct UnifiedSwipeView: View {
                 manualActionButtons
             }
             
-            // Flow-specific buttons
+            // Flow-specific buttons (Manual flow uses header button only)
             if configuration.showConfirmButton && selection.hasSelections {
                 confirmButton
-            } else if !swipeService.hasCurrentCard() && configuration.isManualFlow {
-                finalActionButtons
             }
         }
     }
@@ -404,32 +402,7 @@ struct UnifiedSwipeView: View {
     
     // MARK: - Final Action Buttons
     
-    private var finalActionButtons: some View {
-        VStack(spacing: 12) {
-            // Confirm selection (if any)
-            if selection.hasSelections {
-                confirmButton
-            }
-            
-            // Reset option
-            Button(action: {
-                swipeService.resetToBeginning()
-            }) {
-                HStack {
-                    Image(systemName: "arrow.counterclockwise")
-                    Text("Von vorne beginnen")
-                }
-                .foregroundColor(.blue)
-                .padding(.vertical, 12)
-                .frame(maxWidth: .infinity)
-                .background(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(.blue, lineWidth: 1)
-                )
-            }
-            .accessibilityIdentifier("unified.swipe.reset")
-        }
-    }
+    private var finalActionButtons: some View { EmptyView() }
     
     // MARK: - Wikipedia Quality Badge
     

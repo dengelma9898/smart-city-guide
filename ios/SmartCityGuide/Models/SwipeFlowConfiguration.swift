@@ -33,12 +33,12 @@ enum SwipeFlowConfiguration {
         }
     }
     
-    /// Whether to show the confirm button
+    /// Whether to show the confirm button (Manual flow uses header action instead)
     var showConfirmButton: Bool {
         switch self {
-        case .manual, .addPOI:
+        case .addPOI:
             return true
-        case .editPOI:
+        case .manual, .editPOI:
             return false
         }
     }
@@ -132,8 +132,14 @@ enum SwipeFlowConfiguration {
     }
     
     /// Whether to show toast messages for actions
+    /// Manual flow: No toasts (top info suffices). Add flow: keep toasts.
     var showToastMessages: Bool {
-        return isManualFlow
+        switch self {
+        case .addPOI:
+            return true
+        case .manual, .editPOI:
+            return false
+        }
     }
     
     /// Duration to wait before closing view after selection (in seconds)
