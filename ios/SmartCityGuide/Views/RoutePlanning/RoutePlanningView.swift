@@ -357,7 +357,8 @@ struct RoutePlanningView: View {
               customEndpoint: customEndpoint,
               customEndpointCoordinates: customEndpointCoordinates
             ),
-            onRouteGenerated: onRouteGenerated
+            onRouteGenerated: onRouteGenerated,
+            onClosePlanningSheet: { onDismiss() }
           )
         }
       }

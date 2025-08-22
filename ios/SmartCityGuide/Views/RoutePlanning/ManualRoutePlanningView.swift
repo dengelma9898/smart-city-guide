@@ -18,6 +18,7 @@ struct ManualRoutePlanningView: View {
     // CONFIG
     let config: ManualRouteConfig
     let onRouteGenerated: (GeneratedRoute) -> Void
+    let onClosePlanningSheet: () -> Void
     
     // MARK: - Coordinator (Centralized Services)
     @EnvironmentObject private var coordinator: BasicHomeCoordinator
@@ -92,18 +93,22 @@ struct ManualRoutePlanningView: View {
                     if poiSelection.canGenerateRoute || ProcessInfo.processInfo.environment["UITEST"] == "1" {
                         Button("Route erstellen") {
                             currentPhase = .generating
-                            
                             Task {
-                                // Generate the route first
-                                if let route = try? await generateManualRoute() {
-                                    // Once generated, close the POI selection sheet and go to map
-                                    await MainActor.run {
-                                        dismiss()
-                                    }
-                                    
-                                    // Start the coordinator flow (loading + map + active route sheet)
-                                    await coordinator.startManualRouteFlow(route: route)
+                                // Close manual + parent planning sheet to reveal map overlay
+                                await MainActor.run {
+                                    dismiss()
+                                    onClosePlanningSheet()
                                 }
+                                // Use coordinator overlay flow directly
+                                await coordinator.startManualPlanningFromSelection(
+                                    selectedPOIs: poiSelection.selectedPOIs,
+                                    startCoordinate: config.startingCoordinates ?? (coordinator.currentLocation?.coordinate ?? CLLocationCoordinate2D(latitude: 0, longitude: 0)),
+                                    endpointOption: config.endpointOption,
+                                    customEndpoint: config.customEndpoint,
+                                    customEndpointCoordinates: config.customEndpointCoordinates,
+                                    discoveredPOIs: poiDiscoveryService.discoveredPOIs,
+                                    startingCity: config.startingCity
+                                )
                             }
                         }
                         .font(.headline)
@@ -164,16 +169,19 @@ struct ManualRoutePlanningView: View {
                         if picks > 0 {
                             currentPhase = .generating
                             Task {
-                                // Generate the route first
-                                if let route = try? await generateManualRoute() {
-                                    // Once generated, close the POI selection sheet and go to map
-                                    await MainActor.run {
-                                        dismiss()
-                                    }
-                                    
-                                    // Start the coordinator flow (loading + map + active route sheet)
-                                    await coordinator.startManualRouteFlow(route: route)
+                                await MainActor.run {
+                                    dismiss()
+                                    onClosePlanningSheet()
                                 }
+                                await coordinator.startManualPlanningFromSelection(
+                                    selectedPOIs: poiSelection.selectedPOIs,
+                                    startCoordinate: config.startingCoordinates ?? (coordinator.currentLocation?.coordinate ?? CLLocationCoordinate2D(latitude: 0, longitude: 0)),
+                                    endpointOption: config.endpointOption,
+                                    customEndpoint: config.customEndpoint,
+                                    customEndpointCoordinates: config.customEndpointCoordinates,
+                                    discoveredPOIs: poiDiscoveryService.discoveredPOIs,
+                                    startingCity: config.startingCity
+                                )
                             }
                         }
                     }
@@ -399,6 +407,7 @@ struct SelectedPOIsPreview: View {
             customEndpoint: "",
             customEndpointCoordinates: nil
         ),
-        onRouteGenerated: { _ in }
+        onRouteGenerated: { _ in },
+        onClosePlanningSheet: { }
     )
 }

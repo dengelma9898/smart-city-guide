@@ -846,6 +846,49 @@ class BasicHomeCoordinator: ObservableObject {
             handleRouteGenerated(route)
         }
     }
+
+    // MARK: - Manual Planning from Selection (Unified overlay on map)
+    func startManualPlanningFromSelection(
+        selectedPOIs: [POI],
+        startCoordinate: CLLocationCoordinate2D,
+        endpointOption: EndpointOption,
+        customEndpoint: String,
+        customEndpointCoordinates: CLLocationCoordinate2D?,
+        discoveredPOIs: [POI],
+        startingCity: String
+    ) async {
+        await MainActor.run {
+            isGeneratingRoute = true
+            self.quickPlanningMessage = "Erstelle deine Route…"
+        }
+        do {
+            // Generate manual route using centralized route service
+            let route = try await routeService.generateManualRoute(
+                selectedPOIs: selectedPOIs,
+                startLocation: startCoordinate,
+                endpointOption: endpointOption,
+                customEndpoint: customEndpoint,
+                customEndpointCoordinates: customEndpointCoordinates
+            )
+
+            // Enrich and cache POIs for alternatives
+            await wikipediaService.enrichRoute(route, from: discoveredPOIs, startingCity: startingCity)
+            updateCachedPOIsForAlternatives(discoveredPOIs)
+
+            await MainActor.run {
+                isGeneratingRoute = false
+                self.quickPlanningMessage = "Wir basteln deine Route!"
+                handleRouteGenerated(route)
+            }
+        } catch {
+            await MainActor.run {
+                isGeneratingRoute = false
+                self.quickPlanningMessage = "Wir basteln deine Route!"
+                errorMessage = error.localizedDescription
+                SecureLogger.shared.logWarning("❌ Manual planning failed: \(error.localizedDescription)", category: .ui)
+            }
+        }
+    }
     
     func startQuickPlanningAt(location: CLLocation) async {
         isGeneratingRoute = true
