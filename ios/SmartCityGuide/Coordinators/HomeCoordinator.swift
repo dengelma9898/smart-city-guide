@@ -445,8 +445,8 @@ class BasicHomeCoordinator: ObservableObject {
             return distance1 < distance2
         }
         
-        // Return top 5 alternatives for swipe card interface
-        let limitedAlternatives = Array(sortedAlternatives.prefix(5))
+        // Return top 15 alternatives for swipe card interface (increased from 5)
+        let limitedAlternatives = Array(sortedAlternatives.prefix(15))
         
         SecureLogger.shared.logInfo("🔄 HomeCoordinator: Found \(limitedAlternatives.count) POI alternatives for '\(originalPOI.name)'", category: .ui)
         
@@ -715,7 +715,7 @@ class BasicHomeCoordinator: ObservableObject {
                 at: location.coordinate,
                 cityName: "Mein Standort",
                 categories: PlaceCategory.geoapifyEssentialCategories,
-                radiusMeters: 2000
+                radiusMeters: 5000
             )
             
             SecureLogger.shared.logInfo("✅ HomeCoordinator: Found \(pois.count) POIs for custom planning", category: .ui)

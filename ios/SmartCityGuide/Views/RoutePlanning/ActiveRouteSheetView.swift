@@ -28,41 +28,41 @@ struct ActiveRouteSheetView: View {
           .padding(.top, 8)
           .padding(.bottom, 16)
         
-        ScrollView(showsIndicators: false) {
-          VStack(spacing: 12) {
-            // Collapsed summary row
-            HStack(spacing: 12) {
-            VStack(alignment: .leading, spacing: 2) {
-              Text(summaryLine)
+        // FIXED HEADER - Route summary row (always visible)
+        HStack(spacing: 12) {
+          VStack(alignment: .leading, spacing: 2) {
+            Text(summaryLine)
+              .font(.subheadline)
+              .fontWeight(.medium)
+            Text("\(route.numberOfStops) Stopps")
+              .font(.caption)
+              .foregroundColor(.secondary)
+          }
+          Spacer()
+          Button(action: { showingEndConfirmation = true }) {
+            HStack(spacing: 6) {
+              Image(systemName: "stop.fill")
+                .font(.system(size: 14, weight: .medium))
+              Text("Tour beenden")
                 .font(.subheadline)
                 .fontWeight(.medium)
-              Text("\(route.numberOfStops) Stopps")
-                .font(.caption)
-                .foregroundColor(.secondary)
             }
-            Spacer()
-            Button(action: { showingEndConfirmation = true }) {
-              HStack(spacing: 6) {
-                Image(systemName: "stop.fill")
-                  .font(.system(size: 14, weight: .medium))
-                Text("Tour beenden")
-                  .font(.subheadline)
-                  .fontWeight(.medium)
-              }
-              .foregroundColor(.white)
-              .padding(.horizontal, 14)
-              .padding(.vertical, 10)
-              .background(RoundedRectangle(cornerRadius: 18).fill(Color.red))
-            }
-            .accessibilityIdentifier("activeRoute.action.end")
+            .foregroundColor(.white)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .background(RoundedRectangle(cornerRadius: 18).fill(Color.red))
           }
-          .padding(.horizontal, 20)
-          .padding(.top, 4)
-          .padding(.bottom, height >= 220 ? 8 : 16)
-          .accessibilityIdentifier("activeRoute.sheet.collapsed")
-
-          // Medium & Large content (always present but controlled by opacity/height)
-          VStack(alignment: .leading, spacing: 10) {
+          .accessibilityIdentifier("activeRoute.action.end")
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 4)
+        .padding(.bottom, 12)
+        .accessibilityIdentifier("activeRoute.sheet.collapsed")
+        
+        // SCROLLABLE CONTENT - POI Liste
+        if height >= 220 {
+          ScrollView(showsIndicators: false) {
+            VStack(alignment: .leading, spacing: 10) {
               Text("Nächste Stopps")
                 .font(.caption)
                 .foregroundColor(.secondary)
@@ -98,39 +98,31 @@ struct ActiveRouteSheetView: View {
                 }
               }
               .listStyle(.plain)
-              .scrollDisabled(true)
-              .frame(height: CGFloat(stops.count * 60 + (stops.count - 1) * 30)) // Approximate height
+              .frame(height: CGFloat(stops.count * 60 + max(0, stops.count - 1) * 30))
               .accessibilityIdentifier("activeRoute.pois.list")
 
-              VStack(spacing: 8) {
-                // Route optimization happens automatically now - no button needed
-                
-                HStack {
-                  Spacer()
-                  Button(action: onAddStop) {
-                    HStack(spacing: 6) {
-                      Image(systemName: "plus.circle.fill").font(.system(size: 16, weight: .semibold))
-                      Text("Stopp hinzufügen").font(.body).fontWeight(.medium)
-                    }
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 10)
-                    .background(RoundedRectangle(cornerRadius: 14).fill(Color.blue.opacity(0.15)))
+              // "Stopp hinzufügen" Button
+              HStack {
+                Spacer()
+                Button(action: onAddStop) {
+                  HStack(spacing: 6) {
+                    Image(systemName: "plus.circle.fill").font(.system(size: 16, weight: .semibold))
+                    Text("Stopp hinzufügen").font(.body).fontWeight(.medium)
                   }
-                  .accessibilityIdentifier("activeRoute.action.addStop")
+                  .padding(.horizontal, 14)
+                  .padding(.vertical, 10)
+                  .background(RoundedRectangle(cornerRadius: 14).fill(Color.blue.opacity(0.15)))
                 }
-                .padding(.horizontal, 16)
+                .accessibilityIdentifier("activeRoute.action.addStop")
               }
+              .padding(.horizontal, 16)
               .padding(.top, 4)
               .padding(.bottom, 8)
             }
-            .opacity(height >= 220 ? 1.0 : 0.0)
-            .frame(height: height >= 220 ? nil : 0)
-            .clipped()
           }
-          .padding(.bottom, 8)
         }
-        .background(Color.clear)
       }
+      .background(Color.clear)
     }
     .accessibilityIdentifier("ActiveRouteSheetView")
     .alert("Tour wirklich beenden?", isPresented: $showingEndConfirmation) {
