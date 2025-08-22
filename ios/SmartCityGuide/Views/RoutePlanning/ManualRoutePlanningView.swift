@@ -221,11 +221,16 @@ struct ManualRoutePlanningView: View {
     
     // MARK: - POI Selection View
     private var poiSelectionView: some View {
-        POISelectionStackView(
-            availablePOIs: .constant(poiDiscoveryService.discoveredPOIs),
-            selection: poiSelection,
+        UnifiedSwipeView(
+            configuration: .manual,
+            availablePOIs: poiDiscoveryService.discoveredPOIs,
             enrichedPOIs: poiDiscoveryService.enrichedPOIs,
+            selection: poiSelection,
             onSelectionComplete: {
+                currentPhase = .ready
+            },
+            onDismiss: {
+                // For manual flow, dismiss just resets phase without closing
                 currentPhase = .ready
             }
         )
