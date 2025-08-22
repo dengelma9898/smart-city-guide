@@ -61,7 +61,7 @@ final class Active_Route_POI_Swipe_Tests: XCTestCase {
         XCTAssertTrue(alternativesSheet.waitForExists(), "POI alternatives sheet not presented")
         
         // 4) Verify that alternative POIs are shown in swipe card format
-        let alternativeCard = app.otherElements["poi.alternative.card"].firstMatch
+        let alternativeCard = app.otherElements["poi.alternative.unified"].firstMatch
         XCTAssertTrue(alternativeCard.waitForExists(), "Alternative POI card not found")
     }
     

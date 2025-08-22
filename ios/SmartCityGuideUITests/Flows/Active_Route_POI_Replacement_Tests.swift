@@ -27,7 +27,7 @@ final class Active_Route_POI_Replacement_Tests: XCTestCase {
         XCTAssertTrue(alternativesSheet.waitForExists(), "POI alternatives sheet not presented")
         
         // 4) Verify that alternatives are displayed as swipe cards
-        let alternativeCard = app.otherElements["poi.alternative.card"].firstMatch
+        let alternativeCard = app.otherElements["poi.alternative.unified"].firstMatch
         XCTAssertTrue(alternativeCard.waitForExists(), "Alternative POI card not found")
         
         // 5) Verify navigation title and close button
@@ -47,7 +47,7 @@ final class Active_Route_POI_Replacement_Tests: XCTestCase {
         openPOIAlternatives(app: app, poiIndex: 0)
         
         // 2) Verify alternative POI cards have images
-        let alternativeCard = app.otherElements["poi.alternative.card"].firstMatch
+        let alternativeCard = app.otherElements["poi.alternative.unified"].firstMatch
         XCTAssertTrue(alternativeCard.waitForExists(), "Alternative POI card not found")
         
         // 3) Look for image within the card (either AsyncImage or fallback)
@@ -99,7 +99,7 @@ final class Active_Route_POI_Replacement_Tests: XCTestCase {
         openPOIAlternatives(app: app, poiIndex: 0)
         
         // 3) Verify that alternatives are available (indicates cache access worked)
-        let alternativeCard = app.otherElements["poi.alternative.card"].firstMatch
+        let alternativeCard = app.otherElements["poi.alternative.unified"].firstMatch
         XCTAssertTrue(alternativeCard.waitForExists(), "Cached POI alternatives should be available")
         
         // 4) Verify more than one alternative is potentially available
@@ -189,7 +189,7 @@ final class Active_Route_POI_Replacement_Tests: XCTestCase {
         openPOIAlternatives(app: app, poiIndex: 0)
         
         // 2) Verify that alternatives are shown (indicates proper filtering)
-        let alternativeCard = app.otherElements["poi.alternative.card"].firstMatch
+        let alternativeCard = app.otherElements["poi.alternative.unified"].firstMatch
         XCTAssertTrue(alternativeCard.waitForExists(), "Alternative should respect geographic distribution")
         
         // 3) Test scrolling through alternatives (if swipe cards are implemented)

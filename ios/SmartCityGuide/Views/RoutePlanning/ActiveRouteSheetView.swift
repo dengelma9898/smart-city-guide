@@ -467,7 +467,6 @@ struct POIAlternativesSheetView: View {
               dismiss()
             }
           )
-          .frame(maxHeight: 420)
           .accessibilityIdentifier("poi.alternative.unified")
           
         } else {
