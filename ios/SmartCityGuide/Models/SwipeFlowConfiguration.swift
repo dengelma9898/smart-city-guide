@@ -56,10 +56,8 @@ enum SwipeFlowConfiguration {
     /// Whether to allow continuous swiping through multiple POIs
     var allowContinuousSwipe: Bool {
         switch self {
-        case .manual, .addPOI:
+        case .manual, .addPOI, .editPOI:
             return true
-        case .editPOI:
-            return false
         }
     }
     

@@ -91,12 +91,23 @@ struct UnifiedSwipeView: View {
                 
                 if swipeService.hasCurrentCard() {
                     cardStackArea
-                        .frame(maxHeight: 420)
+                        .frame(maxHeight: configuration.isEditFlow ? 380 : 420)
                 } else {
-                    emptyStackView
+                    // Auto-recycle for edit flow, otherwise show empty state
+                    if configuration.isEditFlow && swipeService.canRecycleCards() {
+                        emptyStackViewWithRecycle
+                    } else {
+                        emptyStackView
+                    }
                 }
                 
                 Spacer()
+                
+                // Additional spacing for edit flow to prevent overlap
+                if configuration.isEditFlow {
+                    Spacer()
+                        .frame(minHeight: 40)
+                }
                 
                 // Bottom action area
                 bottomActionArea
@@ -247,6 +258,36 @@ struct UnifiedSwipeView: View {
             }
         }
         .padding(.horizontal, 20)
+    }
+    
+    // MARK: - Empty Stack View with Auto-Recycle
+    
+    private var emptyStackViewWithRecycle: some View {
+        VStack(spacing: 20) {
+            Image(systemName: "arrow.clockwise.circle.fill")
+                .font(.system(size: 64))
+                .foregroundColor(.blue)
+            
+            VStack(spacing: 8) {
+                Text("Alternativen werden neu gemischt...")
+                    .font(.title2)
+                    .fontWeight(.semibold)
+                
+                Text("Übersprungene POIs werden erneut angezeigt.")
+                    .font(.body)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+        }
+        .padding(.horizontal, 20)
+        .onAppear {
+            // Auto-recycle for edit flow after a brief delay
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                if configuration.isEditFlow && swipeService.canRecycleCards() {
+                    swipeService.recycleRejectedCards()
+                }
+            }
+        }
     }
     
     // MARK: - Bottom Action Area
