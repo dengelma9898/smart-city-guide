@@ -77,7 +77,7 @@ struct UnifiedSwipeView: View {
             // Background
             backgroundView
             
-            // Main content with proper spacing
+            // Main content area - leaves space for bottom buttons
             VStack(spacing: 0) {
                 // Top progress/counter area
                 if configuration.showSelectionCounter {
@@ -86,13 +86,12 @@ struct UnifiedSwipeView: View {
                         .padding(.horizontal, 20)
                 }
                 
-                // Card stack area with adjusted frame
-                Spacer()
-                
+                // Card stack area - takes available space minus button area
                 if swipeService.hasCurrentCard() {
                     cardStackArea
-                        .frame(maxHeight: configuration.isEditFlow ? 320 : 420)
+                        .frame(maxHeight: configuration.isEditFlow ? 300 : 380)
                         .padding(.horizontal, 20)
+                        .padding(.top, 20)
                 } else {
                     // Auto-recycle for edit flow, otherwise show empty state
                     if configuration.isEditFlow && swipeService.canRecycleCards() {
@@ -102,17 +101,23 @@ struct UnifiedSwipeView: View {
                     }
                 }
                 
-                // Fixed spacer to ensure separation
+                // Fill remaining space
                 Spacer()
-                    .frame(minHeight: configuration.isEditFlow ? 80 : 40)
             }
-            .safeAreaInset(edge: .bottom) {
-                // Action buttons as safe area inset to prevent overlap
+            
+            // Bottom action buttons - fixed to bottom of screen
+            VStack {
+                Spacer()
+                
                 if swipeService.hasCurrentCard() || (configuration.isManualFlow && !swipeService.hasCurrentCard()) {
                     bottomActionArea
-                        .padding(.bottom, 20)
                         .padding(.horizontal, 20)
-                        .background(Color(.systemBackground))
+                        .padding(.bottom, 34) // Safe area bottom padding
+                        .background(
+                            Rectangle()
+                                .fill(Color(.systemBackground))
+                                .ignoresSafeArea(edges: .bottom)
+                        )
                 }
             }
         }
