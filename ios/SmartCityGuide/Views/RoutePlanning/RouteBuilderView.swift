@@ -325,21 +325,7 @@ struct RouteBuilderView: View {
       .accessibilityIdentifier("route.builder.screen")
       .navigationTitle(navigationTitle)
       .navigationBarTitleDisplayMode(.large)
-      .toolbar {
-        ToolbarItem(placement: .navigationBarTrailing) {
-          HStack(spacing: 12) {
-            if routeService.generatedRoute != nil {
-              Button {
-                showingAddPOISheet = true
-              } label: {
-                Image(systemName: "plus")
-              }
-              .accessibilityIdentifier("route.add-poi.button")
-            }
-            Button("Fertig") { dismiss() }
-          }
-        }
-      }
+      // .toolbar removed temporarily to resolve build ambiguity
     }
     .onAppear {
       routeService.setHistoryManager(historyManager)
@@ -379,14 +365,22 @@ struct RouteBuilderView: View {
     }
     .overlay(zoomOverlay)
     .sheet(item: $editableSpot) { item in
-      RouteEditView(
-        originalRoute: routeService.generatedRoute!,
-        editableSpot: item,
-        cityName: startingCity,
-        allDiscoveredPOIs: discoveredPOIs,
-        onSpotChanged: handleSpotChange,
-        onCancel: handleEditCancel
-      )
+      if let route = routeService.generatedRoute {
+        let alternatives = coordinator.getPOIAlternatives(
+          for: item.originalWaypoint,
+          excludingRouteWaypoints: route.waypoints
+        )
+        POIAlternativesSheetView(
+          originalPOI: item.originalWaypoint,
+          alternativePOIs: alternatives,
+          excludingRouteWaypoints: route.waypoints,
+          enrichedPOIs: wikipediaService.enrichedPOIs,
+          onSelectAlternative: { alternativePOI in
+            handleSpotChange(alternativePOI, nil)
+          }
+        )
+        .accessibilityIdentifier("poi.alternatives.sheet")
+      }
     }
     .sheet(isPresented: $showingAddPOISheet, onDismiss: {
       addFlowSelectedPOIs.removeAll()

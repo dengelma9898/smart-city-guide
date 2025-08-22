@@ -142,7 +142,7 @@ class UnifiedSwipeService: ObservableObject {
         _ action: SwipeAction,
         selection: ManualPOISelection
     ) {
-        guard let currentPOI = getCurrentPOI(),
+        guard hasCurrentCard(),
               let config = currentConfiguration else { return }
         
         switch action {
@@ -153,14 +153,12 @@ class UnifiedSwipeService: ObservableObject {
         case .reject(let poi):
             logger.debug("🎴 Rejecting POI: \(poi.name)")
             handleRejectAction(poi: poi, selection: selection, config: config)
-            
-        case .skip:
-            logger.debug("🎴 Skipping POI: \(currentPOI.name)")
-            handleSkipAction(poi: currentPOI, config: config)
         }
         
         advanceToNextCard()
     }
+
+    // Duplicate skip helper removed
     
     /// Handle accept action
     private func handleAcceptAction(

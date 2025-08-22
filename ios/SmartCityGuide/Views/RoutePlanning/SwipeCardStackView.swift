@@ -224,7 +224,12 @@ struct SwipeCardStackView: View {
     
     private func handleCardAction(_ action: SwipeAction) {
         // Haptic feedback
-        let impactFeedback = UIImpactFeedbackGenerator(style: action.isAccept ? .medium : .light)
+        let impactFeedback = UIImpactFeedbackGenerator(style: {
+            switch action {
+            case .accept: return .medium
+            case .reject: return .light
+            }
+        }())
         impactFeedback.impactOccurred()
         
         // Remove top card with animation

@@ -1,6 +1,20 @@
 import Foundation
 import MapKit
 
+// Minimal model to support edit flows without the old RouteEditModels
+struct EditableRouteSpot: Identifiable, Equatable {
+  let id = UUID()
+  let originalWaypoint: RoutePoint
+  let waypointIndex: Int
+  let alternativePOIs: [POI]
+  let currentPOI: POI?
+  let replacedPOIs: [POI]
+  
+  static func == (lhs: EditableRouteSpot, rhs: EditableRouteSpot) -> Bool {
+    lhs.id == rhs.id
+  }
+}
+
 /// Service for managing route editing operations (replace, insert, delete POIs)
 @MainActor
 class RouteBuilderEditService: ObservableObject {

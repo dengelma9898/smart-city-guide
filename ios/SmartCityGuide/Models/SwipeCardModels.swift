@@ -127,6 +127,14 @@ enum SwipeDirection: CaseIterable {
     }
 }
 
+// MARK: - High-level Swipe Action
+
+/// Actions emitted by card interactions
+enum SwipeAction {
+    case accept(POI)
+    case reject(POI)
+}
+
 /// Swipe gesture data
 struct SwipeGesture {
     /// Direction of the swipe
