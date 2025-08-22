@@ -427,7 +427,7 @@ struct POIRowView: View {
 
 
 
-// MARK: - POI Alternatives Sheet with Swipe Cards
+// MARK: - POI Alternatives Sheet with Unified Swipe Interface
 struct POIAlternativesSheetView: View {
   let originalPOI: RoutePoint
   let alternativePOIs: [POI]
@@ -437,7 +437,7 @@ struct POIAlternativesSheetView: View {
   
   @Environment(\.dismiss) private var dismiss
   @State private var selectedAlternative: POI?
-  @State private var topCard: SwipeCard?
+  @StateObject private var editSelection = ManualPOISelection()
   
   var body: some View {
     NavigationView {
@@ -446,42 +446,29 @@ struct POIAlternativesSheetView: View {
         POIReplacementHeaderView(originalPOI: originalPOI)
         
         if !alternativePOIs.isEmpty {
-          // Swipe card stack for alternatives
-          SwipeCardStackView(
-            pois: alternativePOIs,
-            enrichedData: enrichedPOIs,
-            originalWaypoint: originalPOI,
-            onCardAction: { action in
-              handleCardAction(action)
+          // Create edit flow configuration
+          let editConfig = SwipeFlowConfiguration.createEditPOIFlow(
+            currentRouteWaypoints: excludingRouteWaypoints,
+            poiToReplace: originalPOI
+          )
+          
+          // Unified swipe view for alternatives
+          UnifiedSwipeView(
+            configuration: editConfig,
+            availablePOIs: alternativePOIs,
+            enrichedPOIs: enrichedPOIs,
+            selection: editSelection,
+            onPOISelected: { selectedPOI in
+              // Immediate POI replacement
+              selectedAlternative = selectedPOI
+              onSelectAlternative(selectedPOI)
             },
-            onStackEmpty: {
-              // When no more alternatives, close sheet
+            onDismiss: {
               dismiss()
-            },
-            onTopCardChanged: { card in
-              topCard = card
             }
           )
           .frame(maxHeight: 420)
-          .padding(.horizontal, 16)
-          .accessibilityIdentifier("poi.alternative.card")
-          
-          // Action buttons
-          POIAlternativeActionBar(
-            hasTopCard: topCard != nil,
-            onAccept: {
-              if let top = topCard {
-                handleCardAction(.accept(top.poi))
-              }
-            },
-            onReject: {
-              if let top = topCard {
-                handleCardAction(.reject(top.poi))
-              }
-            }
-          )
-          .padding(.horizontal, 16)
-          .padding(.bottom, 16)
+          .accessibilityIdentifier("poi.alternative.unified")
           
         } else {
           // No alternatives available
@@ -513,21 +500,6 @@ struct POIAlternativesSheetView: View {
           }
         }
       }
-    }
-  }
-  
-  private func handleCardAction(_ action: SwipeAction) {
-    switch action {
-    case .accept(let poi):
-      selectedAlternative = poi
-      onSelectAlternative(poi)
-      dismiss()
-    case .reject(_):
-      // Card will be automatically removed by SwipeCardStackView
-      break
-    case .skip:
-      // Card will be skipped by SwipeCardStackView
-      break
     }
   }
 }
