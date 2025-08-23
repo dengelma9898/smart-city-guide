@@ -4,6 +4,7 @@ import SwiftUI
 struct ContentTopOverlay: View {
     
     @ObservedObject var locationService: LocationManagerService
+    @StateObject private var cityNameService = CityNameService()
     let onLocationTap: () -> Void
     
     var body: some View {
@@ -25,6 +26,24 @@ struct ContentTopOverlay: View {
             
             Spacer()
             
+            // Current city display
+            if let cityName = cityNameService.currentCityName {
+                Text(cityName)
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundColor(.primary)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(
+                        Capsule()
+                            .fill(.regularMaterial)
+                            .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
+                    )
+                    .accessibilityLabel("Aktuelle Stadt: \(cityName)")
+                    .transition(.opacity.combined(with: .scale))
+            }
+            
+            Spacer()
+            
             // Location button
             Button(action: onLocationTap) {
                 Image(systemName: locationButtonIcon)
@@ -39,6 +58,15 @@ struct ContentTopOverlay: View {
         }
         .padding(.horizontal, 20)
         .padding(.top, 16)
+        .animation(.easeInOut(duration: 0.3), value: cityNameService.currentCityName)
+        .onChange(of: locationService.currentLocation) { _, newLocation in
+            Task {
+                await cityNameService.updateCityName(from: newLocation)
+            }
+        }
+        .onDisappear {
+            cityNameService.clearCityName()
+        }
     }
     
     // MARK: - Computed Properties
