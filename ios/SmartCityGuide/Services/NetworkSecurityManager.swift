@@ -13,8 +13,9 @@ class NetworkSecurityManager: NSObject {
     private let logger = Logger(subsystem: "de.dengelma.smartcity-guide", category: "NetworkSecurity")
     
     // Geoapify API Certificate Pinning Configuration
+    // Updated 2025-08-22: Geoapify changed their SSL certificate
     private let pinnedCertificates: [String: String] = [
-        "api.geoapify.com": "FA:83:29:3B:E0:22:40:6B:76:7C:F9:33:AA:2C:56:A3:1C:B6:BB:79:76:C0:D1:72:51:5E:E0:BA:70:0D:36:BE"
+        "api.geoapify.com": "5A:F3:F3:C8:2E:F4:AA:D5:53:28:D3:1A:2C:2B:16:FD:9F:27:C6:B6:93:67:47:53:3C:6F:34:20:E7:0B:EF:CD"
     ]
     
     // Lazy URLSession with certificate pinning enabled
