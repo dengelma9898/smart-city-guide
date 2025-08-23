@@ -9,29 +9,22 @@ extension HomeCoordinator {
     
     func startWikipediaEnrichment(for route: GeneratedRoute) {
         Task {
-            do {
-                // Get discovered POIs from the route service if available
-                let discoveredPOIs = await routeService.getDiscoveredPOIs() ?? []
-                
-                // Extract city name from first waypoint for better Wikipedia search
-                let cityName = extractCityName(from: route.waypoints.first?.address ?? "")
-                
-                SecureLogger.shared.logInfo("📚 Starting Wikipedia enrichment for \(route.waypoints.count) waypoints in \(cityName)", category: .data)
-                
-                // Use the RouteWikipediaService to enrich the route
-                await wikipediaService.enrichRoute(route, from: discoveredPOIs, startingCity: cityName)
-                
-                // Update the coordinator's enriched POIs from the service
-                await MainActor.run {
-                    self.enrichedPOIs = wikipediaService.enrichedPOIs
-                    let enrichedCount = self.enrichedPOIs.values.filter { $0.wikipediaImageURL != nil }.count
-                    SecureLogger.shared.logInfo("✅ Wikipedia enrichment completed: \(enrichedCount)/\(route.waypoints.count) POIs have images", category: .data)
-                }
-                
-            } catch {
-                await MainActor.run {
-                    SecureLogger.shared.logWarning("❌ Wikipedia enrichment failed: \(error.localizedDescription)", category: .data)
-                }
+            // Get discovered POIs from the route service if available
+            let discoveredPOIs = await routeService.getDiscoveredPOIs() ?? []
+            
+            // Extract city name from first waypoint for better Wikipedia search
+            let cityName = extractCityName(from: route.waypoints.first?.address ?? "")
+            
+            SecureLogger.shared.logInfo("📚 Starting Wikipedia enrichment for \(route.waypoints.count) waypoints in \(cityName)", category: .data)
+            
+            // Use the RouteWikipediaService to enrich the route
+            await wikipediaService.enrichRoute(route, from: discoveredPOIs, startingCity: cityName)
+            
+            // Update the coordinator's enriched POIs from the service
+            await MainActor.run {
+                self.enrichedPOIs = wikipediaService.enrichedPOIs
+                let enrichedCount = self.enrichedPOIs.values.filter { $0.wikipediaImageURL != nil }.count
+                SecureLogger.shared.logInfo("✅ Wikipedia enrichment completed: \(enrichedCount)/\(route.waypoints.count) POIs have images", category: .data)
             }
         }
     }
@@ -60,29 +53,22 @@ extension BasicHomeCoordinator {
     
     func startWikipediaEnrichment(for route: GeneratedRoute) {
         Task {
-            do {
-                // Get discovered POIs from the route service if available
-                let discoveredPOIs = await routeService.getDiscoveredPOIs() ?? []
-                
-                // Extract city name from first waypoint for better Wikipedia search
-                let cityName = extractCityName(from: route.waypoints.first?.address ?? "")
-                
-                SecureLogger.shared.logInfo("📚 Starting Wikipedia enrichment for \(route.waypoints.count) waypoints in \(cityName)", category: .data)
-                
-                // Use the RouteWikipediaService to enrich the route
-                await wikipediaService.enrichRoute(route, from: discoveredPOIs, startingCity: cityName)
-                
-                // Update the coordinator's enriched POIs from the service
-                await MainActor.run {
-                    self.enrichedPOIs = wikipediaService.enrichedPOIs
-                    let enrichedCount = self.enrichedPOIs.values.filter { $0.wikipediaImageURL != nil }.count
-                    SecureLogger.shared.logInfo("✅ Wikipedia enrichment completed: \(enrichedCount)/\(route.waypoints.count) POIs have images", category: .data)
-                }
-                
-            } catch {
-                await MainActor.run {
-                    SecureLogger.shared.logWarning("❌ Wikipedia enrichment failed: \(error.localizedDescription)", category: .data)
-                }
+            // Get discovered POIs from the route service if available
+            let discoveredPOIs = await routeService.getDiscoveredPOIs() ?? []
+            
+            // Extract city name from first waypoint for better Wikipedia search
+            let cityName = extractCityName(from: route.waypoints.first?.address ?? "")
+            
+            SecureLogger.shared.logInfo("📚 Starting Wikipedia enrichment for \(route.waypoints.count) waypoints in \(cityName)", category: .data)
+            
+            // Use the RouteWikipediaService to enrich the route
+            await wikipediaService.enrichRoute(route, from: discoveredPOIs, startingCity: cityName)
+            
+            // Update the coordinator's enriched POIs from the service
+            await MainActor.run {
+                self.enrichedPOIs = wikipediaService.enrichedPOIs
+                let enrichedCount = self.enrichedPOIs.values.filter { $0.wikipediaImageURL != nil }.count
+                SecureLogger.shared.logInfo("✅ Wikipedia enrichment completed: \(enrichedCount)/\(route.waypoints.count) POIs have images", category: .data)
             }
         }
     }

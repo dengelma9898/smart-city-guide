@@ -91,13 +91,9 @@ class LocationManagerService: ObservableObject {
     func requestLocationPermission() async {
         logger.info("Location-Permission wird angefordert")
         
-        guard CLLocationManager.locationServicesEnabled() else {
-            await MainActor.run {
-                errorMessage = "Location-Services sind auf diesem Gerät deaktiviert"
-            }
-            logger.error("Location-Services nicht verfügbar")
-            return
-        }
+        // Apple empfiehlt: Nicht CLLocationManager.locationServicesEnabled() auf Main Thread zu rufen
+        // Stattdessen direkt Permission anfordern und Errors handhaben
+        // https://developer.apple.com/documentation/corelocation/cllocationmanager/1423648-locationservicesenabled
         
         switch authorizationStatus {
         case .notDetermined:
@@ -127,13 +123,8 @@ class LocationManagerService: ObservableObject {
     func requestAlwaysLocationPermission() async {
         logger.info("Always Location-Permission wird angefordert für Background Notifications")
         
-        guard CLLocationManager.locationServicesEnabled() else {
-            await MainActor.run {
-                errorMessage = "Location-Services sind auf diesem Gerät deaktiviert"
-            }
-            logger.error("Location-Services nicht verfügbar")
-            return
-        }
+        // Apple empfiehlt: Nicht CLLocationManager.locationServicesEnabled() auf Main Thread zu rufen
+        // Stattdessen direkt Permission anfordern und Errors handhaben
         
         switch authorizationStatus {
         case .notDetermined:
@@ -187,8 +178,11 @@ class LocationManagerService: ObservableObject {
     }
     
     /// Prüft ob Location-Services verfügbar sind
+    /// Apple empfiehlt: locationServicesEnabled() nicht auf Main Thread zu verwenden
+    /// Stattdessen bei Permission Errors entsprechend reagieren
     var isLocationServicesEnabled: Bool {
-        return CLLocationManager.locationServicesEnabled()
+        // Für UI-Binding verwenden wir authorizationStatus statt synchronem Call
+        return authorizationStatus != .denied && authorizationStatus != .restricted
     }
     
     /// Prüft ob Permission gewährt ist

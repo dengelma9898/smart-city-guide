@@ -779,8 +779,11 @@ class BasicHomeCoordinator: ObservableObject {
             let routeLength: RouteLength = {
                 switch maximumWalkingTime {
                 case .thirtyMin: return .short
+                case .fortyFiveMin: return .short
                 case .sixtyMin: return .medium
                 case .ninetyMin: return .long
+                case .twoHours: return .long
+                case .threeHours: return .long
                 case .openEnd: return .long
                 @unknown default: return .medium
                 }

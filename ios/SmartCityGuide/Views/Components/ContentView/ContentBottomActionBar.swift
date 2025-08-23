@@ -58,7 +58,7 @@ struct ContentBottomActionBar: View {
             .accessibilityLabel("Schnell planen")
         }
         .padding(.horizontal, 20)
-        .padding(.bottom, 50)
+        .padding(.bottom, 20) // Closer to bottom edge
     }
 }
 

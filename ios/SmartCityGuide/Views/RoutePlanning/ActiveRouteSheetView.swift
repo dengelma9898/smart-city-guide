@@ -18,8 +18,6 @@ struct ActiveRouteSheetView: View {
   
   var body: some View {
     GeometryReader { proxy in
-      let height = proxy.size.height
-      
       VStack(spacing: 0) {
         // Handle indicator with proper spacing
         RoundedRectangle(cornerRadius: 2.5)
