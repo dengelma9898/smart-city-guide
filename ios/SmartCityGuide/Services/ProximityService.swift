@@ -23,11 +23,17 @@ class ProximityService: NSObject, ObservableObject {
     private let proximityThreshold: CLLocationDistance = 25.0 // 25 meters
     private var activeRoute: GeneratedRoute?
     private var locationService = LocationManagerService.shared
+    private var settingsManager = ProfileSettingsManager.shared
 
     
     override init() {
         super.init()
         setupNotificationCenter()
+        setupSettingsObserver()
+    }
+    
+    deinit {
+        NotificationCenter.default.removeObserver(self, name: .poiNotificationSettingChanged, object: nil)
     }
     
     // MARK: - Notification Permission Setup
@@ -64,6 +70,11 @@ class ProximityService: NSObject, ObservableObject {
     /// Fordert Notification + Location Permissions an und aktiviert Background Location
     func startProximityMonitoring(for route: GeneratedRoute) async {
         logger.info("🎯 Starting proximity monitoring for route with \(route.waypoints.count) spots")
+        
+        // Log current settings state
+        if !shouldTriggerNotifications {
+            logger.info("⚙️ POI notifications are disabled in settings - monitoring will track visits but skip notifications")
+        }
         
         // Check notification permission first
         await checkNotificationPermission()
@@ -111,9 +122,15 @@ class ProximityService: NSObject, ObservableObject {
     
     // MARK: - Background Location Methods
     private func requestBackgroundLocationIfNeeded() async {
+        // Only ask for Always permission if user has POI notifications enabled in settings
+        guard shouldTriggerNotifications else {
+            logger.info("📱 Skipping Always location request - POI notifications disabled in settings")
+            return
+        }
+        
         // Only ask for Always permission if user has notifications enabled
         guard notificationPermissionStatus == .authorized else {
-            logger.info("📱 Skipping Always location request - notifications not enabled")
+            logger.info("📱 Skipping Always location request - notification permission not granted")
             return
         }
         
@@ -197,6 +214,12 @@ class ProximityService: NSObject, ObservableObject {
     
     // MARK: - Notification Triggering
     private func triggerSpotNotification(for waypoint: RoutePoint, distance: CLLocationDistance) async {
+        // Check if POI notifications are enabled in settings
+        guard shouldTriggerNotifications else {
+            logger.info("📢 POI notification for \(waypoint.name) skipped - disabled in settings")
+            return
+        }
+        
         guard notificationPermissionStatus == .authorized else {
             logger.info("📢 Would trigger notification for \(waypoint.name) but permission not granted")
             return
@@ -238,6 +261,35 @@ class ProximityService: NSObject, ObservableObject {
     // MARK: - Notification Center Setup
     private func setupNotificationCenter() {
         notificationCenter.delegate = self
+    }
+    
+    // MARK: - Settings Integration
+    private func setupSettingsObserver() {
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleSettingsChange),
+            name: .poiNotificationSettingChanged,
+            object: nil
+        )
+    }
+    
+    @objc private func handleSettingsChange(_ notification: Notification) {
+        guard let userInfo = notification.userInfo,
+              let enabled = userInfo["enabled"] as? Bool else {
+            return
+        }
+        
+        logger.info("⚙️ POI notification setting changed to: \(enabled)")
+        
+        // If notifications are disabled while monitoring is active, gracefully handle
+        if !enabled && isActive {
+            logger.info("📢 POI notifications disabled during active monitoring - notifications will be skipped")
+        }
+    }
+    
+    /// Checks if POI notifications should be triggered based on user settings
+    private var shouldTriggerNotifications: Bool {
+        return settingsManager.settings.poiNotificationsEnabled
     }
     
     // MARK: - Utility Methods
