@@ -372,6 +372,10 @@ class BasicHomeCoordinator: ObservableObject {
     // MARK: - POI Management State
     @Published var cachedPOIsForAlternatives: [POI] = []
     
+    // MARK: - Route Success State
+    @Published var showRouteSuccessView = false
+    @Published var routeSuccessStats: RouteCompletionStats?
+    
     // Note: POI modifications are applied immediately with route regeneration
     
     // MARK: - Service Access (Centralized)
@@ -382,10 +386,12 @@ class BasicHomeCoordinator: ObservableObject {
     private let cacheManager = CacheManager.shared
     internal let wikipediaService = RouteWikipediaService()
     
+    // MARK: - Initialization
     init() {
         setupObservers()
-        initializeServices()
     }
+    
+
     
     // MARK: - Service Access Methods
     
@@ -593,6 +599,14 @@ class BasicHomeCoordinator: ObservableObject {
                 self?.updateFromRouteService()
             }
         }
+        
+        // Route completion notifications
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleRouteCompletion),
+            name: .routeCompletionSuccess,
+            object: nil
+        )
     }
     
     private func initializeServices() {
@@ -635,6 +649,11 @@ class BasicHomeCoordinator: ObservableObject {
         // Start Wikipedia enrichment in background
         startWikipediaEnrichment(for: route)
         
+        // Start proximity monitoring for POI notifications
+        Task {
+            await ProximityService.shared.startProximityMonitoring(for: route)
+        }
+        
         // Transition: close planning sheet first so the map shows the route,
         // then present the single Active Route sheet after a brief delay
         presentedSheet = nil
@@ -648,6 +667,9 @@ class BasicHomeCoordinator: ObservableObject {
     }
     
     func endActiveRoute() {
+        // Stop proximity monitoring
+        ProximityService.shared.stopProximityMonitoring()
+        
         withAnimation(.easeInOut(duration: 0.3)) {
             activeRoute = nil
             presentedSheet = nil
@@ -949,6 +971,54 @@ class BasicHomeCoordinator: ObservableObject {
         }
     }
     
+    @objc private func handleRouteCompletion(_ notification: Notification) {
+        guard let userInfo = notification.userInfo,
+              let statsData = userInfo["routeStats"] as? Data,
+              let stats = try? JSONDecoder().decode(RouteCompletionStats.self, from: statsData) else {
+            SecureLogger.shared.logError("❌ Failed to decode route completion stats", category: .ui)
+            return
+        }
+        
+        SecureLogger.shared.logInfo("🎉 Route completion received: \(stats.routeName)", category: .ui)
+        showRouteCompletionSuccess(stats: stats)
+    }
+    
+    // MARK: - Route Success Management
+    
+    /// Shows the route success view with completion statistics
+    func showRouteCompletionSuccess(stats: RouteCompletionStats) {
+        routeSuccessStats = stats
+        showRouteSuccessView = true
+        
+        // Dismiss any active sheets for clean navigation
+        dismissActiveSheets()
+        
+        SecureLogger.shared.logInfo("🎉 Showing route completion success view for: \(stats.routeName)", category: .ui)
+    }
+    
+    /// Dismisses the route success view and returns to map
+    func dismissRouteSuccessView() {
+        showRouteSuccessView = false
+        routeSuccessStats = nil
+        
+        // Focus on map after success view dismissal
+        focusOnActiveRoute()
+    }
+    
+    /// Dismisses any active sheets for clean navigation
+    private func dismissActiveSheets() {
+        presentedSheet = nil
+    }
+    
+    /// Focuses the map on the active route (if any)
+    private func focusOnActiveRoute() {
+        guard let route = activeRoute else { return }
+        
+        // TODO: Implement map focus logic - will be added in Task 5
+        // For now, just log that we would focus on the route
+        SecureLogger.shared.logInfo("📍 Would focus map on route with \(route.waypoints.count) waypoints", category: .ui)
+    }
+    
     // MARK: - Error Management (Enhanced)
     
     func clearError() {
@@ -968,6 +1038,7 @@ extension Notification.Name {
     static let routeServiceStateChanged = Notification.Name("routeServiceStateChanged")
     static let locationManagerDidUpdateLocation = Notification.Name("locationManagerDidUpdateLocation")
     static let poiNotificationSettingChanged = Notification.Name("poiNotificationSettingChanged")
+    static let routeCompletionSuccess = Notification.Name("routeCompletionSuccess")
 }
 
 // MARK: - FeatureFlags Extension

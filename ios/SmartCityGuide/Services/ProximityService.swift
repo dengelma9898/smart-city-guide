@@ -24,6 +24,7 @@ class ProximityService: NSObject, ObservableObject {
     private var activeRoute: GeneratedRoute?
     private var locationService = LocationManagerService.shared
     private var settingsManager = ProfileSettingsManager.shared
+    private var routeCompletionTriggered = false
 
     
     override init() {
@@ -70,6 +71,10 @@ class ProximityService: NSObject, ObservableObject {
     /// Fordert Notification + Location Permissions an und aktiviert Background Location
     func startProximityMonitoring(for route: GeneratedRoute) async {
         logger.info("🎯 Starting proximity monitoring for route with \(route.waypoints.count) spots")
+        logger.info("🗺️ Route waypoints:")
+        for (index, waypoint) in route.waypoints.enumerated() {
+            logger.info("  \(index + 1). \(waypoint.name) at \(waypoint.coordinate.latitude), \(waypoint.coordinate.longitude)")
+        }
         
         // Log current settings state
         if !shouldTriggerNotifications {
@@ -88,7 +93,10 @@ class ProximityService: NSObject, ObservableObject {
         
         activeRoute = route
         visitedSpots.removeAll()
+        routeCompletionTriggered = false // Reset completion flag for new route
         isActive = true
+        
+        logger.info("✅ ProximityService activated - isActive: \(self.isActive), hasRoute: \(self.activeRoute != nil)")
         
         // Offer Always Permission for Background Notifications
         await requestBackgroundLocationIfNeeded()
@@ -102,6 +110,7 @@ class ProximityService: NSObject, ObservableObject {
         isActive = false
         activeRoute = nil
         visitedSpots.removeAll()
+        routeCompletionTriggered = false // Reset completion flag
         
         // Stop background location updates
         locationService.stopBackgroundLocationUpdates()
@@ -183,14 +192,29 @@ class ProximityService: NSObject, ObservableObject {
     
     // MARK: - Proximity Detection
     func checkProximityToSpots() async {
+        let appState = UIApplication.shared.applicationState
+        let stateText = appState == .background ? "BACKGROUND" : (appState == .inactive ? "INACTIVE" : "FOREGROUND")
+        
         guard isActive,
               let route = activeRoute,
               let userLocation = locationService.currentLocation else {
+            logger.warning("🔍 checkProximityToSpots skipped (\(stateText)) - isActive: \(self.isActive), route: \(self.activeRoute != nil), location: \(self.locationService.currentLocation != nil)")
             return
         }
         
-        for waypoint in route.waypoints {
+        logger.info("🔍 Checking proximity for \(route.waypoints.count) waypoints from location: \(userLocation.coordinate.latitude), \(userLocation.coordinate.longitude) (\(stateText))")
+        
+        for (index, waypoint) in route.waypoints.enumerated() {
             let spotId = generateSpotId(for: waypoint)
+            
+            // Skip start and end points - only notify for actual POIs
+            let isStartPoint = (index == 0)
+            let isEndPoint = (index == route.waypoints.count - 1)
+            
+            if isStartPoint || isEndPoint {
+                logger.info("📍 Skipping \(isStartPoint ? "START" : "END") point: \(waypoint.name) (index: \(index))")
+                continue
+            }
             
             // Skip if already visited
             if visitedSpots.contains(spotId) {
@@ -203,12 +227,37 @@ class ProximityService: NSObject, ObservableObject {
             )
             
             let distance = userLocation.distance(from: spotLocation)
+            logger.info("📍 Distance to \(waypoint.name): \(String(format: "%.1f", distance))m (threshold: \(self.proximityThreshold)m)")
             
             if distance <= proximityThreshold {
+                logger.info("🎯 Triggering notification for \(waypoint.name) - within threshold!")
                 await triggerSpotNotification(for: waypoint, distance: distance)
                 visitedSpots.insert(spotId)
                 logger.info("✅ Spot visited: \(waypoint.name) at \(String(format: "%.1f", distance))m")
+                
+                // Check for route completion after each spot visit
+                await checkRouteCompletion()
             }
+        }
+    }
+    
+    // MARK: - Route Completion Detection
+    private func checkRouteCompletion() async {
+        guard let route = activeRoute else { return }
+        
+        // Route is complete when all POIs (excluding start/end points) have been visited
+        let totalPOIs = max(0, route.waypoints.count - 2) // Exclude start and end points
+        let visitedCount = visitedSpots.count
+        
+        logger.info("🎯 Route progress: \(visitedCount)/\(totalPOIs) POIs visited (excluding start/end points)")
+        
+        if visitedCount >= totalPOIs && totalPOIs > 0 && !routeCompletionTriggered {
+            logger.info("🎉 Route completed! All \(totalPOIs) POIs visited")
+            routeCompletionTriggered = true // Prevent multiple completions
+            await triggerRouteCompletionNotification()
+            
+            // Stop proximity monitoring after completion
+            stopProximityMonitoring()
         }
     }
     
@@ -225,14 +274,32 @@ class ProximityService: NSObject, ObservableObject {
             return
         }
         
+        // Request background execution time for notification processing
+        let appState = UIApplication.shared.applicationState
+        let backgroundTaskId: UIBackgroundTaskIdentifier?
+        
+        if appState == .background || appState == .inactive {
+            backgroundTaskId = UIApplication.shared.beginBackgroundTask(withName: "POI Notification") { [weak self] in
+                self?.logger.warning("⏰ Background task for POI notification expired")
+            }
+            logger.info("🌙 Started background task for POI notification")
+        } else {
+            backgroundTaskId = nil
+        }
+        
         let content = UNMutableNotificationContent()
         content.title = "🎯 Spot erreicht!"
         content.body = "Du bist bei \(waypoint.name) angekommen! Schau dich um und entdecke was Neues."
         content.sound = .default
         content.badge = 1
         
+        // Critical for background delivery
+        content.interruptionLevel = .active // Show even when device is locked or in Do Not Disturb
+        content.relevanceScore = 1.0 // High priority
+        
         // Add custom data
         content.userInfo = [
+            "notificationType": "poi",
             "spotName": waypoint.name,
             "spotCoordinates": [
                 "latitude": waypoint.coordinate.latitude,
@@ -242,12 +309,11 @@ class ProximityService: NSObject, ObservableObject {
             "category": waypoint.category.rawValue
         ]
         
-        // Trigger immediately
-        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 0.1, repeats: false)
+        // Trigger immediately - nil trigger for background delivery
         let request = UNNotificationRequest(
             identifier: "spot_\(waypoint.name)_\(Date().timeIntervalSince1970)",
             content: content,
-            trigger: trigger
+            trigger: nil // nil = immediate delivery, critical for background notifications
         )
         
         do {
@@ -255,6 +321,85 @@ class ProximityService: NSObject, ObservableObject {
             logger.info("📢 Notification triggered for: \(waypoint.name)")
         } catch {
             logger.error("❌ Failed to schedule notification: \(error)")
+        }
+        
+        // End background task if started
+        if let taskId = backgroundTaskId, taskId != .invalid {
+            UIApplication.shared.endBackgroundTask(taskId)
+            logger.info("🌙 Ended background task for POI notification")
+        }
+    }
+    
+    private func triggerRouteCompletionNotification() async {
+        guard let route = activeRoute else { return }
+        
+        // Always trigger route completion notifications (independent of POI notification settings)
+        guard notificationPermissionStatus == .authorized else {
+            logger.info("🎉 Route completed but notification permission not granted")
+            return
+        }
+        
+        // Request background execution time for notification processing
+        let appState = UIApplication.shared.applicationState
+        let backgroundTaskId: UIBackgroundTaskIdentifier?
+        
+        if appState == .background || appState == .inactive {
+            backgroundTaskId = UIApplication.shared.beginBackgroundTask(withName: "Route Completion Notification") { [weak self] in
+                self?.logger.warning("⏰ Background task for route completion notification expired")
+            }
+            logger.info("🌙 Started background task for route completion notification")
+        } else {
+            backgroundTaskId = nil
+        }
+        
+        let stats = RouteCompletionStats.from(route: route, visitedCount: visitedSpots.count)
+        
+        let content = UNMutableNotificationContent()
+        content.title = "🎉 Tour abgeschlossen!"
+        content.body = "Super! Du hast alle \(stats.visitedSpotsCount) Stops besucht. \(stats.formattedDistance) in \(stats.formattedWalkingTime) geschafft!"
+        content.sound = .default
+        content.badge = 1
+        
+        // Critical for background delivery
+        content.interruptionLevel = .active // Show even when device is locked or in Do Not Disturb
+        content.relevanceScore = 1.0 // High priority
+        
+        // Add route completion metadata
+        content.userInfo = [
+            "notificationType": "routeCompletion",
+            "routeStats": (try? JSONEncoder().encode(stats)) as Any,
+            "completionDate": stats.completionDate.timeIntervalSince1970,
+            "visitedSpotsCount": stats.visitedSpotsCount,
+            "totalDistance": stats.totalDistance,
+            "routeName": stats.routeName
+        ].compactMapValues { $0 }
+        
+        // Trigger immediately - nil trigger for background delivery
+        let request = UNNotificationRequest(
+            identifier: "route_completion_\(Date().timeIntervalSince1970)",
+            content: content,
+            trigger: nil // nil = immediate delivery, critical for background notifications
+        )
+        
+        do {
+            try await notificationCenter.add(request)
+            logger.info("🎉 Route completion notification triggered for: \(stats.routeName)")
+            
+            // Also notify HomeCoordinator via NotificationCenter
+            NotificationCenter.default.post(
+                name: .routeCompletionSuccess,
+                object: nil,
+                userInfo: ["routeStats": try JSONEncoder().encode(stats)]
+            )
+            
+        } catch {
+            logger.error("❌ Failed to schedule route completion notification: \(error)")
+        }
+        
+        // End background task if started
+        if let taskId = backgroundTaskId, taskId != .invalid {
+            UIApplication.shared.endBackgroundTask(taskId)
+            logger.info("🌙 Ended background task for route completion notification")
         }
     }
     

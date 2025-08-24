@@ -1,5 +1,6 @@
 import Foundation
 import CoreLocation
+import UIKit
 import os.log
 
 /// Service für Location-Management mit Permission-Handling und Position-Updates
@@ -225,8 +226,8 @@ class LocationManagerService: ObservableObject {
         }
         
         // Configure for background updates
-        locationManager.desiredAccuracy = kCLLocationAccuracyBest
-        locationManager.distanceFilter = 10 // 10 meters for proximity detection
+        locationManager.desiredAccuracy = kCLLocationAccuracyNearestTenMeters // Better battery for background
+        locationManager.distanceFilter = 5 // 5 meters for proximity detection (more sensitive)
         
         // Enable background location updates if permission is "Always"
         if authorizationStatus == .authorizedAlways {
@@ -234,12 +235,13 @@ class LocationManagerService: ObservableObject {
             locationManager.allowsBackgroundLocationUpdates = true
             locationManager.pausesLocationUpdatesAutomatically = false
             logger.info("🌙 Background Location-Updates aktiviert für Proximity Monitoring")
+            logger.info("🌙 backgroundRefreshStatus: \(UIApplication.shared.backgroundRefreshStatus.rawValue)")
             
             // Also start significant location changes for background (simulator compatible)
             locationManager.startMonitoringSignificantLocationChanges()
             logger.info("🌙 Significant Location Changes monitoring started for background")
         } else {
-            logger.info("📍 Foreground Location-Updates für Proximity Monitoring (Background benötigt 'Always' Permission)")
+            logger.warning("📍 Foreground Location-Updates only! Background benötigt 'Always' Permission (current: \(self.authorizationStatus.rawValue))")
         }
         
         // Start continuous location updates
@@ -291,7 +293,9 @@ class LocationManagerService: ObservableObject {
     // MARK: - Private Handlers
     
     private func handleLocationUpdate(_ location: CLLocation) {
-        logger.info("Location aktualisiert: \(self.formatLocation(location))")
+        let appState = UIApplication.shared.applicationState
+        let stateText = appState == .background ? "BACKGROUND" : (appState == .inactive ? "INACTIVE" : "FOREGROUND")
+        logger.info("📍 Location aktualisiert im \(stateText): \(self.formatLocation(location))")
         
         currentLocation = location
         updateLocationAvailability()

@@ -50,7 +50,7 @@ struct ManualRoutePlanningView: View {
     @State private var showingSelectionSheet = false
     @State private var showingHelpSheet = false
     
-    @State private var pushBuilder: Bool = false
+    // @State private var pushBuilder: Bool = false // Removed - RouteBuilderView deprecated
     
     var body: some View {
         NavigationStack {
@@ -69,18 +69,7 @@ struct ManualRoutePlanningView: View {
                     EmptyView()
                 }
             }
-            .navigationDestination(isPresented: $pushBuilder) {
-                if let route = routeGenerationService.generatedRoute {
-                    RouteBuilderView(
-                        manualRoute: route,
-                        config: config,
-                        discoveredPOIs: poiDiscoveryService.discoveredPOIs,
-                        onRouteGenerated: onRouteGenerated
-                    )
-                } else {
-                    EmptyView()
-                }
-            }
+            // RouteBuilderView removed - routes now go directly via coordinator
             .navigationTitle("POI Auswahl")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

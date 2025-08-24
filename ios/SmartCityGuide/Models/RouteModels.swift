@@ -222,3 +222,61 @@ enum MinimumPOIDistance: String, CaseIterable, Codable {
         }
     }
 }
+
+// MARK: - Route Completion Statistics
+/// Model für Route-Zusammenfassung nach Completion
+/// Enthält alle relevanten Daten für RouteSuccessView
+struct RouteCompletionStats: Codable {
+    let totalDistance: Double        // Gesamte Gehstrecke in Metern
+    let totalWalkingTime: TimeInterval  // Reine Gehzeit in Sekunden
+    let totalExperienceTime: TimeInterval  // Gesamtzeit inkl. Besichtigungen
+    let visitedSpotsCount: Int       // Anzahl besuchter Spots
+    let completionDate: Date         // Zeitpunkt der Completion
+    let routeName: String            // Name/Titel der Route für Anzeige
+    
+    // Computed Properties für UI-Display
+    var formattedDistance: String {
+        if totalDistance >= 1000 {
+            return String(format: "%.1f km", totalDistance / 1000)
+        } else {
+            return String(format: "%.0f m", totalDistance)
+        }
+    }
+    
+    var formattedWalkingTime: String {
+        let hours = Int(totalWalkingTime) / 3600
+        let minutes = Int(totalWalkingTime.truncatingRemainder(dividingBy: 3600)) / 60
+        
+        if hours > 0 {
+            return "\(hours)h \(minutes)min"
+        } else {
+            return "\(minutes) Minuten"
+        }
+    }
+    
+    var formattedExperienceTime: String {
+        let hours = Int(totalExperienceTime) / 3600
+        let minutes = Int(totalExperienceTime.truncatingRemainder(dividingBy: 3600)) / 60
+        
+        if hours > 0 {
+            return "\(hours)h \(minutes)min"
+        } else {
+            return "\(minutes) Minuten"
+        }
+    }
+    
+    /// Erstellt RouteCompletionStats aus GeneratedRoute
+    static func from(route: GeneratedRoute, visitedCount: Int) -> RouteCompletionStats {
+        let cityName = route.waypoints.first?.address.components(separatedBy: ",").last?.trimmingCharacters(in: .whitespaces) ?? "Unbekannte Stadt"
+        let routeName = "\(cityName) Tour"
+        
+        return RouteCompletionStats(
+            totalDistance: route.totalDistance,
+            totalWalkingTime: route.totalTravelTime,
+            totalExperienceTime: route.totalExperienceTime,
+            visitedSpotsCount: visitedCount,
+            completionDate: Date(),
+            routeName: routeName
+        )
+    }
+}
