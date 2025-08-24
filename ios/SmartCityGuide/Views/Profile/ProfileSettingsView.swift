@@ -4,6 +4,7 @@ import SwiftUI
 struct ProfileSettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject var settingsManager: ProfileSettingsManager
+    @StateObject private var locationManager = LocationManagerService.shared
     
     var body: some View {
         Form {
@@ -58,6 +59,69 @@ struct ProfileSettingsView: View {
                     .padding(.vertical, 4)
                 } header: {
                     Text("Startpunkt-Präferenzen")
+                }
+                
+                // POI-Notifications Section
+                Section {
+                    HStack {
+                        Image(systemName: "bell.circle.fill")
+                            .foregroundColor(.blue)
+                            .frame(width: 20)
+                        
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("POI-Benachrichtigungen")
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                            
+                            Text("Erhalte Benachrichtigungen, wenn du einen geplanten POI erreichst")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        
+                        Spacer()
+                        
+                        Toggle("", isOn: Binding(
+                            get: { settingsManager.settings.poiNotificationsEnabled },
+                            set: { newValue in
+                                settingsManager.updatePOINotificationSetting(enabled: newValue)
+                            }
+                        ))
+                        .labelsHidden()
+                    }
+                    .padding(.vertical, 4)
+                    
+                    // Conditional help text for background location
+                    if settingsManager.settings.poiNotificationsEnabled && 
+                       locationManager.authorizationStatus != .authorizedAlways {
+                        HStack(alignment: .top, spacing: 8) {
+                            Image(systemName: "info.circle")
+                                .foregroundColor(.orange)
+                                .font(.system(size: 16))
+                                .frame(width: 20)
+                            
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Für Benachrichtigungen im Hintergrund")
+                                    .font(.caption)
+                                    .fontWeight(.medium)
+                                    .foregroundColor(.orange)
+                                
+                                Text("Erlaube der App in den Einstellungen 'Immer' auf deinen Standort zuzugreifen, damit du auch bei geschlossener App Benachrichtigungen erhältst.")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                            
+                            Spacer()
+                        }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(Color.orange.opacity(0.1))
+                        )
+                    }
+                } header: {
+                    Text("Benachrichtigungen")
                 }
                 
                 // Maximum Stops Section (unified radio style)

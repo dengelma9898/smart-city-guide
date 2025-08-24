@@ -18,6 +18,9 @@ struct ProfileSettings: Codable {
     // Phase 3: Location-basierte Einstellungen
     var useCurrentLocationAsDefault: Bool
     
+    // Phase 4: POI-Notification-Einstellungen
+    var poiNotificationsEnabled: Bool
+    
     init() {
         // Legacy Werte für Backwards Compatibility
         self.defaultNumberOfPlaces = 3
@@ -32,6 +35,9 @@ struct ProfileSettings: Codable {
         
         // Phase 3: Location-basierte Defaults
         self.useCurrentLocationAsDefault = false  // Konservativ: User muss opt-in
+        
+        // Phase 4: POI-Notification Defaults
+        self.poiNotificationsEnabled = true  // Opt-Out-Approach: POI-Notifications sind ein Core-Feature
     }
     
     // Migration von alten zu neuen Settings (nur für bestehende User die upgrades)
@@ -197,6 +203,19 @@ class ProfileSettingsManager: ObservableObject {
     func updateLocationDefault(useCurrentLocation: Bool) {
         settings.useCurrentLocationAsDefault = useCurrentLocation
         save()
+    }
+    
+    // Phase 4: Update POI Notification Setting
+    func updatePOINotificationSetting(enabled: Bool) {
+        settings.poiNotificationsEnabled = enabled
+        save()
+        
+        // Notify ProximityService about setting change
+        NotificationCenter.default.post(
+            name: .poiNotificationSettingChanged,
+            object: nil,
+            userInfo: ["enabled": enabled]
+        )
     }
     
     func resetToDefaults() {

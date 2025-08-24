@@ -967,6 +967,7 @@ class BasicHomeCoordinator: ObservableObject {
 extension Notification.Name {
     static let routeServiceStateChanged = Notification.Name("routeServiceStateChanged")
     static let locationManagerDidUpdateLocation = Notification.Name("locationManagerDidUpdateLocation")
+    static let poiNotificationSettingChanged = Notification.Name("poiNotificationSettingChanged")
 }
 
 // MARK: - FeatureFlags Extension
