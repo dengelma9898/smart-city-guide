@@ -37,7 +37,7 @@ Standard-Navigation-Apps optimieren nur Punkt-zu-Punkt-Routen, nicht aber Multi-
 
 ### Fokus auf Geschwindigkeit statt Komplexität
 
-Anders als andere Reise-Apps, die mit Features überladen sind, konzentrieren wir uns auf schnelle Routengenerierung ohne übermäßige Filter oder komplizierte Einstellungen. Das Ergebnis ist eine App, die in unter 30 Sekunden eine optimierte Route erstellt.
+Anders als andere Reise-Apps, die mit Features überladen sind, konzentrieren wir uns auf schnelle Routengenerierung ohne übermäßige Filter oder komplizierte Einstellungen. Das Ergebnis ist eine App, die in unter 30 Sekunden eine optimierte Route erstellt - perfekt für spontane Kurztrips und Wochenendreisen.
 
 ### Intelligente Post-Generation Anpassung
 

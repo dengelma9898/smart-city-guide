@@ -54,11 +54,15 @@
 
 ## Development Tools
 
-- **version_control**: Git
+- **ide**: Xcode 15.0+ + Cursor AI Assistant
+- **version_control**: Git (Local Repository)
+- **simulator**: iOS Simulator
+- **physical_testing**: iPhone (Development Device)
 - **project_management**: Xcode Project (.xcodeproj)
 - **feature_flags**: Custom FeatureFlags.swift
 - **build_configuration**: Debug/Release with Secure Certificate Settings
 - **code_organization**: MARK-based Section Organization
+- **development_approach**: Solo Development with AI-Assisted Coding
 
 ## Deployment
 

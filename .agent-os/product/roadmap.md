@@ -15,59 +15,59 @@ Die folgenden Features wurden bereits implementiert:
 - [x] **Rate Limiting System** - API-Call-Management und Performance-Schutz `S`
 - [x] **UI-Testing Framework** - XCUITest mit Page Object Pattern `M`
 
-## Phase 1: Current Development
+## Phase 1: Priority Features & Testing
 
-**Goal:** Finalisierung der Active Route Management Features
-**Success Criteria:** Vollständig funktionsfähige Bottom Sheet mit POI-Interaktion
+**Goal:** Restaurant-Integration, erweiterte POI-Kategorien und umfassende Tests
+**Success Criteria:** Restaurants intelligent in Routen integriert, mehr POI-Kategorien verfügbar, vollständige Test-Coverage
 
 ### Features
 
-- [ ] **Active Route Bottom Sheet Finalisierung** - Vollständige Implementierung der POI-Interaktion (Edit/Delete) `M`
-- [ ] **Add POIs to Active Route** - Funktionalität zum Hinzufügen neuer POIs zu laufenden Routen `S`
-- [ ] **POI Management in Active Routes** - Bearbeitung und Löschung von POIs in aktiven Routen `M`
-- [ ] **Code Cleanup nach Refactoring** - Entfernung von ungenutztem Code aus jüngstem Refactoring `S`
+- [ ] **Restaurant-Integration** - Intelligente Integration von Restaurants in die Route-Planung basierend auf Timing und Location `M`
+- [ ] **Erweiterte POI-Kategorien** - Mehr Kategorien für vielfältigere POI-Discovery (Shopping, Nightlife, Cultural Sites) `S`
+- [ ] **Unit Test Suite** - Umfassende Unit Tests für alle Services und Business Logic `L`
+- [ ] **UI Test Erweiterung** - Vollständige UI Tests für alle kritischen User Flows `M`
+- [ ] **Fine-Tuning bestehender Features** - Performance-Optimierung und Bug-Fixes für alle implementierten Features `S`
 
 ### Dependencies
 
-- Abschluss der Bottom Sheet UI-Komponenten
-- Integration der bestehenden POI-Services
+- Geoapify Restaurant-Kategorien Integration
+- Erweiterte Test-Framework-Setup
 
-## Phase 2: Pre-Release Optimization
+## Phase 2: Experience Enhancement
 
-**Goal:** App-Store-bereite Version mit polierter User Experience
-**Success Criteria:** Stabile App ohne kritische Bugs, optimierte Performance
+**Goal:** Verbesserte User Experience durch Quick Planning und optimierte Performance
+**Success Criteria:** Reduzierte Time-to-Route und verbesserte Spontaneität
 
 ### Features
 
+- [ ] **Quick Route Planning** - Ein-Klick Route-Generierung für spontane City Trips `M`
 - [ ] **Performance Optimierung** - Verbesserung der Route-Generierungs-Geschwindigkeit `M`
-- [ ] **Error Handling Verbesserung** - Robuste Fehlerbehandlung für Edge Cases `S`
-- [ ] **UI/UX Polish** - Feintuning der Benutzeroberfläche und Animationen `M`
-- [ ] **Comprehensive Testing** - Vollständige Test-Coverage für alle kritischen Pfade `L`
-- [ ] **App Store Vorbereitung** - Screenshots, Beschreibungen, Compliance-Check `M`
+- [ ] **Enhanced UX für spontane Trips** - Optimierte UI-Flows für Kurzzeit-Besucher `M`
+- [ ] **Timing-aware Restaurant Integration** - Restaurants basierend auf Tageszeit in Routen einbauen `S`
+- [ ] **Erweiterte Kategorie-Filter** - Mehr Granularität bei POI-Auswahl `S`
 
 ### Dependencies
 
 - Abschluss Phase 1 Features
-- Vollständige QA-Tests
+- Restaurant-Timing-Algorithmus
 
-## Phase 3: Release & Feedback Integration
+## Phase 3: App Store Readiness
 
-**Goal:** Erfolgreicher App Store Launch und erste Nutzer-Feedback Integration
-**Success Criteria:** Live App im App Store mit positiven Reviews
+**Goal:** Polish und App Store Launch-Vorbereitung  
+**Success Criteria:** App Store-bereite Version mit vollständiger Test-Coverage
 
 ### Features
 
-- [ ] **App Store Submission** - Einreichung und Approval-Prozess `S`
-- [ ] **User Feedback System** - In-App Feedback und Review-Requests `S`
-- [ ] **Analytics Integration** - Nutzungsmetriken und Performance-Monitoring `M`
-- [ ] **Crash Reporting** - Automatische Crash-Detection und Reporting `S`
-- [ ] **A/B Testing Framework** - Testing verschiedener UI/UX Varianten `M`
+- [ ] **Comprehensive Error Handling** - Robuste Fehlerbehandlung für alle Edge Cases `M`
+- [ ] **UI/UX Polish** - Feintuning der Benutzeroberfläche und Animationen `M`
+- [ ] **App Store Vorbereitung** - Screenshots, Beschreibungen, Compliance-Check `M`
+- [ ] **Performance Benchmarking** - Messbare Performance-Verbesserungen dokumentieren `S`
+- [ ] **Security Audit** - Überprüfung aller Sicherheitsaspekte vor Release `S`
 
 ### Dependencies
 
-- Erfolgreiche Phase 2 Completion
-- App Store Approval
-- Erste Nutzer-Basis
+- Abschluss Phase 2 Features
+- Vollständige Test-Coverage aus Phase 1
 
 ## Phase 4: Advanced Features (Future)
 
