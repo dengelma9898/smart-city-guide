@@ -201,6 +201,99 @@ class IntroFlowTests: XCTestCase {
         XCTAssertFalse(viewModel.showSkipConfirmation)
         XCTAssertTrue(userDefaults.bool(forKey: "hasCompletedIntro"))
     }
+    
+    // MARK: - Individual Intro Screen View Tests
+    
+    func testWelcomeIntroViewContent() {
+        // Test that WelcomeIntroView contains expected content
+        let step = IntroStep.welcome
+        
+        XCTAssertEqual(step.title, "Willkommen bei Smart City Guide!")
+        XCTAssertTrue(step.description.contains("intelligenten Walking-Routen"))
+        XCTAssertEqual(step.buttonText, "Los geht's!")
+        XCTAssertEqual(step.iconName, "map.circle.fill")
+        XCTAssertTrue(step.canSkip)
+    }
+    
+    func testLocationWhenInUseIntroViewContent() {
+        // Test that LocationWhenInUseIntroView contains expected content
+        let step = IntroStep.locationWhenInUse
+        
+        XCTAssertEqual(step.title, "Dein Standort für Routen")
+        XCTAssertTrue(step.description.contains("beste Route von deiner aktuellen Position"))
+        XCTAssertEqual(step.buttonText, "Standort aktivieren")
+        XCTAssertEqual(step.iconName, "location.circle.fill")
+        XCTAssertTrue(step.canSkip)
+    }
+    
+    func testLocationAlwaysIntroViewContent() {
+        // Test that LocationAlwaysIntroView contains expected content
+        let step = IntroStep.locationAlways
+        
+        XCTAssertEqual(step.title, "Standort für Benachrichtigungen")
+        XCTAssertTrue(step.description.contains("Benachrichtigungen wenn du Spots"))
+        XCTAssertEqual(step.buttonText, "Benachrichtigungen aktivieren")
+        XCTAssertEqual(step.iconName, "location.fill.viewfinder")
+        XCTAssertTrue(step.canSkip)
+    }
+    
+    func testNotificationPermissionIntroViewContent() {
+        // Test that NotificationPermissionIntroView contains expected content
+        let step = IntroStep.notificationPermission
+        
+        XCTAssertEqual(step.title, "Benachrichtigungen aktivieren")
+        XCTAssertTrue(step.description.contains("benachrichtigen wenn du interessante Orte"))
+        XCTAssertEqual(step.buttonText, "Benachrichtigungen aktivieren")
+        XCTAssertEqual(step.iconName, "bell.circle.fill")
+        XCTAssertTrue(step.canSkip)
+    }
+    
+    func testCompletionIntroViewContent() {
+        // Test that CompletionIntroView contains expected content
+        let step = IntroStep.completion
+        
+        XCTAssertEqual(step.title, "Alles bereit!")
+        XCTAssertTrue(step.description.contains("bereit für deine erste intelligente Stadt-Route"))
+        XCTAssertEqual(step.buttonText, "Zur App")
+        XCTAssertEqual(step.iconName, "checkmark.circle.fill")
+        XCTAssertFalse(step.canSkip) // Completion cannot be skipped
+    }
+    
+    func testIntroStepIcons() {
+        // Test that all intro steps have unique icons
+        let iconNames = IntroStep.allCases.map { $0.iconName }
+        let uniqueIcons = Set(iconNames)
+        
+        XCTAssertEqual(iconNames.count, uniqueIcons.count, "All intro steps should have unique icons")
+    }
+    
+    func testIntroStepTitles() {
+        // Test that all intro steps have non-empty titles
+        for step in IntroStep.allCases {
+            XCTAssertFalse(step.title.isEmpty, "Step \(step) should have a non-empty title")
+            XCTAssertFalse(step.description.isEmpty, "Step \(step) should have a non-empty description")
+            XCTAssertFalse(step.buttonText.isEmpty, "Step \(step) should have non-empty button text")
+        }
+    }
+    
+    func testGermanLanguageContent() {
+        // Test that content is in German
+        for step in IntroStep.allCases {
+            // Check for German-specific characteristics
+            let germanContent = step.title + " " + step.description + " " + step.buttonText
+            
+            // German umlauts and specific words
+            let hasGermanChars = germanContent.contains("ä") || 
+                               germanContent.contains("ö") || 
+                               germanContent.contains("ü") || 
+                               germanContent.contains("ß") ||
+                               germanContent.contains("Benachrichtig") ||
+                               germanContent.contains("aktivieren") ||
+                               germanContent.contains("bereit")
+            
+            XCTAssertTrue(hasGermanChars, "Step \(step) should contain German text")
+        }
+    }
 }
 
 // MARK: - Mock IntroStep Extension for Testing
