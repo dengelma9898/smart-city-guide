@@ -144,4 +144,189 @@ class PlaceCategoryTests: XCTestCase {
         // Then
         XCTAssertGreaterThan(profile.lastActiveAt, originalTimestamp)
     }
+    
+    // MARK: - Route Enums Tests
+    
+    func testRouteLengthBasics() {
+        // Test RouteLength enum values and calculations
+        XCTAssertEqual(RouteLength.short.rawValue, "Kurz")
+        XCTAssertEqual(RouteLength.medium.rawValue, "Mittel")
+        XCTAssertEqual(RouteLength.long.rawValue, "Lang")
+        
+        // Test distance calculations
+        XCTAssertEqual(RouteLength.short.maxTotalDistanceMeters, 5000)
+        XCTAssertEqual(RouteLength.medium.maxTotalDistanceMeters, 15000)
+        XCTAssertEqual(RouteLength.long.maxTotalDistanceMeters, 50000)
+        
+        // Test search radius
+        XCTAssertEqual(RouteLength.short.searchRadiusMeters, 3000)
+        XCTAssertEqual(RouteLength.medium.searchRadiusMeters, 8000)
+        XCTAssertEqual(RouteLength.long.searchRadiusMeters, 15000)
+    }
+    
+    func testMaximumStopsEnum() {
+        // Test MaximumStops enum
+        XCTAssertEqual(MaximumStops.three.intValue, 3)
+        XCTAssertEqual(MaximumStops.five.intValue, 5)
+        XCTAssertEqual(MaximumStops.eight.intValue, 8)
+        XCTAssertEqual(MaximumStops.allCases.count, 3)
+    }
+    
+    func testMaximumWalkingTimeEnum() {
+        // Test MaximumWalkingTime enum
+        XCTAssertEqual(MaximumWalkingTime.thirtyMin.minutes, 30)
+        XCTAssertEqual(MaximumWalkingTime.sixtyMin.minutes, 60)
+        XCTAssertEqual(MaximumWalkingTime.twoHours.minutes, 120)
+        XCTAssertNil(MaximumWalkingTime.openEnd.minutes)
+        
+        // Test descriptions exist
+        XCTAssertFalse(MaximumWalkingTime.thirtyMin.description.isEmpty)
+        XCTAssertTrue(MaximumWalkingTime.openEnd.description.contains("Ohne"))
+    }
+    
+    func testMinimumPOIDistanceEnum() {
+        // Test MinimumPOIDistance enum
+        XCTAssertEqual(MinimumPOIDistance.oneHundred.meters, 100)
+        XCTAssertEqual(MinimumPOIDistance.fiveHundred.meters, 500)
+        XCTAssertEqual(MinimumPOIDistance.oneKm.meters, 1000)
+        XCTAssertNil(MinimumPOIDistance.noMinimum.meters)
+        
+        // Test raw values
+        XCTAssertEqual(MinimumPOIDistance.oneHundred.rawValue, "100m")
+        XCTAssertEqual(MinimumPOIDistance.noMinimum.rawValue, "Kein Minimum")
+    }
+    
+    func testEndpointOptionEnum() {
+        // Test EndpointOption enum
+        let allCases = EndpointOption.allCases
+        XCTAssertTrue(allCases.contains(.roundtrip))
+        XCTAssertTrue(allCases.contains(.lastPlace))
+        XCTAssertTrue(allCases.contains(.custom))
+        
+        // Test raw values
+        XCTAssertEqual(EndpointOption.roundtrip.rawValue, "Rundreise")
+        XCTAssertEqual(EndpointOption.lastPlace.rawValue, "Stopp")
+        XCTAssertEqual(EndpointOption.custom.rawValue, "Custom")
+        
+        // Test descriptions in German
+        XCTAssertTrue(EndpointOption.roundtrip.description.contains("Startpunkt"))
+        XCTAssertTrue(EndpointOption.custom.description.contains("Eigenen"))
+        XCTAssertTrue(EndpointOption.lastPlace.description.contains("letztem"))
+    }
+    
+    // MARK: - SwipeDirection Tests
+    
+    func testSwipeDirectionBasics() {
+        // Test enum cases
+        let allCases = SwipeDirection.allCases
+        XCTAssertTrue(allCases.contains(.left))
+        XCTAssertTrue(allCases.contains(.right))
+        XCTAssertTrue(allCases.contains(.none))
+        XCTAssertEqual(allCases.count, 3)
+    }
+    
+    func testSwipeDirectionColors() {
+        // Test indicator colors
+        XCTAssertEqual(SwipeDirection.left.indicatorColor, .green)
+        XCTAssertEqual(SwipeDirection.right.indicatorColor, .red)
+        XCTAssertEqual(SwipeDirection.none.indicatorColor, .clear)
+    }
+    
+    func testSwipeDirectionIcons() {
+        // Test indicator icons
+        XCTAssertEqual(SwipeDirection.left.indicatorIcon, "checkmark.circle.fill")
+        XCTAssertEqual(SwipeDirection.right.indicatorIcon, "xmark.circle.fill")
+        XCTAssertEqual(SwipeDirection.none.indicatorIcon, "")
+    }
+    
+    func testSwipeDirectionActionText() {
+        // Test German action text
+        XCTAssertEqual(SwipeDirection.left.actionText, "Nehmen")
+        XCTAssertEqual(SwipeDirection.right.actionText, "Überspringen")
+        XCTAssertEqual(SwipeDirection.none.actionText, "")
+    }
+    
+    func testSwipeDirectionLogic() {
+        // Test logic properties
+        XCTAssertTrue(SwipeDirection.left.isAccept)
+        XCTAssertFalse(SwipeDirection.left.isReject)
+        
+        XCTAssertFalse(SwipeDirection.right.isAccept)
+        XCTAssertTrue(SwipeDirection.right.isReject)
+        
+        XCTAssertFalse(SwipeDirection.none.isAccept)
+        XCTAssertFalse(SwipeDirection.none.isReject)
+    }
+    
+    // MARK: - Manual Route Models Tests
+    
+    func testRoutePlanningModeEnum() {
+        // Test RoutePlanningMode enum
+        XCTAssertEqual(RoutePlanningMode.automatic.rawValue, "Automatisch")
+        XCTAssertEqual(RoutePlanningMode.manual.rawValue, "Manuell erstellen")
+        XCTAssertEqual(RoutePlanningMode.allCases.count, 2)
+    }
+    
+    func testManualRouteConfigInitialization() {
+        // Test ManualRouteConfig initialization
+        let coordinate = CLLocationCoordinate2D(latitude: 49.4521, longitude: 11.0767)
+        let config = ManualRouteConfig(
+            startingCity: "Nürnberg",
+            startingCoordinates: coordinate,
+            usingCurrentLocation: false,
+            endpointOption: .roundtrip,
+            customEndpoint: "Test Endpoint",
+            customEndpointCoordinates: coordinate
+        )
+        
+        XCTAssertEqual(config.startingCity, "Nürnberg")
+        XCTAssertNotNil(config.startingCoordinates)
+        XCTAssertFalse(config.usingCurrentLocation)
+        XCTAssertEqual(config.endpointOption, .roundtrip)
+        XCTAssertEqual(config.customEndpoint, "Test Endpoint")
+        XCTAssertNotNil(config.customEndpointCoordinates)
+    }
+    
+    func testManualPOISelectionInitialState() {
+        // Test ManualPOISelection initial state
+        let selection = ManualPOISelection()
+        
+        XCTAssertTrue(selection.selectedPOIs.isEmpty)
+        XCTAssertTrue(selection.rejectedPOIs.isEmpty)
+        XCTAssertEqual(selection.currentCardIndex, 0)
+        XCTAssertFalse(selection.hasSelections)
+        XCTAssertFalse(selection.canUndo) // Initial history is empty
+        XCTAssertFalse(selection.canGenerateRoute) // Need at least 1 POI
+    }
+    
+    func testManualPOISelectionWithPOIs() {
+        // Given
+        let selection = ManualPOISelection()
+        let poi = POI(
+            id: "test-poi",
+            name: "Test POI",
+            latitude: 49.4521,
+            longitude: 11.0767,
+            category: .attraction,
+            description: "Test",
+            tags: [:],
+            sourceType: "test",
+            sourceId: 123,
+            address: nil,
+            contact: nil,
+            accessibility: nil,
+            pricing: nil,
+            operatingHours: nil,
+            website: nil,
+            geoapifyWikiData: nil
+        )
+        
+        // When - Add POI to selection
+        selection.selectedPOIs.append(poi)
+        
+        // Then
+        XCTAssertTrue(selection.hasSelections)
+        XCTAssertEqual(selection.selectedPOIs.count, 1)
+        XCTAssertEqual(selection.selectedPOIs.first?.id, "test-poi")
+    }
 }
