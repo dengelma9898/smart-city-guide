@@ -71,9 +71,13 @@ struct LocationWhenInUseIntroView: View {
                 .padding(.horizontal, 8)
                 
                 // Action button
-                IntroActionButton(IntroStep.locationWhenInUse.buttonText) {
-                    // TODO: Task 3 - Implement actual location permission request
-                    viewModel.moveToNextStep()
+                IntroActionButton(
+                    IntroStep.locationWhenInUse.buttonText,
+                    isLoading: viewModel.isPermissionInProgress
+                ) {
+                    Task {
+                        await viewModel.requestLocationWhenInUsePermission()
+                    }
                 }
             }
         }
@@ -115,9 +119,13 @@ struct LocationAlwaysIntroView: View {
                     .padding(.horizontal, 24)
                 
                 // Action button
-                IntroActionButton(IntroStep.locationAlways.buttonText) {
-                    // TODO: Task 3 - Implement actual always location permission request
-                    viewModel.moveToNextStep()
+                IntroActionButton(
+                    IntroStep.locationAlways.buttonText,
+                    isLoading: viewModel.isPermissionInProgress
+                ) {
+                    Task {
+                        await viewModel.requestLocationAlwaysPermission()
+                    }
                 }
             }
         }
@@ -162,9 +170,13 @@ struct NotificationPermissionIntroView: View {
                 .padding(.horizontal, 24)
                 
                 // Action button
-                IntroActionButton(IntroStep.notificationPermission.buttonText) {
-                    // TODO: Task 3 - Implement actual notification permission request
-                    viewModel.moveToNextStep()
+                IntroActionButton(
+                    IntroStep.notificationPermission.buttonText,
+                    isLoading: viewModel.isPermissionInProgress
+                ) {
+                    Task {
+                        await viewModel.requestNotificationPermission()
+                    }
                 }
             }
         }

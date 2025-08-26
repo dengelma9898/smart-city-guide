@@ -42,6 +42,15 @@ struct IntroFlowView: View {
         } message: {
             Text("Du kannst fehlende Berechtigungen später in den Profileinstellungen aktivieren.")
         }
+        .alert("Hinweis", isPresented: .constant(viewModel.permissionErrorMessage != nil)) {
+            Button("OK") {
+                viewModel.clearPermissionError()
+            }
+        } message: {
+            if let errorMessage = viewModel.permissionErrorMessage {
+                Text(errorMessage)
+            }
+        }
         .onChange(of: viewModel.currentStep) { _, newStep in
             if newStep == .completion {
                 // Small delay to show completion screen before transitioning

@@ -136,6 +136,7 @@ class IntroFlowViewModel: ObservableObject {
     @Published var currentStep: IntroStep = .welcome
     @Published var showSkipConfirmation: Bool = false
     @Published var isPermissionInProgress: Bool = false
+    @Published var permissionErrorMessage: String? = nil
     
     private let userDefaults: UserDefaults
     
@@ -194,6 +195,67 @@ class IntroFlowViewModel: ObservableObject {
     /// Sets permission in progress state
     func setPermissionInProgress(_ inProgress: Bool) {
         isPermissionInProgress = inProgress
+    }
+    
+    // MARK: - Permission Request Methods
+    
+    /// Requests location when in use permission
+    func requestLocationWhenInUsePermission() async {
+        setPermissionInProgress(true)
+        permissionErrorMessage = nil
+        
+        let locationService = LocationManagerService.shared
+        await locationService.requestLocationPermission()
+        
+        // Check if permission was granted
+        let isAuthorized = locationService.isLocationAuthorized
+        if !isAuthorized && locationService.authorizationStatus == .denied {
+            permissionErrorMessage = "Kein Problem! Du kannst die Berechtigung später in den Profileinstellungen aktivieren."
+        }
+        
+        setPermissionInProgress(false)
+        
+        // Move to next step regardless of permission result
+        // User can always grant permissions later in profile
+        moveToNextStep()
+    }
+    
+    /// Requests location always permission
+    func requestLocationAlwaysPermission() async {
+        setPermissionInProgress(true)
+        permissionErrorMessage = nil
+        
+        let locationService = LocationManagerService.shared
+        await locationService.requestAlwaysLocationPermission()
+        
+        // Check if always permission was granted
+        if locationService.authorizationStatus != .authorizedAlways {
+            permissionErrorMessage = "Hintergrund-Benachrichtigungen sind optional. Du kannst sie jederzeit in den Profileinstellungen aktivieren."
+        }
+        
+        setPermissionInProgress(false)
+        moveToNextStep()
+    }
+    
+    /// Requests notification permission
+    func requestNotificationPermission() async {
+        setPermissionInProgress(true)
+        permissionErrorMessage = nil
+        
+        let proximityService = ProximityService.shared
+        let granted = await proximityService.requestNotificationPermission()
+        
+        if !granted {
+            permissionErrorMessage = "Benachrichtigungen sind optional. Du kannst sie später in den Profileinstellungen aktivieren."
+        }
+        
+        setPermissionInProgress(false)
+        moveToNextStep()
+    }
+    
+    /// Clears any permission error message
+    func clearPermissionError() {
+        permissionErrorMessage = nil
     }
 }
 
