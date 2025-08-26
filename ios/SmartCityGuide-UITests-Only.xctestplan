@@ -1,0 +1,30 @@
+{
+  "configurations" : [
+    {
+      "id" : "UI-TESTS-ONLY-CONFIG",
+      "name" : "UI Tests Only Configuration",
+      "options" : {
+        "maximumTestExecutionTimeAllowance" : 300,
+        "defaultTestExecutionTimeAllowance" : 60
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "targetForVariableExpansion" : {
+      "containerPath" : "container:SmartCityGuide.xcodeproj",
+      "identifier" : "A1234567890ABCDEF012344F",
+      "name" : "SmartCityGuide"
+    }
+  },
+  "testTargets" : [
+    {
+      "parallelizable" : true,
+      "target" : {
+        "containerPath" : "container:SmartCityGuide.xcodeproj",
+        "identifier" : "E1048B872E4923BF00FD6F70",
+        "name" : "SmartCityGuideUITests"
+      }
+    }
+  ],
+  "version" : 1
+}

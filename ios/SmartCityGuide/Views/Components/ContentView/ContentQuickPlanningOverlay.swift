@@ -20,6 +20,7 @@ struct ContentQuickPlanningOverlay: View {
                             .font(.body)
                             .foregroundColor(.white)
                             .multilineTextAlignment(.center)
+                            .accessibilityIdentifier("quickPlanning.loadingMessage")
                     }
                     .padding(.horizontal, 20)
                     .padding(.vertical, 16)

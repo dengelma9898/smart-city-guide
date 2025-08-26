@@ -96,7 +96,7 @@ class POIModelTests: XCTestCase {
     
     func testPOIAccessibilityInitialization() {
         // Given/When
-        let accessibility = POIAccessibility(wheelchair: "yes")
+        let accessibility = POIAccessibility(wheelchair: "yes", wheelchairDescription: nil)
         
         // Then
         XCTAssertEqual(accessibility.wheelchair, "yes")
@@ -119,37 +119,39 @@ class POIModelTests: XCTestCase {
             email: "info@example.com",
             website: "https://example.com"
         )
-        let accessibility = POIAccessibility(wheelchair: "yes")
+        let accessibility = POIAccessibility(wheelchair: "yes", wheelchairDescription: nil)
         
         // When
         let poi = POI(
-            placeId: "test-123",
+            id: "test-123",
             name: "Test POI",
-            coordinate: coordinate,
+            latitude: coordinate.latitude,
+            longitude: coordinate.longitude,
+            category: .attraction,
+            description: "Ein Test POI",
+            tags: ["type": "museum"],
+            sourceType: "test",
+            sourceId: 123,
             address: address,
             contact: contact,
-            category: .attraction,
-            subcategory: "museum",
-            openingHours: "9:00-17:00",
             accessibility: accessibility,
-            rating: 4.5,
-            priceLevel: 2,
-            description: "Ein Test POI"
+            pricing: nil,
+            operatingHours: "9:00-17:00",
+            website: "https://example.com",
+            geoapifyWikiData: nil
         )
         
         // Then
-        XCTAssertEqual(poi.placeId, "test-123")
+        XCTAssertEqual(poi.id, "test-123")
         XCTAssertEqual(poi.name, "Test POI")
         XCTAssertEqual(poi.coordinate.latitude, coordinate.latitude)
         XCTAssertEqual(poi.coordinate.longitude, coordinate.longitude)
-        XCTAssertEqual(poi.address.fullAddress, "Hauptstraße 123, 90402 Nürnberg, Deutschland")
+        XCTAssertEqual(poi.address?.fullAddress, "Hauptstraße 123, 90402 Nürnberg, Deutschland")
         XCTAssertEqual(poi.contact?.phone, "+49911123456")
         XCTAssertEqual(poi.category, .attraction)
-        XCTAssertEqual(poi.subcategory, "museum")
-        XCTAssertEqual(poi.openingHours, "9:00-17:00")
+        XCTAssertEqual(poi.tags["type"], "museum")
+        XCTAssertEqual(poi.operatingHours, "9:00-17:00")
         XCTAssertEqual(poi.accessibility?.wheelchair, "yes")
-        XCTAssertEqual(poi.rating, 4.5)
-        XCTAssertEqual(poi.priceLevel, 2)
         XCTAssertEqual(poi.description, "Ein Test POI")
     }
     
@@ -166,30 +168,32 @@ class POIModelTests: XCTestCase {
         
         // When
         let poi = POI(
-            placeId: "minimal-poi",
+            id: "minimal-poi",
             name: "Minimal POI",
-            coordinate: coordinate,
+            latitude: coordinate.latitude,
+            longitude: coordinate.longitude,
+            category: .park,
+            description: nil,
+            tags: [:],
+            sourceType: "test",
+            sourceId: 456,
             address: address,
             contact: nil,
-            category: .park,
-            subcategory: nil,
-            openingHours: nil,
             accessibility: nil,
-            rating: nil,
-            priceLevel: nil,
-            description: nil
+            pricing: nil,
+            operatingHours: nil,
+            website: nil,
+            geoapifyWikiData: nil
         )
         
         // Then
-        XCTAssertEqual(poi.placeId, "minimal-poi")
+        XCTAssertEqual(poi.id, "minimal-poi")
         XCTAssertEqual(poi.name, "Minimal POI")
         XCTAssertEqual(poi.category, .park)
         XCTAssertNil(poi.contact)
-        XCTAssertNil(poi.subcategory)
-        XCTAssertNil(poi.openingHours)
+        XCTAssertNil(poi.operatingHours)
         XCTAssertNil(poi.accessibility)
-        XCTAssertNil(poi.rating)
-        XCTAssertNil(poi.priceLevel)
+
         XCTAssertNil(poi.description)
     }
     
@@ -207,18 +211,22 @@ class POIModelTests: XCTestCase {
         )
         
         let originalPOI = POI(
-            placeId: "codable-test",
+            id: "codable-test",
             name: "Codable Test POI",
-            coordinate: coordinate,
+            latitude: coordinate.latitude,
+            longitude: coordinate.longitude,
+            category: .museum,
+            description: "Test für Codable",
+            tags: ["type": "history"],
+            sourceType: "test",
+            sourceId: 789,
             address: address,
             contact: nil,
-            category: .museum,
-            subcategory: "history",
-            openingHours: "10:00-18:00",
             accessibility: nil,
-            rating: 4.2,
-            priceLevel: 1,
-            description: "Test für Codable"
+            pricing: nil,
+            operatingHours: "10:00-18:00",
+            website: nil,
+            geoapifyWikiData: nil
         )
         
         // When - Encode
@@ -236,11 +244,11 @@ class POIModelTests: XCTestCase {
         }
         
         // Then
-        XCTAssertEqual(decodedPOI.placeId, originalPOI.placeId)
+        XCTAssertEqual(decodedPOI.id, originalPOI.id)
         XCTAssertEqual(decodedPOI.name, originalPOI.name)
         XCTAssertEqual(decodedPOI.coordinate.latitude, originalPOI.coordinate.latitude, accuracy: 0.000001)
         XCTAssertEqual(decodedPOI.coordinate.longitude, originalPOI.coordinate.longitude, accuracy: 0.000001)
         XCTAssertEqual(decodedPOI.category, originalPOI.category)
-        XCTAssertEqual(decodedPOI.rating, originalPOI.rating)
+        XCTAssertEqual(decodedPOI.description, originalPOI.description)
     }
 }

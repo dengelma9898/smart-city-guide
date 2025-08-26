@@ -38,6 +38,7 @@ struct ContentMapView: View {
             MapScaleView()
         }
         .mapStyle(.standard)
+        .accessibilityIdentifier("map.main")
         .safeAreaInset(edge: .bottom) {
             // Reserve space for bottom UI elements to prevent overlap with Apple Maps credits
             // Apple Maps logo and legal text MUST remain visible (App Store requirement)

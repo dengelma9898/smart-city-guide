@@ -118,8 +118,8 @@ class RouteEnumsTests: XCTestCase {
     func testEndpointOptionValues() {
         // Test enum cases exist
         let allCases = EndpointOption.allCases
-        XCTAssertTrue(allCases.contains(.returnToStart))
-        XCTAssertTrue(allCases.contains(.openEnd))
+        XCTAssertTrue(allCases.contains(.roundtrip))
+        XCTAssertTrue(allCases.contains(.lastPlace))
         XCTAssertTrue(allCases.contains(.custom))
     }
     
@@ -131,7 +131,7 @@ class RouteEnumsTests: XCTestCase {
         }
         
         // Test specific German text
-        XCTAssertTrue(EndpointOption.returnToStart.description.contains("Startpunkt"))
+        XCTAssertTrue(EndpointOption.roundtrip.description.contains("Startpunkt"))
         XCTAssertTrue(EndpointOption.custom.description.contains("Eigenen"))
     }
     
