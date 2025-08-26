@@ -46,6 +46,17 @@
                ReferencedContainer = "container:SmartCityGuide.xcodeproj">
             </BuildableReference>
          </TestableReference>
+         <TestableReference
+            skipped = "NO"
+            parallelizable = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "E132EC762E5D6DEC00C910F9"
+               BuildableName = "SmartCityGuideUnitTests.xctest"
+               BlueprintName = "SmartCityGuideUnitTests"
+               ReferencedContainer = "container:SmartCityGuide.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
       </Testables>
    </TestAction>
    <LaunchAction
