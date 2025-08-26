@@ -489,20 +489,32 @@ struct FAQCategory {
             icon: "📍",
             faqs: [
                 FAQ(
-                    question: "Warum braucht die App meinen Standort?",
-                    answer: "Die App nutzt deinen Standort nur für drei Funktionen: 1) Um dich auf der Karte anzuzeigen (blauer Punkt), 2) Um deinen aktuellen Standort als Startpunkt für Routen zu verwenden, und 3) Um dir Benachrichtigungen zu senden, wenn du interessante Orte auf deiner Route erreichst. Alle Funktionen sind optional - die App funktioniert auch ohne Standortzugriff."
+                    question: "Was sind die Intro-Screens beim ersten App-Start?",
+                    answer: "Beim ersten Öffnen der App führen wir dich durch eine kurze Einführung, die den App-Zweck erklärt und dir dabei hilft, die notwendigen Berechtigungen zu verstehen. Du erfährst genau, warum jede Berechtigung benötigt wird und kannst selbst entscheiden, welche du aktivieren möchtest. Die Intro-Screens zeigen sich nur einmal - danach startest du direkt in die App."
+                ),
+                FAQ(
+                    question: "Kann ich die Intro-Screens überspringen?",
+                    answer: "Ja! Du kannst auf jedem Screen (außer dem letzten) auf 'Überspringen' tippen. Wir zeigen dir dann einen kurzen Hinweis, dass du fehlende Berechtigungen später jederzeit in den Profileinstellungen aktivieren kannst. Die App funktioniert auch ohne alle Berechtigungen - manche Features sind dann nur eingeschränkt verfügbar."
+                ),
+                FAQ(
+                    question: "Warum braucht die App zwei verschiedene Standort-Berechtigungen?",
+                    answer: "Es gibt zwei Arten: 1) 'Standort (App-Nutzung)' ermöglicht Routenplanung von deinem aktuellen Standort und zeigt dich als blauen Punkt auf der Karte. 2) 'Standort (Hintergrund)' ermöglicht zusätzlich Benachrichtigungen über interessante Spots, auch wenn die App nicht geöffnet ist. Du kannst jede Berechtigung einzeln aktivieren - die App erklärt dir in den Intro-Screens genau den Unterschied."
                 ),
                 FAQ(
                     question: "Wie funktionieren die Standort-Benachrichtigungen?",
-                    answer: "Wenn du eine Route startest und sowohl Benachrichtigungen als auch Standort erlaubst, bekommst du eine Mitteilung, sobald du einem interessanten Ort auf deiner Route nahe kommst (ca. 25 Meter). So verpasst du garantiert nichts! Die Benachrichtigungen funktionieren auch, wenn die App im Hintergrund läuft."
+                    answer: "Wenn du eine Route startest und sowohl Benachrichtigungen als auch Hintergrund-Standort erlaubst, bekommst du eine Mitteilung, sobald du einem interessanten Ort auf deiner Route nahe kommst (ca. 25 Meter). So verpasst du garantiert nichts! Die Benachrichtigungen funktionieren auch, wenn die App im Hintergrund läuft."
                 ),
                 FAQ(
-                    question: "Warum fragt die App beim Start nach Benachrichtigungen?",
-                    answer: "Wir erinnern dich unterwegs an spannende Spots in deiner Nähe. Damit das zuverlässig klappt, fragt die App frühzeitig nach Benachrichtigungs‑Rechten. Wir senden nur für aktive Routen Hinweise – keine Werbung. Du kannst die Berechtigung jederzeit in den iOS‑Einstellungen ändern."
+                    question: "Wie kann ich Berechtigungen später ändern?",
+                    answer: "Du findest alle Berechtigungen in deinem Profil unter 'Deine Präferenzen' im Bereich 'Berechtigungen'. Dort siehst du den aktuellen Status jeder Berechtigung (Aktiviert/Verweigert/Nicht festgelegt) und kannst sie bei Bedarf in den iOS-Einstellungen anpassen. Für verweigerte Berechtigungen führt dich ein 'Einstellungen'-Button direkt zum richtigen Ort."
                 ),
                 FAQ(
                     question: "Kann ich die App ohne Location-Permission verwenden?",
                     answer: "Ja, absolut! Du kannst die App vollständig nutzen, ohne Standortzugriff zu gewähren. Du gibst einfach eine Stadt manuell ein, und die App plant trotzdem perfekte Routen für dich. Lediglich die automatische Anzeige deiner Position und Benachrichtigungen sind dann nicht verfügbar."
+                ),
+                FAQ(
+                    question: "Was passiert wenn ich Benachrichtigungen ablehne?",
+                    answer: "Kein Problem! Die App funktioniert vollständig ohne Benachrichtigungen. Du verpasst nur die automatischen Hinweise auf interessante Spots während deiner Routen. Du kannst Benachrichtigungen jederzeit später in den Profileinstellungen oder iOS-Einstellungen aktivieren."
                 ),
                 FAQ(
                     question: "Wie kann ich meinen Standort als Standard-Startpunkt setzen?",

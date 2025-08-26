@@ -5,6 +5,7 @@ struct ProfileSettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject var settingsManager: ProfileSettingsManager
     @StateObject private var locationManager = LocationManagerService.shared
+    @StateObject private var proximityService = ProximityService.shared
     
     var body: some View {
         Form {
@@ -345,6 +346,141 @@ struct ProfileSettingsView: View {
                     Text("Ziel-Präferenzen")
                 }
                 
+                // MARK: - Permission Settings Sections
+                
+                // Location When In Use Permission Section
+                Section {
+                    HStack(spacing: 12) {
+                        Image(systemName: "location.circle.fill")
+                            .foregroundColor(locationManager.isLocationAuthorized ? .green : .orange)
+                            .frame(width: 24)
+                        
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Standort (App-Nutzung)")
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                            
+                            Text(locationWhenInUseStatusText)
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            
+                            Text("Ermöglicht die Routenplanung von deinem aktuellen Standort aus.")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                                .padding(.top, 2)
+                        }
+                        
+                        Spacer()
+                        
+                        if shouldShowLocationWhenInUseSettings {
+                            Button("Einstellungen") {
+                                openAppSettings()
+                            }
+                            .font(.caption)
+                            .foregroundColor(.blue)
+                        }
+                    }
+                    .padding(.vertical, 4)
+                } header: {
+                    Text("Berechtigungen")
+                } footer: {
+                    if !locationManager.isLocationAuthorized {
+                        Text("Ohne Standort-Berechtigung ist nur manuelle Routenplanung möglich.")
+                            .font(.caption2)
+                            .foregroundColor(.orange)
+                    }
+                }
+                
+                // Location Always Permission Section  
+                Section {
+                    HStack(spacing: 12) {
+                        Image(systemName: "location.fill")
+                            .foregroundColor(locationManager.authorizationStatus == .authorizedAlways ? .green : .orange)
+                            .frame(width: 24)
+                        
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Standort (Hintergrund)")
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                            
+                            Text(locationAlwaysStatusText)
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            
+                            Text("Ermöglicht Benachrichtigungen wenn du interessante Spots erreichst.")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                                .padding(.top, 2)
+                        }
+                        
+                        Spacer()
+                        
+                        if shouldShowLocationAlwaysSettings {
+                            Button("Einstellungen") {
+                                openAppSettings()
+                            }
+                            .font(.caption)
+                            .foregroundColor(.blue)
+                        }
+                    }
+                    .padding(.vertical, 4)
+                } footer: {
+                    if locationManager.authorizationStatus != .authorizedAlways {
+                        Text("Ohne Hintergrund-Berechtigung sind keine POI-Benachrichtigungen möglich.")
+                            .font(.caption2)
+                            .foregroundColor(.orange)
+                    }
+                }
+                
+                // Notification Permission Section
+                Section {
+                    HStack(spacing: 12) {
+                        Image(systemName: "bell.circle.fill")
+                            .foregroundColor(proximityService.notificationPermissionStatus == .authorized ? .green : .orange)
+                            .frame(width: 24)
+                        
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Benachrichtigungen")
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                            
+                            Text(notificationStatusText)
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            
+                            Text("Informiert dich über interessante Orte und Sehenswürdigkeiten in deiner Nähe.")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                                .padding(.top, 2)
+                        }
+                        
+                        Spacer()
+                        
+                        if shouldShowNotificationSettings {
+                            Button("Einstellungen") {
+                                openAppSettings()
+                            }
+                            .font(.caption)
+                            .foregroundColor(.blue)
+                        } else if proximityService.notificationPermissionStatus == .notDetermined {
+                            Button("Aktivieren") {
+                                Task {
+                                    await proximityService.requestNotificationPermission()
+                                }
+                            }
+                            .font(.caption)
+                            .foregroundColor(.blue)
+                        }
+                    }
+                    .padding(.vertical, 4)
+                } footer: {
+                    if proximityService.notificationPermissionStatus != .authorized {
+                        Text("Ohne Benachrichtigungen verpasst du interessante Spots auf deinen Routen.")
+                            .font(.caption2)
+                            .foregroundColor(.orange)
+                    }
+                }
+                
                 // Reset Section
                 Section {
                     Button(action: {
@@ -368,6 +504,82 @@ struct ProfileSettingsView: View {
         .navigationTitle("Deine Präferenzen")
         .navigationBarTitleDisplayMode(.large)
         .accessibilityIdentifier("profile.settings.screen")
+    }
+    
+    // MARK: - Permission Status Computed Properties
+    
+    private var locationWhenInUseStatusText: String {
+        switch locationManager.authorizationStatus {
+        case .authorizedWhenInUse, .authorizedAlways:
+            return "Aktiviert"
+        case .denied:
+            return "Verweigert"
+        case .restricted:
+            return "Eingeschränkt"
+        case .notDetermined:
+            return "Nicht festgelegt"
+        @unknown default:
+            return "Unbekannt"
+        }
+    }
+    
+    private var locationAlwaysStatusText: String {
+        switch locationManager.authorizationStatus {
+        case .authorizedAlways:
+            return "Aktiviert"
+        case .authorizedWhenInUse:
+            return "Nur während App-Nutzung"
+        case .denied:
+            return "Verweigert"
+        case .restricted:
+            return "Eingeschränkt"
+        case .notDetermined:
+            return "Nicht festgelegt"
+        @unknown default:
+            return "Unbekannt"
+        }
+    }
+    
+    private var notificationStatusText: String {
+        switch proximityService.notificationPermissionStatus {
+        case .authorized:
+            return "Aktiviert"
+        case .denied:
+            return "Verweigert"
+        case .provisional:
+            return "Begrenzt"
+        case .notDetermined:
+            return "Nicht festgelegt"
+        @unknown default:
+            return "Unbekannt"
+        }
+    }
+    
+    private var shouldShowLocationWhenInUseSettings: Bool {
+        return locationManager.authorizationStatus == .denied || locationManager.authorizationStatus == .restricted
+    }
+    
+    private var shouldShowLocationAlwaysSettings: Bool {
+        return locationManager.authorizationStatus == .denied || 
+               locationManager.authorizationStatus == .restricted ||
+               locationManager.authorizationStatus == .authorizedWhenInUse
+    }
+    
+    private var shouldShowNotificationSettings: Bool {
+        return proximityService.notificationPermissionStatus == .denied || 
+               proximityService.notificationPermissionStatus == .provisional
+    }
+    
+    // MARK: - Permission Actions
+    
+    private func openAppSettings() {
+        guard let settingsUrl = URL(string: UIApplication.openSettingsURLString) else {
+            return
+        }
+        
+        if UIApplication.shared.canOpenURL(settingsUrl) {
+            UIApplication.shared.open(settingsUrl)
+        }
     }
 }
 
