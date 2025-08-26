@@ -30,12 +30,23 @@ extension XCUIElement {
         return self.waitForExistence(timeout: timeout)
     }
     
+    func waitForNonExistence(timeout: TimeInterval = 5.0) -> Bool {
+        return !self.waitForExistence(timeout: timeout)
+    }
+    
     func clearAndType(text: String) {
+        guard self.exists else { return }
         self.tap()
+        
+        // Enhanced text clearing with better selection
+        let selectAll = self.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+        selectAll.press(forDuration: 1.0)
+        
         if let stringValue = self.value as? String, !stringValue.isEmpty {
             let deleteString = String(repeating: XCUIKeyboardKey.delete.rawValue, count: stringValue.count)
             self.typeText(deleteString)
         }
+        
         self.typeText(text)
     }
 }

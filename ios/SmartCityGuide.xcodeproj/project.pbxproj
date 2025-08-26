@@ -22,6 +22,13 @@
 			remoteGlobalIDString = A1234567890ABCDEF012344F;
 			remoteInfo = SmartCityGuide;
 		};
+		E132EC492E5CEF7E00C910F9 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A1234567890ABCDEF0123448 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A1234567890ABCDEF012344F;
+			remoteInfo = SmartCityGuide;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
@@ -34,12 +41,14 @@
 		E1048AC72E449AE300FD6F70 /* zeidlerschloss feucht.gpx */ = {isa = PBXFileReference; lastKnownFileType = text.xml; name = "zeidlerschloss feucht.gpx"; path = "../../../../Downloads/zeidlerschloss feucht.gpx"; sourceTree = "<group>"; };
 		E1048B882E4923BF00FD6F70 /* SmartCityGuideUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SmartCityGuideUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		E1048BB22E492A5A00FD6F70 /* SmartCityGuide.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = SmartCityGuide.xctestplan; sourceTree = "<group>"; };
+		E132EC452E5CEF7E00C910F9 /* SmartCityGuideTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SmartCityGuideTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		E1FEF13C2E3FEF1B00C409C6 /* APIKeys.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = APIKeys.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		E132E2622E49AA8A00C910F9 /* SmartCityGuideUITests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = SmartCityGuideUITests; sourceTree = "<group>"; };
 		E132E3622E53AD3800C910F9 /* Coordinators */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Coordinators; sourceTree = "<group>"; };
+		E132EC462E5CEF7E00C910F9 /* SmartCityGuideTests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = SmartCityGuideTests; sourceTree = "<group>"; };
 		E1FEF0D42E3E987A00C409C6 /* Views */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Views; sourceTree = "<group>"; };
 		E1FEF0DF2E3E988400C409C6 /* Utilities */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Utilities; sourceTree = "<group>"; };
 		E1FEF0E32E3E988D00C409C6 /* Services */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Services; sourceTree = "<group>"; };
@@ -61,6 +70,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		E132EC422E5CEF7E00C910F9 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -71,6 +87,7 @@
 				E1048BB22E492A5A00FD6F70 /* SmartCityGuide.xctestplan */,
 				E1048AC72E449AE300FD6F70 /* zeidlerschloss feucht.gpx */,
 				A1234567890ABCDEF0123452 /* SmartCityGuide */,
+				E132EC462E5CEF7E00C910F9 /* SmartCityGuideTests */,
 				A1234567890ABCDEF0123451 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -80,6 +97,7 @@
 			children = (
 				A1234567890ABCDEF0123450 /* SmartCityGuide.app */,
 				E1048B882E4923BF00FD6F70 /* SmartCityGuideUITests.xctest */,
+				E132EC452E5CEF7E00C910F9 /* SmartCityGuideTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -160,6 +178,29 @@
 			productReference = E1048B882E4923BF00FD6F70 /* SmartCityGuideUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
+		E132EC442E5CEF7E00C910F9 /* SmartCityGuideTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = E132EC4B2E5CEF7E00C910F9 /* Build configuration list for PBXNativeTarget "SmartCityGuideTests" */;
+			buildPhases = (
+				E132EC412E5CEF7E00C910F9 /* Sources */,
+				E132EC422E5CEF7E00C910F9 /* Frameworks */,
+				E132EC432E5CEF7E00C910F9 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				E132EC4A2E5CEF7E00C910F9 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				E132EC462E5CEF7E00C910F9 /* SmartCityGuideTests */,
+			);
+			name = SmartCityGuideTests;
+			packageProductDependencies = (
+			);
+			productName = SmartCityGuideTests;
+			productReference = E132EC452E5CEF7E00C910F9 /* SmartCityGuideTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -174,6 +215,10 @@
 						CreatedOnToolsVersion = 15.4;
 					};
 					E1048B872E4923BF00FD6F70 = {
+						CreatedOnToolsVersion = 16.4;
+						TestTargetID = A1234567890ABCDEF012344F;
+					};
+					E132EC442E5CEF7E00C910F9 = {
 						CreatedOnToolsVersion = 16.4;
 						TestTargetID = A1234567890ABCDEF012344F;
 					};
@@ -194,6 +239,7 @@
 			targets = (
 				A1234567890ABCDEF012344F /* SmartCityGuide */,
 				E1048B872E4923BF00FD6F70 /* SmartCityGuideUITests */,
+				E132EC442E5CEF7E00C910F9 /* SmartCityGuideTests */,
 			);
 		};
 /* End PBXProject section */
@@ -210,6 +256,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		E1048B862E4923BF00FD6F70 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E132EC432E5CEF7E00C910F9 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -235,6 +288,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		E132EC412E5CEF7E00C910F9 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -242,6 +302,11 @@
 			isa = PBXTargetDependency;
 			target = A1234567890ABCDEF012344F /* SmartCityGuide */;
 			targetProxy = E1048B8E2E4923BF00FD6F70 /* PBXContainerItemProxy */;
+		};
+		E132EC4A2E5CEF7E00C910F9 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A1234567890ABCDEF012344F /* SmartCityGuide */;
+			targetProxy = E132EC492E5CEF7E00C910F9 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -380,6 +445,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = SmartCityGuide/Info.plist;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.travel";
 				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "Für Routen von deinem aktuellen Standort";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Für Routen von deinem aktuellen Standort";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -413,6 +479,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = SmartCityGuide/Info.plist;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.travel";
 				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "Für Routen von deinem aktuellen Standort";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Für Routen von deinem aktuellen Standort";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -469,6 +536,44 @@
 			};
 			name = Release;
 		};
+		E132EC4C2E5CEF7E00C910F9 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 4T9BXP692G;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.5;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = de.dengelma.SmartCityGuideTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/SmartCityGuide.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/SmartCityGuide";
+			};
+			name = Debug;
+		};
+		E132EC4D2E5CEF7E00C910F9 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 4T9BXP692G;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.5;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = de.dengelma.SmartCityGuideTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/SmartCityGuide.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/SmartCityGuide";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -495,6 +600,15 @@
 			buildConfigurations = (
 				E1048B912E4923BF00FD6F70 /* Debug */,
 				E1048B922E4923BF00FD6F70 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		E132EC4B2E5CEF7E00C910F9 /* Build configuration list for PBXNativeTarget "SmartCityGuideTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E132EC4C2E5CEF7E00C910F9 /* Debug */,
+				E132EC4D2E5CEF7E00C910F9 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
