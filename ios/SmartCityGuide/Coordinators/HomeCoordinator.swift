@@ -611,12 +611,8 @@ class BasicHomeCoordinator: ObservableObject {
     
     private func initializeServices() {
         Task { @MainActor in
-            // Check authorization status first
-            if locationManager.authorizationStatus == .notDetermined {
-                await locationManager.requestLocationPermission()
-            }
-            
-            // Start location updates if authorized
+            // Permission requests now handled in intro flow
+            // Only start location updates if already authorized
             if locationManager.isLocationAuthorized {
                 locationManager.startLocationUpdates()
             }

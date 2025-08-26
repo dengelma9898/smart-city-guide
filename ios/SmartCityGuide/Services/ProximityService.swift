@@ -131,30 +131,24 @@ class ProximityService: NSObject, ObservableObject {
     
     // MARK: - Background Location Methods
     private func requestBackgroundLocationIfNeeded() async {
-        // Only ask for Always permission if user has POI notifications enabled in settings
+        // Always permission requests now handled in intro flow
+        // Only check for existing permissions and setup background monitoring
+        
         guard shouldTriggerNotifications else {
-            logger.info("📱 Skipping Always location request - POI notifications disabled in settings")
+            logger.info("📱 POI notifications disabled in settings - background monitoring disabled")
             return
         }
         
-        // Only ask for Always permission if user has notifications enabled
         guard notificationPermissionStatus == .authorized else {
-            logger.info("📱 Skipping Always location request - notification permission not granted")
+            logger.info("📱 Notification permission not granted - background monitoring limited")
             return
         }
         
-        // Only ask if not already Always
-        guard locationService.authorizationStatus != .authorizedAlways else {
-            logger.info("🌙 Always location permission already granted")
+        if locationService.authorizationStatus == .authorizedAlways {
+            logger.info("🌙 Always location permission available - enabling background monitoring")
             await checkBackgroundAppRefresh()
-            return
-        }
-        
-        // For now, just request Always permission automatically
-        // In production, you might want to show a user dialog first
-        logger.info("📍 Requesting Always location permission for background notifications...")
-        Task {
-            await locationService.requestAlwaysLocationPermission()
+        } else {
+            logger.info("📱 Always location permission not available - limited to foreground monitoring")
         }
     }
     

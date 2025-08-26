@@ -3,19 +3,28 @@ import UserNotifications
 
 @main
 struct SmartCityGuideApp: App {
-  // MARK: - App-Level Coordinator
+  // MARK: - App-Level State
   @StateObject private var appCoordinator = BasicHomeCoordinator()
+  @State private var showIntroFlow = !UserDefaults.standard.hasCompletedIntro
   
   var body: some Scene {
     WindowGroup {
-      ContentView()
-        .environmentObject(appCoordinator)
-        // Removed .id(UUID()) as it causes view recreation and performance issues
-        .onAppear {
-          setupCacheManager()
-          setupNotificationPermissions()
-          preloadProfileSettings()
+      if showIntroFlow {
+        IntroFlowView {
+          // Called when intro is completed
+          withAnimation(.easeInOut(duration: 0.5)) {
+            showIntroFlow = false
+          }
         }
+      } else {
+        ContentView()
+          .environmentObject(appCoordinator)
+          .onAppear {
+            setupCacheManager()
+            // Note: setupNotificationPermissions() removed - now handled in intro flow
+            preloadProfileSettings()
+          }
+      }
     }
   }
   
@@ -37,19 +46,12 @@ struct SmartCityGuideApp: App {
     }
   }
   
-  /// Setup notification permissions für POI-Proximity-Benachrichtigungen
-  private func setupNotificationPermissions() {
+  /// Legacy notification permissions setup - now handled in intro flow
+  /// This method is kept for potential fallback scenarios but not actively called
+  private func legacySetupNotificationPermissions() {
     Task {
-      // Check current permission status
+      // Check current permission status only (no automatic requests)
       await ProximityService.shared.checkNotificationPermission()
-      
-      // Delay the permission request a bit to not overwhelm first-time users
-      try? await Task.sleep(nanoseconds: 2_000_000_000) // 2 seconds
-      
-      // Only request if still not determined (nicht bei denied/authorized)
-      if ProximityService.shared.notificationPermissionStatus == .notDetermined {
-        let _ = await ProximityService.shared.requestNotificationPermission()
-      }
     }
   }
   

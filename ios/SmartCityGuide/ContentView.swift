@@ -247,13 +247,9 @@ struct ContentView: View {
 
      private func locationButtonTapped() {
      if !locationService.isLocationAuthorized {
-       if locationService.authorizationStatus == .denied || locationService.authorizationStatus == .restricted {
-         coordinator.showingLocationPermissionAlert = true
-       } else {
-         Task { @MainActor in
-           await locationService.requestLocationPermission()
-         }
-       }
+       // Permission requests now handled in intro flow
+       // Show settings alert for denied permissions or profile hint for not determined
+       coordinator.showingLocationPermissionAlert = true
      } else if let userLocation = locationService.currentLocation {
        mapService.centerOnUserLocation(userLocation)
      }
