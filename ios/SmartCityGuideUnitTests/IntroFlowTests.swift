@@ -110,7 +110,7 @@ class IntroFlowTests: XCTestCase {
     
     func testIntroFlowViewModelInitialization() {
         // Given - new ViewModel
-        let viewModel = IntroFlowViewModel(userDefaults: userDefaults)
+        let _ = IntroFlowViewModel(userDefaults: userDefaults)
         
         // Then - should start at welcome step
         XCTAssertEqual(viewModel.currentStep, .welcome)
@@ -120,7 +120,7 @@ class IntroFlowTests: XCTestCase {
     
     func testIntroFlowViewModelNextStep() {
         // Given - ViewModel at welcome
-        let viewModel = IntroFlowViewModel(userDefaults: userDefaults)
+        let _ = IntroFlowViewModel(userDefaults: userDefaults)
         XCTAssertEqual(viewModel.currentStep, .welcome)
         
         // When - move to next step
@@ -132,7 +132,7 @@ class IntroFlowTests: XCTestCase {
     
     func testIntroFlowViewModelSkipToCompletion() {
         // Given - ViewModel at any step
-        let viewModel = IntroFlowViewModel(userDefaults: userDefaults)
+        let _ = IntroFlowViewModel(userDefaults: userDefaults)
         viewModel.currentStep = .locationWhenInUse
         
         // When - skip to completion
@@ -145,7 +145,7 @@ class IntroFlowTests: XCTestCase {
     
     func testIntroFlowViewModelCompleteIntro() {
         // Given - ViewModel at completion
-        let viewModel = IntroFlowViewModel(userDefaults: userDefaults)
+        let _ = IntroFlowViewModel(userDefaults: userDefaults)
         viewModel.currentStep = .completion
         
         // When - complete intro
@@ -160,7 +160,7 @@ class IntroFlowTests: XCTestCase {
     
     func testFullNavigationFlow() {
         // Given - ViewModel starting fresh
-        let viewModel = IntroFlowViewModel(userDefaults: userDefaults)
+        let _ = IntroFlowViewModel(userDefaults: userDefaults)
         
         // Test complete navigation flow
         XCTAssertEqual(viewModel.currentStep, .welcome)
@@ -184,7 +184,7 @@ class IntroFlowTests: XCTestCase {
     
     func testSkipConfirmationDialog() {
         // Given - ViewModel at skippable step
-        let viewModel = IntroFlowViewModel(userDefaults: userDefaults)
+        let _ = IntroFlowViewModel(userDefaults: userDefaults)
         viewModel.currentStep = .locationWhenInUse
         
         // When - trigger skip confirmation
@@ -300,7 +300,7 @@ class IntroFlowTests: XCTestCase {
     func testLocationWhenInUsePermissionRequest() {
         // Given - Mock location service
         let mockLocationService = MockLocationManagerService()
-        let viewModel = IntroFlowViewModel(userDefaults: userDefaults)
+        let _ = IntroFlowViewModel(userDefaults: userDefaults)
         
         // When - request location permission
         mockLocationService.requestLocationPermissionCalled = false
@@ -341,7 +341,7 @@ class IntroFlowTests: XCTestCase {
     
     func testSkipDialogShowsProfileHint() {
         // Given - ViewModel with skip confirmation
-        let viewModel = IntroFlowViewModel(userDefaults: userDefaults)
+        let _ = IntroFlowViewModel(userDefaults: userDefaults)
         viewModel.currentStep = .locationWhenInUse
         
         // When - show skip dialog
@@ -363,10 +363,10 @@ class IntroFlowTests: XCTestCase {
         let viewModel = IntroFlowViewModel(userDefaults: userDefaults)
         
         // Simulate permission denial scenario
-        viewModel.setPermissionInProgress(true)
+        viewModel.isPermissionInProgress = true
         XCTAssertTrue(viewModel.isPermissionInProgress)
         
-        viewModel.setPermissionInProgress(false)
+        viewModel.isPermissionInProgress = false
         XCTAssertFalse(viewModel.isPermissionInProgress)
         
         // User should be able to continue to next step even if permission denied

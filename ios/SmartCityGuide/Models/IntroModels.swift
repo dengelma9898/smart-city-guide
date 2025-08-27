@@ -152,7 +152,7 @@ class IntroFlowViewModel: ObservableObject {
         self.userDefaults = userDefaults
     }
     
-    /// Moves to the next step in the intro flow
+    /// Moves to the next step in the intro flow with animation
     func moveToNextStep() {
         guard let nextStep = currentStep.nextStep else {
             // Already at the last step, complete the intro
@@ -160,7 +160,9 @@ class IntroFlowViewModel: ObservableObject {
             return
         }
         
-        currentStep = nextStep
+        withAnimation(.easeInOut(duration: 0.4)) {
+            currentStep = nextStep
+        }
     }
     
     /// Shows the skip confirmation dialog
@@ -217,7 +219,13 @@ class IntroFlowViewModel: ObservableObject {
         
         // Move to next step regardless of permission result
         // User can always grant permissions later in profile
-        moveToNextStep()
+        withAnimation(.easeInOut(duration: 0.4)) {
+            guard let nextStep = currentStep.nextStep else {
+                completeIntro()
+                return
+            }
+            currentStep = nextStep
+        }
     }
     
     /// Requests location always permission
@@ -234,7 +242,18 @@ class IntroFlowViewModel: ObservableObject {
         }
         
         setPermissionInProgress(false)
-        moveToNextStep()
+        
+        // Move to next step WITHOUT animation wrapping to avoid interfering with permission dialogs
+        guard let nextStep = currentStep.nextStep else {
+            completeIntro()
+            return
+        }
+        
+        DispatchQueue.main.async {
+            withAnimation(.easeInOut(duration: 0.4)) {
+                self.currentStep = nextStep
+            }
+        }
     }
     
     /// Requests notification permission
@@ -250,7 +269,18 @@ class IntroFlowViewModel: ObservableObject {
         }
         
         setPermissionInProgress(false)
-        moveToNextStep()
+        
+        // Move to next step WITHOUT animation wrapping to avoid interfering with permission dialogs
+        guard let nextStep = currentStep.nextStep else {
+            completeIntro()
+            return
+        }
+        
+        DispatchQueue.main.async {
+            withAnimation(.easeInOut(duration: 0.4)) {
+                self.currentStep = nextStep
+            }
+        }
     }
     
     /// Clears any permission error message

@@ -17,19 +17,14 @@ struct IntroFlowView: View {
     
     var body: some View {
         NavigationStack {
-            ZStack {
-                // Background with intro image
-                IntroBackgroundView()
-                
-                // Content based on current step
-                introStepContent
-                    .transition(.asymmetric(
-                        insertion: .move(edge: .trailing),
-                        removal: .move(edge: .leading)
-                    ))
-            }
-            .ignoresSafeArea(.all, edges: .top)
-            .animation(.easeInOut(duration: 0.3), value: viewModel.currentStep)
+            // Clean iOS design without background image
+            introStepContent
+                .background(Color(.systemBackground))
+                .transition(.asymmetric(
+                    insertion: .move(edge: .trailing),
+                    removal: .move(edge: .leading)
+                ))
+                .animation(.easeInOut(duration: 0.3), value: viewModel.currentStep)
         }
         .alert("Intro überspringen?", isPresented: $viewModel.showSkipConfirmation) {
             Button("Abbrechen", role: .cancel) {
@@ -51,30 +46,34 @@ struct IntroFlowView: View {
                 Text(errorMessage)
             }
         }
-        .onChange(of: viewModel.currentStep) { _, newStep in
-            if newStep == .completion {
-                // Small delay to show completion screen before transitioning
-                DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                    handleIntroCompletion()
-                }
-            }
-        }
+
     }
     
     @ViewBuilder
     private var introStepContent: some View {
-        switch viewModel.currentStep {
-        case .welcome:
-            WelcomeIntroView(viewModel: viewModel)
-        case .locationWhenInUse:
-            LocationWhenInUseIntroView(viewModel: viewModel)
-        case .locationAlways:
-            LocationAlwaysIntroView(viewModel: viewModel)
-        case .notificationPermission:
-            NotificationPermissionIntroView(viewModel: viewModel)
-        case .completion:
-            CompletionIntroView(viewModel: viewModel)
-        }
+                            // Animated step transitions
+                    Group {
+                                            switch viewModel.currentStep {
+                    case .welcome:
+                        WelcomeIntroView(viewModel: viewModel)
+                    case .locationWhenInUse:
+                        LocationWhenInUseIntroView(viewModel: viewModel)
+                    case .locationAlways:
+                        LocationAlwaysIntroView(viewModel: viewModel)
+                    case .notificationPermission:
+                        NotificationPermissionIntroView(viewModel: viewModel)
+                    case .completion:
+                        CompletionIntroView(viewModel: viewModel, onComplete: {
+                            viewModel.completeIntro()
+                            onIntroCompleted()
+                        })
+                    }
+                    }
+                    .transition(.asymmetric(
+                        insertion: .move(edge: .trailing).combined(with: .opacity),
+                        removal: .move(edge: .leading).combined(with: .opacity)
+                    ))
+                    .animation(.easeInOut(duration: 0.4), value: viewModel.currentStep)
     }
     
     private func handleIntroCompletion() {
@@ -116,55 +115,101 @@ struct IntroStepContainer<Content: View>: View {
     }
     
     var body: some View {
-        VStack(spacing: 0) {
-            // Top spacer
-            Spacer()
-            
-            // Main content area
-            VStack(spacing: 32) {
-                // Icon
-                Image(systemName: step.iconName)
-                    .font(.system(size: 80))
-                    .foregroundColor(step.iconColor)
-                
-                // Title and description
-                VStack(spacing: 16) {
-                    Text(step.title)
-                        .font(.largeTitle)
-                        .fontWeight(.bold)
-                        .foregroundColor(.white)
-                        .multilineTextAlignment(.center)
+        GeometryReader { geometry in
+            ScrollView {
+                VStack(spacing: 0) {
+                    // Top spacing for status bar
+                    Rectangle()
+                        .fill(Color.clear)
+                        .frame(height: max(0, geometry.safeAreaInsets.top))
                     
-                    Text(step.description)
-                        .font(.body)
-                        .foregroundColor(.white.opacity(0.9))
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 20)
-                }
-                
-                // Custom content
-                content
-            }
-            .padding(.horizontal, 24)
-            
-            Spacer()
-            
-            // Bottom action area
-            VStack(spacing: 16) {
-                // Skip button (if applicable)
-                if step.canSkip {
-                    Button("Überspringen") {
-                        viewModel.showSkipDialog()
+                    // Main content with proper iOS spacing
+                    VStack(spacing: 40) {
+                        // Icon with proper sizing and subtle animation
+                        Image(systemName: step.iconName)
+                            .font(.system(size: 64, weight: .regular))
+                            .foregroundColor(step.iconColor)
+                            .frame(height: 80)
+                            .scaleEffect(1.0)
+                            .animation(.spring(response: 0.6, dampingFraction: 0.8, blendDuration: 0), value: step)
+                        
+                        // Title and description with proper typography
+                        VStack(spacing: 16) {
+                            Text(step.title)
+                                .font(.largeTitle)
+                                .fontWeight(.bold)
+                                .foregroundColor(.primary)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, 32)
+                                .fixedSize(horizontal: false, vertical: true)
+                            
+                            Text(step.description)
+                                .font(.title3)
+                                .foregroundColor(.secondary)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, 32)
+                                .fixedSize(horizontal: false, vertical: true)
+                                .lineLimit(nil)
+                        }
+                        
+                        // Custom content
+                        content
+                            .padding(.horizontal, 32)
+                        
+                        // Buttons as part of scrollable content
+                        VStack(spacing: 20) {
+                            // Main action button for current step
+                            if step != .completion {
+                                IntroActionButton(step.buttonText, isLoading: viewModel.isPermissionInProgress) {
+                                    handleStepAction(step: step, viewModel: viewModel)
+                                }
+                            }
+                            
+                            // Skip button (if applicable)
+                            if step.canSkip {
+                                Button("Überspringen") {
+                                    viewModel.showSkipDialog()
+                                }
+                                .font(.body)
+                                .foregroundColor(.secondary)
+                                .padding(.top, 4)
+                            }
+                        }
+                        .padding(.horizontal, 32)
                     }
-                    .font(.body)
-                    .foregroundColor(.white.opacity(0.7))
-                    .padding(.horizontal, 24)
+                    .padding(.top, 60)
+                    .padding(.bottom, max(34, geometry.safeAreaInsets.bottom + 16))
                 }
             }
-            .padding(.bottom, 50)
+        }
+        .background(Color(.systemBackground))
+        .ignoresSafeArea(edges: .top)
+    }
+    
+    private func handleStepAction(step: IntroStep, viewModel: IntroFlowViewModel) {
+        switch step {
+        case .welcome:
+            viewModel.moveToNextStep()
+        case .locationWhenInUse:
+            Task {
+                await viewModel.requestLocationWhenInUsePermission()
+            }
+        case .locationAlways:
+            Task {
+                await viewModel.requestLocationAlwaysPermission()
+            }
+        case .notificationPermission:
+            Task {
+                await viewModel.requestNotificationPermission()
+            }
+        case .completion:
+            // This should not be reached now
+            break
         }
     }
 }
+
+
 
 struct IntroActionButton: View {
     let title: String
@@ -182,8 +227,8 @@ struct IntroActionButton: View {
             HStack {
                 if isLoading {
                     ProgressView()
-                        .progressViewStyle(CircularProgressViewStyle(tint: .black))
-                        .scaleEffect(0.8)
+                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                        .scaleEffect(0.9)
                 }
                 
                 Text(title)
@@ -191,13 +236,12 @@ struct IntroActionButton: View {
                     .fontWeight(.semibold)
             }
             .frame(maxWidth: .infinity)
-            .frame(height: 50)
-            .background(Color.white)
-            .foregroundColor(.black)
-            .cornerRadius(25)
+            .frame(height: 56)
+            .background(Color.accentColor)
+            .foregroundColor(.white)
+            .cornerRadius(16)
             .disabled(isLoading)
         }
-        .padding(.horizontal, 24)
         .opacity(isLoading ? 0.8 : 1.0)
     }
 }

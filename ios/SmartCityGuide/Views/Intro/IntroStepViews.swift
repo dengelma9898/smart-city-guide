@@ -16,28 +16,28 @@ struct WelcomeIntroView: View {
     
     var body: some View {
         IntroStepContainer(step: .welcome, viewModel: viewModel) {
-            VStack(spacing: 24) {
-                // Feature highlights
-                VStack(spacing: 16) {
-                    FeatureHighlight(
-                        icon: "map.fill", 
-                        text: "Intelligente Routen zwischen Sehenswürdigkeiten"
-                    )
-                    FeatureHighlight(
-                        icon: "sparkles", 
-                        text: "TSP-optimierte Walking-Touren"
-                    )
-                    FeatureHighlight(
-                        icon: "bell.fill", 
-                        text: "Benachrichtigungen bei interessanten Spots"
-                    )
-                }
-                .padding(.horizontal, 8)
+            // Feature highlights with better spacing and staggered animations
+            VStack(spacing: 20) {
+                FeatureHighlight(
+                    icon: "map.fill", 
+                    text: "Intelligente Routen zwischen Sehenswürdigkeiten"
+                )
+                .opacity(1.0)
+                .animation(.easeInOut(duration: 0.6).delay(0.1), value: viewModel.currentStep)
                 
-                // Main action button
-                IntroActionButton(IntroStep.welcome.buttonText) {
-                    viewModel.moveToNextStep()
-                }
+                FeatureHighlight(
+                    icon: "sparkles", 
+                    text: "TSP-optimierte Walking-Touren"
+                )
+                .opacity(1.0)
+                .animation(.easeInOut(duration: 0.6).delay(0.2), value: viewModel.currentStep)
+                
+                FeatureHighlight(
+                    icon: "bell.fill", 
+                    text: "Benachrichtigungen bei interessanten Spots"
+                )
+                .opacity(1.0)
+                .animation(.easeInOut(duration: 0.6).delay(0.3), value: viewModel.currentStep)
             }
         }
     }
@@ -49,36 +49,23 @@ struct LocationWhenInUseIntroView: View {
     
     var body: some View {
         IntroStepContainer(step: .locationWhenInUse, viewModel: viewModel) {
-            VStack(spacing: 24) {
-                // Permission benefits
-                VStack(spacing: 16) {
-                    PermissionBenefit(
-                        icon: "location.north.line", 
-                        title: "Optimale Startposition",
-                        description: "Routen beginnen von deinem aktuellen Standort"
-                    )
-                    PermissionBenefit(
-                        icon: "figure.walk.circle", 
-                        title: "Präzise Navigation",
-                        description: "Genaue Distanzen und Gehzeiten berechnen"
-                    )
-                    PermissionBenefit(
-                        icon: "shield.checkered", 
-                        title: "Nur während App-Nutzung",
-                        description: "Dein Standort wird nur bei aktiver App verwendet"
-                    )
-                }
-                .padding(.horizontal, 8)
-                
-                // Action button
-                IntroActionButton(
-                    IntroStep.locationWhenInUse.buttonText,
-                    isLoading: viewModel.isPermissionInProgress
-                ) {
-                    Task {
-                        await viewModel.requestLocationWhenInUsePermission()
-                    }
-                }
+            // Permission benefits with better spacing
+            VStack(spacing: 20) {
+                PermissionBenefit(
+                    icon: "location.north.line", 
+                    title: "Optimale Startposition",
+                    description: "Routen beginnen von deinem aktuellen Standort"
+                )
+                PermissionBenefit(
+                    icon: "figure.walk.circle", 
+                    title: "Präzise Navigation",
+                    description: "Genaue Distanzen und Gehzeiten berechnen"
+                )
+                PermissionBenefit(
+                    icon: "shield.checkered", 
+                    title: "Nur während App-Nutzung",
+                    description: "Dein Standort wird nur bei aktiver App verwendet"
+                )
             }
         }
     }
@@ -118,15 +105,7 @@ struct LocationAlwaysIntroView: View {
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 24)
                 
-                // Action button
-                IntroActionButton(
-                    IntroStep.locationAlways.buttonText,
-                    isLoading: viewModel.isPermissionInProgress
-                ) {
-                    Task {
-                        await viewModel.requestLocationAlwaysPermission()
-                    }
-                }
+
             }
         }
     }
@@ -169,15 +148,7 @@ struct NotificationPermissionIntroView: View {
                 }
                 .padding(.horizontal, 24)
                 
-                // Action button
-                IntroActionButton(
-                    IntroStep.notificationPermission.buttonText,
-                    isLoading: viewModel.isPermissionInProgress
-                ) {
-                    Task {
-                        await viewModel.requestNotificationPermission()
-                    }
-                }
+
             }
         }
     }
@@ -186,54 +157,85 @@ struct NotificationPermissionIntroView: View {
 /// Completion View - Success message and app transition
 struct CompletionIntroView: View {
     let viewModel: IntroFlowViewModel
+    let onComplete: () -> Void
     
     var body: some View {
-        IntroStepContainer(step: .completion, viewModel: viewModel) {
-            VStack(spacing: 32) {
-                // Success animation placeholder (could be enhanced later)
-                VStack(spacing: 16) {
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 100))
-                        .foregroundColor(.green)
-                        .scaleEffect(1.0)
-                        .animation(.easeInOut(duration: 0.6).repeatCount(1, autoreverses: false), value: true)
+        GeometryReader { geometry in
+            ScrollView {
+                VStack(spacing: 0) {
+                    // Top spacing for status bar
+                    Rectangle()
+                        .fill(Color.clear)
+                        .frame(height: max(0, geometry.safeAreaInsets.top))
                     
-                    Text("Perfekt!")
-                        .font(.largeTitle)
-                        .fontWeight(.bold)
-                        .foregroundColor(.white)
-                }
-                
-                // Ready to go message
-                VStack(spacing: 12) {
-                    Text("Alles ist eingerichtet!")
-                        .font(.title2)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.white)
-                    
-                    Text("Du bist bereit für deine erste intelligente Stadt-Route. Entdecke die schönsten Orte mit optimierten Walking-Touren!")
-                        .font(.body)
-                        .foregroundColor(.white.opacity(0.9))
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 16)
-                }
-                
-                // Next steps hint
-                VStack(spacing: 8) {
-                    Text("🗺️ Wähle eine Stadt")
-                    Text("📍 Lass uns eine Route planen")
-                    Text("🚶‍♂️ Starte dein Abenteuer")
-                }
-                .font(.body)
-                .foregroundColor(.white.opacity(0.8))
-                .padding(.horizontal, 24)
-                
-                // Action button
-                IntroActionButton(IntroStep.completion.buttonText) {
-                    // Completion is handled in IntroFlowView
+                    // Main content
+                    VStack(spacing: 40) {
+                        // Icon
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 64, weight: .regular))
+                            .foregroundColor(.green)
+                            .frame(height: 80)
+                        
+                        // Title and description
+                        VStack(spacing: 16) {
+                            Text("Alles bereit!")
+                                .font(.largeTitle)
+                                .fontWeight(.bold)
+                                .foregroundColor(.primary)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, 32)
+                                .fixedSize(horizontal: false, vertical: true)
+                            
+                            Text("Perfekt! Du bist bereit für deine erste intelligente Stadt-Route. Los geht's mit der Entdeckung!")
+                                .font(.title3)
+                                .foregroundColor(.secondary)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, 32)
+                                .fixedSize(horizontal: false, vertical: true)
+                                .lineLimit(nil)
+                        }
+                        
+                        // Features preview
+                        VStack(spacing: 20) {
+                            FeatureHighlight(
+                                icon: "map.fill", 
+                                text: "Optimierte Routen zwischen Sehenswürdigkeiten"
+                            )
+                            FeatureHighlight(
+                                icon: "location.circle", 
+                                text: "GPS-Navigation zu interessanten Spots"
+                            )
+                            FeatureHighlight(
+                                icon: "bell.badge", 
+                                text: "Smart Benachrichtigungen unterwegs"
+                            )
+                        }
+                        .padding(.horizontal, 32)
+                        
+                        // Manual button for completion
+                        VStack(spacing: 20) {
+                            Button(action: onComplete) {
+                                HStack {
+                                    Text("Zur App")
+                                        .font(.headline)
+                                        .fontWeight(.semibold)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 56)
+                                .background(Color.accentColor)
+                                .foregroundColor(.white)
+                                .cornerRadius(16)
+                            }
+                        }
+                        .padding(.horizontal, 32)
+                    }
+                    .padding(.top, 60)
+                    .padding(.bottom, max(34, geometry.safeAreaInsets.bottom + 16))
                 }
             }
         }
+        .background(Color(.systemBackground))
+        .ignoresSafeArea(edges: .top)
     }
 }
 
@@ -244,19 +246,21 @@ struct FeatureHighlight: View {
     let text: String
     
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 16) {
             Image(systemName: icon)
                 .font(.title2)
-                .foregroundColor(.white)
-                .frame(width: 24)
+                .foregroundColor(.accentColor)
+                .frame(width: 28, height: 28)
             
             Text(text)
                 .font(.body)
-                .foregroundColor(.white.opacity(0.9))
+                .foregroundColor(.primary)
                 .multilineTextAlignment(.leading)
+                .fixedSize(horizontal: false, vertical: true)
             
             Spacer()
         }
+        .padding(.vertical, 8)
     }
 }
 
@@ -266,25 +270,28 @@ struct PermissionBenefit: View {
     let description: String
     
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
+        HStack(alignment: .top, spacing: 16) {
             Image(systemName: icon)
                 .font(.title2)
-                .foregroundColor(.white)
-                .frame(width: 24)
+                .foregroundColor(.accentColor)
+                .frame(width: 28, height: 28)
             
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 6) {
                 Text(title)
                     .font(.headline)
-                    .foregroundColor(.white)
+                    .foregroundColor(.primary)
+                    .fixedSize(horizontal: false, vertical: true)
                 
                 Text(description)
-                    .font(.body)
-                    .foregroundColor(.white.opacity(0.8))
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
                     .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             
             Spacer()
         }
+        .padding(.vertical, 8)
     }
 }
 
@@ -319,8 +326,7 @@ struct PermissionBenefit: View {
 }
 
 #Preview("Completion") {
-    ZStack {
-        IntroBackgroundView()
-        CompletionIntroView(viewModel: IntroFlowViewModel())
-    }
+    CompletionIntroView(viewModel: IntroFlowViewModel(), onComplete: {
+        print("Completion preview")
+    })
 }
