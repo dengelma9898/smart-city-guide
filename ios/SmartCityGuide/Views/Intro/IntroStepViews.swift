@@ -71,84 +71,58 @@ struct LocationWhenInUseIntroView: View {
     }
 }
 
-/// Location Always Permission View - Explanation for background location access
-struct LocationAlwaysIntroView: View {
+/// POI Notification Permission View - Combined location always + notifications
+struct POINotificationIntroView: View {
     let viewModel: IntroFlowViewModel
     
     var body: some View {
-        IntroStepContainer(step: .locationAlways, viewModel: viewModel) {
+        IntroStepContainer(step: .poiNotifications, viewModel: viewModel) {
             VStack(spacing: 24) {
-                // Background permission benefits
+                // Combined permission benefits
                 VStack(spacing: 16) {
                     PermissionBenefit(
                         icon: "bell.badge.circle", 
-                        title: "Smart Benachrichtigungen",
-                        description: "Werde informiert wenn du interessante Spots erreichst"
+                        title: "Smart POI-Benachrichtigungen",
+                        description: "Werde informiert wenn du interessante Spots auf deiner Route erreichst"
                     )
                     PermissionBenefit(
-                        icon: "clock.arrow.2.circlepath", 
-                        title: "Automatische Erkennung",
-                        description: "Spots werden erkannt auch wenn die App im Hintergrund ist"
+                        icon: "location.fill.viewfinder", 
+                        title: "Hintergrund-Erkennung",
+                        description: "Spots werden automatisch erkannt, auch wenn die App im Hintergrund läuft"
+                    )
+                    PermissionBenefit(
+                        icon: "info.circle.fill", 
+                        title: "Relevante Informationen",
+                        description: "Erhalte spannende Details und Fakten zu Sehenswürdigkeiten"
                     )
                     PermissionBenefit(
                         icon: "battery.75", 
                         title: "Energieeffizient",
-                        description: "Intelligente Standorterkennung schont den Akku"
+                        description: "Intelligente Standorterkennung schont deinen Akku"
                     )
                 }
                 .padding(.horizontal, 8)
                 
-                // Privacy note
-                Text("Deine Daten bleiben privat und werden nicht geteilt")
-                    .font(.caption)
-                    .foregroundColor(.white.opacity(0.7))
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 24)
-                
-
-            }
-        }
-    }
-}
-
-/// Notification Permission View - Explanation for push notifications
-struct NotificationPermissionIntroView: View {
-    let viewModel: IntroFlowViewModel
-    
-    var body: some View {
-        IntroStepContainer(step: .notificationPermission, viewModel: viewModel) {
-            VStack(spacing: 24) {
-                // Notification benefits
-                VStack(spacing: 16) {
-                    PermissionBenefit(
-                        icon: "bell.badge.waveform", 
-                        title: "Nie wieder verpassen",
-                        description: "Benachrichtigungen für Sehenswürdigkeiten in deiner Nähe"
-                    )
-                    PermissionBenefit(
-                        icon: "info.circle", 
-                        title: "Spannende Details",
-                        description: "Erfahre interessante Fakten über deine Umgebung"
-                    )
-                    PermissionBenefit(
-                        icon: "gear.circle", 
-                        title: "Vollständig anpassbar",
-                        description: "Du bestimmst welche Benachrichtigungen du erhältst"
-                    )
+                // Privacy and control note
+                VStack(spacing: 8) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "shield.checkered")
+                            .foregroundColor(.secondary)
+                        Text("Deine Daten bleiben privat und werden nicht geteilt")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    
+                    HStack(spacing: 8) {
+                        Image(systemName: "gear.circle")
+                            .foregroundColor(.secondary)
+                        Text("Vollständig anpassbar in den Profileinstellungen")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
                 }
-                .padding(.horizontal, 8)
-                
-                // Timing note
-                HStack(spacing: 8) {
-                    Image(systemName: "clock.circle")
-                        .foregroundColor(.white.opacity(0.7))
-                    Text("Benachrichtigungen kommen nur wenn relevant")
-                        .font(.caption)
-                        .foregroundColor(.white.opacity(0.7))
-                }
+                .multilineTextAlignment(.center)
                 .padding(.horizontal, 24)
-                
-
             }
         }
     }
@@ -311,17 +285,10 @@ struct PermissionBenefit: View {
     }
 }
 
-#Preview("Location Always") {
+#Preview("POI Notifications") {
     ZStack {
         IntroBackgroundView()
-        LocationAlwaysIntroView(viewModel: IntroFlowViewModel())
-    }
-}
-
-#Preview("Notification Permission") {
-    ZStack {
-        IntroBackgroundView()
-        NotificationPermissionIntroView(viewModel: IntroFlowViewModel())
+        POINotificationIntroView(viewModel: IntroFlowViewModel())
     }
 }
 

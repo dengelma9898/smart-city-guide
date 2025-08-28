@@ -151,6 +151,18 @@ struct ProfileView: View {
                         
                         Divider().padding(.horizontal, 16)
                         
+                        // Permissions
+                        NavigationLink(destination: PermissionsView()) {
+                            ProfileRow(
+                                icon: "lock.shield.fill",
+                                title: "Berechtigungen",
+                                subtitle: "Verwalte deine App-Berechtigungen"
+                            )
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                        
+                        Divider().padding(.horizontal, 16)
+                        
                         // Saved Places (placeholder)
                         NavigationLink(destination: Text("Bald verfügbar").padding()) {
                             ProfileRow(

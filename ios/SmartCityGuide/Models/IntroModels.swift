@@ -15,8 +15,7 @@ import SwiftUI
 enum IntroStep: String, CaseIterable, Identifiable {
     case welcome = "welcome"
     case locationWhenInUse = "locationWhenInUse"
-    case locationAlways = "locationAlways"
-    case notificationPermission = "notificationPermission"
+    case poiNotifications = "poiNotifications"
     case completion = "completion"
     
     var id: String { rawValue }
@@ -27,10 +26,8 @@ enum IntroStep: String, CaseIterable, Identifiable {
         case .welcome:
             return .locationWhenInUse
         case .locationWhenInUse:
-            return .locationAlways
-        case .locationAlways:
-            return .notificationPermission
-        case .notificationPermission:
+            return .poiNotifications
+        case .poiNotifications:
             return .completion
         case .completion:
             return nil
@@ -54,10 +51,8 @@ enum IntroStep: String, CaseIterable, Identifiable {
             return "Willkommen bei Smart City Guide!"
         case .locationWhenInUse:
             return "Dein Standort für Routen"
-        case .locationAlways:
-            return "Standort für Benachrichtigungen"
-        case .notificationPermission:
-            return "Benachrichtigungen aktivieren"
+        case .poiNotifications:
+            return "POI-Benachrichtigungen aktivieren"
         case .completion:
             return "Alles bereit!"
         }
@@ -70,10 +65,8 @@ enum IntroStep: String, CaseIterable, Identifiable {
             return "Entdecke Städte mit intelligenten Walking-Routen! Wir optimieren deine Route zu den besten Sehenswürdigkeiten, Museen und Parks."
         case .locationWhenInUse:
             return "Damit wir die beste Route von deiner aktuellen Position planen können, benötigen wir Zugriff auf deinen Standort während der App-Nutzung."
-        case .locationAlways:
-            return "Für interessante Benachrichtigungen wenn du Spots auf deiner Route erreichst, benötigen wir Standort-Zugriff auch im Hintergrund."
-        case .notificationPermission:
-            return "Lass dich benachrichtigen wenn du interessante Orte auf deiner Route erreichst! So verpasst du keine Highlights."
+        case .poiNotifications:
+            return "Erhalte intelligente Benachrichtigungen wenn du während einer aktiven Route interessante Spots erreichst! Dafür benötigen wir Standort-Zugriff im Hintergrund und Mitteilungen."
         case .completion:
             return "Perfekt! Du bist bereit für deine erste intelligente Stadt-Route. Los geht's mit der Entdeckung!"
         }
@@ -86,10 +79,8 @@ enum IntroStep: String, CaseIterable, Identifiable {
             return "Los geht's!"
         case .locationWhenInUse:
             return "Standort aktivieren"
-        case .locationAlways:
-            return "Benachrichtigungen aktivieren"
-        case .notificationPermission:
-            return "Benachrichtigungen aktivieren"
+        case .poiNotifications:
+            return "POI-Benachrichtigungen aktivieren"
         case .completion:
             return "Zur App"
         }
@@ -102,10 +93,8 @@ enum IntroStep: String, CaseIterable, Identifiable {
             return "map.circle.fill"
         case .locationWhenInUse:
             return "location.circle.fill"
-        case .locationAlways:
-            return "location.fill.viewfinder"
-        case .notificationPermission:
-            return "bell.circle.fill"
+        case .poiNotifications:
+            return "bell.badge.fill"
         case .completion:
             return "checkmark.circle.fill"
         }
@@ -118,9 +107,7 @@ enum IntroStep: String, CaseIterable, Identifiable {
             return .blue
         case .locationWhenInUse:
             return .green
-        case .locationAlways:
-            return .orange
-        case .notificationPermission:
+        case .poiNotifications:
             return .purple
         case .completion:
             return .green
@@ -228,44 +215,30 @@ class IntroFlowViewModel: ObservableObject {
         }
     }
     
-    /// Requests location always permission
-    func requestLocationAlwaysPermission() async {
+    /// Requests POI notification permissions (both location always and notifications)
+    func requestPOINotificationPermissions() async {
         setPermissionInProgress(true)
         permissionErrorMessage = nil
         
         let locationService = LocationManagerService.shared
+        let proximityService = ProximityService.shared
+        
+        // Request location always permission first
         await locationService.requestAlwaysLocationPermission()
         
-        // Check if always permission was granted
-        if locationService.authorizationStatus != .authorizedAlways {
-            permissionErrorMessage = "Hintergrund-Benachrichtigungen sind optional. Du kannst sie jederzeit in den Profileinstellungen aktivieren."
-        }
+        // Request notification permission
+        let notificationGranted = await proximityService.requestNotificationPermission()
         
-        setPermissionInProgress(false)
+        // Check results and provide appropriate feedback
+        let hasLocationAlways = locationService.authorizationStatus == .authorizedAlways
+        let hasNotifications = notificationGranted && proximityService.notificationPermissionStatus == .authorized
         
-        // Move to next step WITHOUT animation wrapping to avoid interfering with permission dialogs
-        guard let nextStep = currentStep.nextStep else {
-            completeIntro()
-            return
-        }
-        
-        DispatchQueue.main.async {
-            withAnimation(.easeInOut(duration: 0.4)) {
-                self.currentStep = nextStep
-            }
-        }
-    }
-    
-    /// Requests notification permission
-    func requestNotificationPermission() async {
-        setPermissionInProgress(true)
-        permissionErrorMessage = nil
-        
-        let proximityService = ProximityService.shared
-        let granted = await proximityService.requestNotificationPermission()
-        
-        if !granted {
-            permissionErrorMessage = "Benachrichtigungen sind optional. Du kannst sie später in den Profileinstellungen aktivieren."
+        if !hasLocationAlways && !hasNotifications {
+            permissionErrorMessage = "POI-Benachrichtigungen sind optional. Du kannst beide Berechtigungen später in den Profileinstellungen aktivieren."
+        } else if !hasLocationAlways {
+            permissionErrorMessage = "Standort im Hintergrund ist optional. Du kannst es später in den Profileinstellungen aktivieren."
+        } else if !hasNotifications {
+            permissionErrorMessage = "Mitteilungen sind optional. Du kannst sie später in den Profileinstellungen aktivieren."
         }
         
         setPermissionInProgress(false)

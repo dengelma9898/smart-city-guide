@@ -58,10 +58,8 @@ struct IntroFlowView: View {
                         WelcomeIntroView(viewModel: viewModel)
                     case .locationWhenInUse:
                         LocationWhenInUseIntroView(viewModel: viewModel)
-                    case .locationAlways:
-                        LocationAlwaysIntroView(viewModel: viewModel)
-                    case .notificationPermission:
-                        NotificationPermissionIntroView(viewModel: viewModel)
+                    case .poiNotifications:
+                        POINotificationIntroView(viewModel: viewModel)
                     case .completion:
                         CompletionIntroView(viewModel: viewModel, onComplete: {
                             viewModel.completeIntro()
@@ -194,13 +192,9 @@ struct IntroStepContainer<Content: View>: View {
             Task {
                 await viewModel.requestLocationWhenInUsePermission()
             }
-        case .locationAlways:
+        case .poiNotifications:
             Task {
-                await viewModel.requestLocationAlwaysPermission()
-            }
-        case .notificationPermission:
-            Task {
-                await viewModel.requestNotificationPermission()
+                await viewModel.requestPOINotificationPermissions()
             }
         case .completion:
             // This should not be reached now
