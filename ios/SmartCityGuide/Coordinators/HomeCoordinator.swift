@@ -934,14 +934,19 @@ class BasicHomeCoordinator: ObservableObject {
             
             self.quickPlanningMessage = "Optimiere deine Route…"
             
-            // Use the centralized route service with POIs
+            // Use the centralized route service with user preferences
+            // NOTE: Quick Planning ALWAYS uses current location as start point (that's the concept!)
+            // Only route planning parameters (stops, time, distance) respect user preferences
+            let userSettings = ProfileSettingsManager.shared.settings
+            let defaultSettings = userSettings.getNewDefaultsForRoutePlanning()
+            
             await routeService.generateRoute(
-                fromCurrentLocation: location,
-                maximumStops: .eight,
-                endpointOption: .roundtrip,
-                customEndpoint: "",
-                maximumWalkingTime: .openEnd,
-                minimumPOIDistance: .noMinimum,
+                fromCurrentLocation: location, // Always current location for quick planning
+                maximumStops: defaultSettings.0, // User preference
+                endpointOption: defaultSettings.1, // User preference  
+                customEndpoint: defaultSettings.4, // User preference
+                maximumWalkingTime: defaultSettings.2, // User preference
+                minimumPOIDistance: defaultSettings.3, // User preference
                 availablePOIs: pois
             )
             

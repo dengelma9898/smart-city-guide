@@ -393,6 +393,18 @@ struct RoutePlanningView: View {
           }
         }
       }
+      .onChange(of: locationService.currentLocation) { _, newLocation in
+        // Update current location automatically if user has preference enabled
+        if settingsManager.settings.useCurrentLocationAsDefault && usingCurrentLocation {
+          if let location = newLocation {
+            startingCoordinates = location.coordinate
+            if startingCity == "Mein Standort" || startingCity.isEmpty {
+              startingCity = "Mein Standort"
+            }
+            SecureLogger.shared.logDebug("📍 Auto-updated current location coordinates", category: .ui)
+          }
+        }
+      }
       .alert("Startort Info", isPresented: $showingStartPointInfo) {
         Button("Alles klar!") { }
       } message: {
@@ -491,10 +503,25 @@ struct RoutePlanningView: View {
     minimumPOIDistance = newDefaults.3
     customEndpoint = newDefaults.4
     
+    // ✅ NEW: Apply location preference setting
+    if settingsManager.settings.useCurrentLocationAsDefault {
+      usingCurrentLocation = true
+      // Set current location if available
+      if let currentLocation = locationService.currentLocation {
+        startingCoordinates = currentLocation.coordinate
+        startingCity = "Mein Standort"
+        SecureLogger.shared.logDebug("📍 Auto-applied current location as default start point", category: .ui)
+      } else if locationService.isLocationAuthorized {
+        // Location authorized but not yet available - will be set when location updates
+        startingCity = "Mein Standort"
+        SecureLogger.shared.logDebug("📍 Set current location as default (waiting for GPS fix)", category: .ui)
+      }
+    }
+    
     // Mark as loaded to prevent reloading
     hasLoadedDefaults = true
     
-    SecureLogger.shared.logDebug("📱 RoutePlanningView: Loaded settings defaults - Stops: \(maximumStops.rawValue), Time: \(maximumWalkingTime.rawValue), Distance: \(minimumPOIDistance.rawValue)", category: .ui)
+    SecureLogger.shared.logDebug("📱 RoutePlanningView: Loaded settings defaults - Stops: \(maximumStops.rawValue), Time: \(maximumWalkingTime.rawValue), Distance: \(minimumPOIDistance.rawValue), UseCurrentLocation: \(settingsManager.settings.useCurrentLocationAsDefault)", category: .ui)
   }
   
 
