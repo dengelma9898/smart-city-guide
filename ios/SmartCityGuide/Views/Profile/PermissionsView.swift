@@ -6,6 +6,7 @@ struct PermissionsView: View {
     @StateObject private var locationManager = LocationManagerService.shared
     @StateObject private var proximityService = ProximityService.shared
     @StateObject private var settingsManager = ProfileSettingsManager.shared
+    @StateObject private var biometricService = BiometricAuthenticationService.shared
     
     var body: some View {
         Form {
@@ -122,6 +123,54 @@ struct PermissionsView: View {
                     .fontWeight(.semibold)
             } footer: {
                 Text("Der Toggle fragt automatisch beide benötigten System-Berechtigungen an (Standort im Hintergrund + Mitteilungen). Anschließend können POI-Benachrichtigungen jederzeit aktiviert/deaktiviert werden.")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+            }
+            
+            // MARK: - Biometric Security Section
+            Section {
+                HStack(alignment: .top, spacing: 12) {
+                    Image(systemName: biometricIconName)
+                        .foregroundColor(biometricSecurityEnabled ? .green : .gray)
+                        .frame(width: 24, height: 24)
+                    
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Biometrische Sicherung")
+                                    .font(.subheadline)
+                                    .fontWeight(.medium)
+                                
+                                Text(biometricStatusText)
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            
+                            Spacer()
+                            
+                            Toggle("", isOn: Binding(
+                                get: { biometricSecurityEnabled },
+                                set: { newValue in
+                                    settingsManager.updateBiometricSecuritySetting(enabled: newValue)
+                                }
+                            ))
+                            .toggleStyle(SwitchToggleStyle())
+                        }
+                        
+                        Text("Schütze deine persönlichen Bereiche 'Abenteuer' und 'Lieblingsorte' mit \(biometricTypeString). Wenn deaktiviert, ist direkter Zugriff möglich.")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                            .padding(.top, 2)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                .padding(.vertical, 8)
+            } header: {
+                Text("Sicherheit")
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+            } footer: {
+                Text("Die biometrische Sicherung schützt sensible Profilbereiche. \(biometricAvailabilityText)")
                     .font(.caption2)
                     .foregroundColor(.secondary)
             }
@@ -249,10 +298,44 @@ struct PermissionsView: View {
             }
         } else {
             // User wants to disable - just disable app setting (keep system permissions)
-            settingsManager.updatePOINotificationSetting(enabled: false)
+                        settingsManager.updatePOINotificationSetting(enabled: false)
         }
     }
     
+    // MARK: - Biometric Security Helper Properties
+    
+    private var biometricSecurityEnabled: Bool {
+        return settingsManager.isBiometricSecurityEnabled
+    }
+    
+    private var biometricIconName: String {
+        return biometricService.authenticationIcon
+    }
+    
+    private var biometricTypeString: String {
+        return biometricService.biometryTypeString
+    }
+    
+    private var biometricStatusText: String {
+        if !biometricService.isAvailable {
+            return "Nicht verfügbar"
+        } else if biometricSecurityEnabled {
+            return "Aktiviert"
+        } else {
+            return "Deaktiviert"
+        }
+    }
+    
+    private var biometricAvailabilityText: String {
+        if biometricService.isSimulator {
+            return "Im Simulator ist biometrische Authentifizierung nicht verfügbar."
+        } else if !biometricService.isAvailable {
+            return "Dein Gerät unterstützt keine biometrische Authentifizierung."
+        } else {
+            return "\(biometricTypeString) ist verfügbar und einsatzbereit."
+        }
+    }
+
 
 }
 

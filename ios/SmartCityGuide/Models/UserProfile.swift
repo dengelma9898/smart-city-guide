@@ -36,7 +36,7 @@ class UserProfileManager: ObservableObject {
     private let legacyUserDefaultsKey = "user_profile" // For migration
     private let logger = Logger(subsystem: "de.dengelma.smartcity-guide", category: "UserProfile")
     
-    init() {
+    init(skipAutoLoad: Bool = false) {
         // Wenn im UI-Test-Modus, einfachen Seed verwenden und keine Keychain/FaceID anstoßen
         if ProcessInfo.processInfo.environment["UITEST"] == "1" {
             self.profile = UserProfile(name: "Max Mustermann", email: "max.mustermann@email.de")
@@ -44,8 +44,10 @@ class UserProfileManager: ObservableObject {
             self.errorMessage = nil
         } else {
             self.profile = UserProfile() // Temporary default
-            Task {
-                await loadProfile()
+            if !skipAutoLoad {
+                Task {
+                    await loadProfile()
+                }
             }
         }
     }
@@ -61,16 +63,16 @@ class UserProfileManager: ObservableObject {
                 UserProfile.self,
                 userDefaultsKey: legacyUserDefaultsKey,
                 secureKey: secureKey,
-                requireBiometrics: true
+                requireBiometrics: false  // Keine automatische Biometrics beim Laden
             ) {
                 profile = migratedProfile
                 logger.info("📱 UserProfile: Successfully migrated from UserDefaults")
             }
-            // Sonst lade aus Keychain
+            // Sonst lade aus Keychain ohne Biometric Prompt
             else if let savedProfile = try secureStorage.load(
                 UserProfile.self,
                 forKey: secureKey,
-                promptMessage: "Authentifiziere dich, um dein Profil zu laden"
+                promptMessage: nil  // Kein automatischer Biometric Prompt
             ) {
                 profile = savedProfile
                 logger.info("📱 UserProfile: Loaded from secure storage")
@@ -106,7 +108,7 @@ class UserProfileManager: ObservableObject {
             try secureStorage.save(
                 profile,
                 forKey: secureKey,
-                requireBiometrics: true
+                requireBiometrics: false  // Speichern ohne Biometric Requirement
             )
             logger.info("📱 UserProfile: Saved securely")
         } catch {

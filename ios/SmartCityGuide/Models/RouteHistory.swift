@@ -101,9 +101,11 @@ class RouteHistoryManager: ObservableObject {
     private let logger = Logger(subsystem: "de.dengelma.smartcity-guide", category: "RouteHistory")
     private let maxSavedRoutes = 50 // Limit to prevent storage bloat
     
-    init() {
-        Task {
-            await loadRoutes()
+    init(skipAutoLoad: Bool = false) {
+        if !skipAutoLoad {
+            Task {
+                await loadRoutes()
+            }
         }
     }
     
@@ -118,16 +120,16 @@ class RouteHistoryManager: ObservableObject {
                 [SavedRoute].self,
                 userDefaultsKey: legacyUserDefaultsKey,
                 secureKey: secureKey,
-                requireBiometrics: true // GPS-Daten sind hochsensitiv!
+                requireBiometrics: false  // Keine automatische Biometrics beim Laden
             ) {
                 savedRoutes = migratedRoutes.sorted { $0.createdAt > $1.createdAt }
                 logger.info("🗺️ RouteHistory: Successfully migrated \(migratedRoutes.count) routes from UserDefaults")
             }
-            // Sonst lade aus Keychain
+            // Sonst lade aus Keychain ohne Biometric Prompt
             else if let loadedRoutes = try secureStorage.load(
                 [SavedRoute].self,
                 forKey: secureKey,
-                promptMessage: "Authentifiziere dich, um deine gespeicherten Routen zu laden"
+                promptMessage: nil  // Kein automatischer Biometric Prompt
             ) {
                 savedRoutes = loadedRoutes.sorted { $0.createdAt > $1.createdAt }
                 logger.info("🗺️ RouteHistory: Loaded \(loadedRoutes.count) routes from secure storage")
@@ -161,7 +163,7 @@ class RouteHistoryManager: ObservableObject {
             try secureStorage.save(
                 routesToSave,
                 forKey: secureKey,
-                requireBiometrics: true // GPS-Daten sind hochsensitiv!
+                requireBiometrics: false  // Speichern ohne Biometric Requirement
             )
             logger.info("🗺️ RouteHistory: Saved \(routesToSave.count) routes securely")
         } catch {

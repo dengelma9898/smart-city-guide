@@ -21,6 +21,9 @@ struct ProfileSettings: Codable {
     // Phase 4: POI-Notification-Einstellungen
     var poiNotificationsEnabled: Bool
     
+    // Phase 5: Biometric Security Settings
+    var biometricSecurityEnabled: Bool?
+    
     init() {
         // Legacy Werte für Backwards Compatibility
         self.defaultNumberOfPlaces = 3
@@ -38,6 +41,9 @@ struct ProfileSettings: Codable {
         
         // Phase 4: POI-Notification Defaults
         self.poiNotificationsEnabled = true  // Opt-Out-Approach: POI-Notifications sind ein Core-Feature
+        
+        // Phase 5: Biometric Security Defaults
+        self.biometricSecurityEnabled = true  // Default: Biometrische Sicherung aktiviert
     }
     
     // Migration von alten zu neuen Settings (nur für bestehende User die upgrades)
@@ -116,12 +122,20 @@ class ProfileSettingsManager: ObservableObject {
                 logger.info("⚙️ ProfileSettings: Successfully migrated from UserDefaults")
             }
             // Sonst lade aus Keychain
-            else if let savedSettings = try secureStorage.load(
+            else if let savedSettings = try? secureStorage.load(
                 ProfileSettings.self,
-                forKey: secureKey
+                forKey: secureKey,
+                promptMessage: nil  // Kein automatischer Biometric Prompt
             ) {
                 settings = savedSettings
                 logger.info("⚙️ ProfileSettings: Loaded from secure storage")
+                
+                // Migration: Wenn biometricSecurityEnabled fehlt, setze default und speichere
+                if settings.biometricSecurityEnabled == nil {
+                    settings.biometricSecurityEnabled = true  // Default aktiviert
+                    try await saveSettings()
+                    logger.info("⚙️ ProfileSettings: Migrated biometricSecurityEnabled to default (true)")
+                }
             }
             // Falls nichts existiert, behalte default und speichere
             else {
@@ -216,6 +230,17 @@ class ProfileSettingsManager: ObservableObject {
             object: nil,
             userInfo: ["enabled": enabled]
         )
+    }
+    
+    // Phase 5: Update Biometric Security Setting
+    func updateBiometricSecuritySetting(enabled: Bool) {
+        settings.biometricSecurityEnabled = enabled
+        save()
+    }
+    
+    // Helper property für biometric security mit default fallback
+    var isBiometricSecurityEnabled: Bool {
+        return settings.biometricSecurityEnabled ?? true  // Default: aktiviert
     }
     
     func resetToDefaults() {

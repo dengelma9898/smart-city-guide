@@ -3,9 +3,10 @@ import SwiftUI
 // MARK: - Enhanced Profile View
 struct ProfileView: View {
     @Environment(\.dismiss) private var dismiss
-    @StateObject private var profileManager = UserProfileManager()
+    // Services mit @StateObject aber ohne automatisches Face ID
+    @StateObject private var profileManager = UserProfileManager(skipAutoLoad: true)
     @StateObject private var settingsManager = ProfileSettingsManager.shared
-    @StateObject private var historyManager = RouteHistoryManager()
+    @StateObject private var historyManager = RouteHistoryManager(skipAutoLoad: true)
     @State private var showingAvatarSheet = false
     
     // Sheets für Unterseiten entfallen – alle Unterseiten öffnen via Push
@@ -126,15 +127,14 @@ struct ProfileView: View {
                     
                     // Enhanced Profile Options (use NavigationLink for platform-consistent UX)
                     VStack(spacing: 0) {
-                        // Route History
-                        NavigationLink(destination: RouteHistoryView().environmentObject(historyManager)) {
-                            ProfileRow(
-                                icon: "clock.fill",
-                                title: "Deine Abenteuer",
-                                subtitle: "\(historyManager.savedRoutes.count) coole Touren erlebt"
-                            )
-                        }
-                        .buttonStyle(PlainButtonStyle())
+                        // Route History (Biometric Protected)
+                        BiometricProtectedNavigationLink(
+                            destination: RouteHistoryView().environmentObject(historyManager),
+                            authenticationMessage: "Zugriff auf deine persönlichen Abenteuer und Routen-Historie",
+                            icon: "clock.fill",
+                            title: "Deine Abenteuer",
+                            subtitle: "\(historyManager.savedRoutes.count) coole Touren erlebt"
+                        )
                         
                         Divider().padding(.horizontal, 16)
                         
@@ -163,15 +163,14 @@ struct ProfileView: View {
                         
                         Divider().padding(.horizontal, 16)
                         
-                        // Saved Places (placeholder)
-                        NavigationLink(destination: Text("Bald verfügbar").padding()) {
-                            ProfileRow(
-                                icon: "location.fill",
-                                title: "Deine Lieblingsorte",
-                                subtitle: "Die coolsten Spots!"
-                            )
-                        }
-                        .buttonStyle(PlainButtonStyle())
+                        // Saved Places (Biometric Protected)
+                        BiometricProtectedNavigationLink(
+                            destination: Text("Bald verfügbar").padding(),
+                            authenticationMessage: "Zugriff auf deine gespeicherten Lieblingsorte",
+                            icon: "location.fill",
+                            title: "Deine Lieblingsorte",
+                            subtitle: "Die coolsten Spots!"
+                        )
                         
                         Divider().padding(.horizontal, 16)
                         
