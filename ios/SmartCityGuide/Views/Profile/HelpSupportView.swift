@@ -497,16 +497,13 @@ struct FAQCategory {
                     answer: "Ja! Du kannst auf jedem Screen (außer dem letzten) auf 'Überspringen' tippen. Wir zeigen dir dann einen kurzen Hinweis, dass du fehlende Berechtigungen später jederzeit in den Profileinstellungen aktivieren kannst. Die App funktioniert auch ohne alle Berechtigungen - manche Features sind dann nur eingeschränkt verfügbar."
                 ),
                 FAQ(
-                    question: "Warum braucht die App zwei verschiedene Standort-Berechtigungen?",
-                    answer: "Es gibt zwei Arten: 1) 'Standort (App-Nutzung)' ermöglicht Routenplanung von deinem aktuellen Standort und zeigt dich als blauen Punkt auf der Karte. 2) 'Standort (Hintergrund)' ermöglicht zusätzlich Benachrichtigungen über interessante Spots, auch wenn die App nicht geöffnet ist. Du kannst jede Berechtigung einzeln aktivieren - die App erklärt dir in den Intro-Screens genau den Unterschied."
+                    question: "Wie funktionieren die POI-Benachrichtigungen?",
+                    answer: "POI-Benachrichtigungen sind unser intelligentes Benachrichtigungssystem, das beide notwendigen Berechtigungen kombiniert: Hintergrund-Standort UND Mitteilungen. Wenn du eine Route startest und POI-Benachrichtigungen aktiviert hast, erhältst du automatisch Hinweise auf interessante Spots in deiner Nähe (ca. 25m), auch wenn die App geschlossen ist. Du kannst dieses Feature mit einem einzigen Toggle in deinen Berechtigungen aktivieren."
                 ),
-                FAQ(
-                    question: "Wie funktionieren die Standort-Benachrichtigungen?",
-                    answer: "Wenn du eine Route startest und sowohl Benachrichtigungen als auch Hintergrund-Standort erlaubst, bekommst du eine Mitteilung, sobald du einem interessanten Ort auf deiner Route nahe kommst (ca. 25 Meter). So verpasst du garantiert nichts! Die Benachrichtigungen funktionieren auch, wenn die App im Hintergrund läuft."
-                ),
+
                 FAQ(
                     question: "Wie kann ich Berechtigungen später ändern?",
-                    answer: "Du findest alle Berechtigungen in deinem Profil unter 'Deine Präferenzen' im Bereich 'Berechtigungen'. Dort siehst du den aktuellen Status jeder Berechtigung (Aktiviert/Verweigert/Nicht festgelegt) und kannst sie bei Bedarf in den iOS-Einstellungen anpassen. Für verweigerte Berechtigungen führt dich ein 'Einstellungen'-Button direkt zum richtigen Ort."
+                    answer: "Du findest alle Berechtigungen in deinem Profil unter 'Berechtigungen'. Dort siehst du drei Bereiche: Standort (für App-Nutzung), POI-Benachrichtigungen (kombiniert Hintergrund-Standort + Mitteilungen) und Sicherheit (biometrische Sicherung). Mit den Toggles kannst du Features direkt aktivieren/deaktivieren. Falls Systemberechtigungen fehlen, öffnet sich automatisch der iOS-Dialog."
                 ),
                 FAQ(
                     question: "Kann ich die App ohne Location-Permission verwenden?",
@@ -531,6 +528,18 @@ struct FAQCategory {
                 FAQ(
                     question: "Kann ich meine Daten löschen?",
                     answer: "Ja, du kannst jederzeit alle deine gespeicherten Daten in den Profileinstellungen löschen. Dies umfasst deine Routenhistorie und Profileinstellungen."
+                ),
+                FAQ(
+                    question: "Was ist die biometrische Sicherung?",
+                    answer: "Die biometrische Sicherung schützt deine sensiblen Profilbereiche 'Deine Abenteuer' und 'Deine Lieblingsorte' mit Face ID, Touch ID oder Optic ID. Wenn aktiviert, musst du dich mit deinem Finger, Gesicht oder Augen authentifizieren, bevor du auf diese persönlichen Daten zugreifen kannst. Du findest diese Einstellung in deinen Berechtigungen unter 'Sicherheit'."
+                ),
+                FAQ(
+                    question: "Wie aktiviere/deaktiviere ich Face ID für mein Profil?",
+                    answer: "Gehe zu Profil → Berechtigungen → 'Sicherheit'. Dort findest du den Toggle 'Biometrische Sicherung'. Wenn aktiviert, werden 'Deine Abenteuer' und 'Deine Lieblingsorte' mit Face ID/Touch ID/Optic ID geschützt. Wenn deaktiviert, hast du direkten Zugriff auf diese Bereiche. Die Einstellung wird automatisch für alle unterstützten biometrischen Verfahren deines Geräts verwendet."
+                ),
+                FAQ(
+                    question: "Was passiert wenn Face ID fehlschlägt?",
+                    answer: "Wenn die biometrische Authentifizierung fehlschlägt (z.B. Face ID nicht erkannt), siehst du eine Fehlermeldung und bleibst auf der aktuellen Seite. Du kannst es erneut versuchen, indem du nochmal auf den entsprechenden Bereich tippst. Falls Face ID auf deinem Gerät nicht verfügbar ist (z.B. im Simulator), funktioniert der Zugriff automatisch ohne Authentifizierung."
                 )
             ]
         ),
