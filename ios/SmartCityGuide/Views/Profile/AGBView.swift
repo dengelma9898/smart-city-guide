@@ -77,7 +77,7 @@ struct AGBView: View {
                         
                         Wartungsarbeiten können zu vorübergehenden Einschränkungen führen. Wir informieren dich bei geplanten Wartungen rechtzeitig.
                         
-                        Bei technischen Problemen oder Störungen kontaktiere unseren Support unter: support@smartcityguide.de
+                        Bei technischen Problemen oder Störungen kontaktiere unseren Support unter: dengelma.solutions@gmail.com
                         """
                     )
                     

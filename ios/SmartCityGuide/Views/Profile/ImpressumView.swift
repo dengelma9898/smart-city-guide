@@ -32,8 +32,7 @@ struct ImpressumView: View {
                     ImpressumSection(
                         title: "Kontakt",
                         content: """
-                        Telefon: +49 30 12345678
-                        E-Mail: info@smartcityguide.de
+                        E-Mail: dengelma.solutions@gmail.com
                         Website: www.smartcityguide.de
                         """
                     )

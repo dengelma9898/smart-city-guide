@@ -31,8 +31,7 @@ struct DatenschutzerklaerungView: View {
                         10115 Berlin
                         Deutschland
                         
-                        E-Mail: datenschutz@smartcityguide.de
-                        Telefon: +49 30 12345678
+                        E-Mail: dengelma.solutions@gmail.com
                         """
                     )
                     
@@ -144,7 +143,7 @@ struct DatenschutzerklaerungView: View {
                         • Widerspruch gegen die Verarbeitung (Art. 21 DSGVO)
                         • Widerruf von Einwilligungen (Art. 7 Abs. 3 DSGVO)
                         
-                        Kontaktiere uns unter: datenschutz@smartcityguide.de
+                        Kontaktiere uns unter: dengelma.solutions@gmail.com
                         """
                     )
                     

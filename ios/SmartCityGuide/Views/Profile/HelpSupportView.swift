@@ -208,22 +208,10 @@ struct ContactSectionView: View {
                 ContactOptionView(
                     icon: "envelope.fill",
                     title: "E-Mail Support",
-                    detail: "support@smartcityguide.de",
+                    detail: "dengelma.solutions@gmail.com",
                     color: .blue,
                     action: {
-                        if let url = URL(string: "mailto:support@smartcityguide.de") {
-                            UIApplication.shared.open(url)
-                        }
-                    }
-                )
-                
-                ContactOptionView(
-                    icon: "phone.fill",
-                    title: "Telefon Support",
-                    detail: "+49 30 12345678",
-                    color: .green,
-                    action: {
-                        if let url = URL(string: "tel:+4930123456778") {
+                        if let url = URL(string: "mailto:dengelma.solutions@gmail.com") {
                             UIApplication.shared.open(url)
                         }
                     }
