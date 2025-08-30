@@ -14,43 +14,48 @@ struct RouteSuccessView: View {
     @State private var showButton = false
     
     var body: some View {
-        NavigationView {
-            ZStack {
-                // Background gradient
-                LinearGradient(
-                    colors: [
-                        Color(.systemBackground),
-                        Color(.systemGroupedBackground)
-                    ],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .ignoresSafeArea()
-                
-                VStack(spacing: 20) {
-                    // Success Icon and Title
-                    successHeader
-                    
-                    // Statistics Grid
-                    statisticsGrid
-                    
+        ZStack {
+            // Background gradient
+            LinearGradient(
+                colors: [
+                    Color(.systemBackground),
+                    Color(.systemGroupedBackground)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .ignoresSafeArea()
+            
+            VStack(spacing: 20) {
+                // Close button at top
+                HStack {
                     Spacer()
-                    
-                    // Motivational Message and Action Button
-                    actionSection
-                }
-                .padding(.horizontal, 20)
-                .padding(.vertical, 16)
-            }
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Fertig") {
                         onClose()
                     }
+                    .font(.subheadline)
+                    .fontWeight(.medium)
                     .foregroundColor(.primary)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .background(Color(.systemGray6))
+                    .clipShape(Capsule())
                 }
+                .padding(.horizontal, 20)
+                .padding(.top, 16)
+                
+                // Success Icon and Title
+                successHeader
+                
+                // Statistics Grid
+                statisticsGrid
+                
+                Spacer()
+                
+                // Motivational Message and Action Button
+                actionSection
             }
+            .padding(.bottom, 16)
         }
         .onAppear {
             startAnimationSequence()
@@ -223,7 +228,8 @@ struct RouteSuccessView: View {
                 totalDistance: 2300,
                 totalTravelTime: 2700,
                 totalVisitTime: 3600,
-                totalExperienceTime: 6300
+                totalExperienceTime: 6300,
+                endpointOption: .roundtrip
             ),
         routeStats: RouteCompletionStats(
             totalDistance: 2300,

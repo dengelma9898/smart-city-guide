@@ -25,6 +25,8 @@ class ProximityService: NSObject, ObservableObject {
     private var locationService = LocationManagerService.shared
     private var settingsManager = ProfileSettingsManager.shared
     private var routeCompletionTriggered = false
+    private var currentUserLocation: CLLocation?
+    private var isProcessingProximityCheck = false
 
     
     override init() {
@@ -189,6 +191,12 @@ class ProximityService: NSObject, ObservableObject {
         let appState = UIApplication.shared.applicationState
         let stateText = appState == .background ? "BACKGROUND" : (appState == .inactive ? "INACTIVE" : "FOREGROUND")
         
+        // Prevent concurrent proximity checks to avoid duplicate notifications
+        guard !isProcessingProximityCheck else {
+            logger.info("🔍 checkProximityToSpots skipped - already processing (\(stateText))")
+            return
+        }
+        
         guard isActive,
               let route = activeRoute,
               let userLocation = locationService.currentLocation else {
@@ -196,63 +204,134 @@ class ProximityService: NSObject, ObservableObject {
             return
         }
         
+        isProcessingProximityCheck = true
+        defer { isProcessingProximityCheck = false }
+        
+        // Update current user location for route completion checks
+        currentUserLocation = userLocation
+        
         logger.info("🔍 Checking proximity for \(route.waypoints.count) waypoints from location: \(userLocation.coordinate.latitude), \(userLocation.coordinate.longitude) (\(stateText))")
         
         for (index, waypoint) in route.waypoints.enumerated() {
             let spotId = generateSpotId(for: waypoint)
             
-            // Skip start and end points - only notify for actual POIs
+            // Identify start and end points
             let isStartPoint = (index == 0)
             let isEndPoint = (index == route.waypoints.count - 1)
             
-            if isStartPoint || isEndPoint {
-                logger.info("📍 Skipping \(isStartPoint ? "START" : "END") point: \(waypoint.name) (index: \(index))")
-                continue
-            }
-            
-            // Skip if already visited
-            if visitedSpots.contains(spotId) {
-                continue
-            }
-            
-            let spotLocation = CLLocation(
-                latitude: waypoint.coordinate.latitude,
-                longitude: waypoint.coordinate.longitude
-            )
-            
-            let distance = userLocation.distance(from: spotLocation)
-            logger.info("📍 Distance to \(waypoint.name): \(String(format: "%.1f", distance))m (threshold: \(self.proximityThreshold)m)")
-            
-            if distance <= proximityThreshold {
-                logger.info("🎯 Triggering notification for \(waypoint.name) - within threshold!")
-                await triggerSpotNotification(for: waypoint, distance: distance)
-                visitedSpots.insert(spotId)
-                logger.info("✅ Spot visited: \(waypoint.name) at \(String(format: "%.1f", distance))m")
+            // For POI notifications: skip start and end points
+            if !isStartPoint && !isEndPoint {
+                // Skip if already visited
+                if visitedSpots.contains(spotId) {
+                    continue
+                }
                 
-                // Check for route completion after each spot visit
-                await checkRouteCompletion()
+                let spotLocation = CLLocation(
+                    latitude: waypoint.coordinate.latitude,
+                    longitude: waypoint.coordinate.longitude
+                )
+                
+                let distance = userLocation.distance(from: spotLocation)
+                logger.info("📍 Distance to POI \(waypoint.name): \(String(format: "%.1f", distance))m (threshold: \(self.proximityThreshold)m)")
+                
+                if distance <= proximityThreshold {
+                    // Immediately mark as visited to prevent duplicate notifications
+                    visitedSpots.insert(spotId)
+                    logger.info("🎯 Triggering notification for POI \(waypoint.name) - within threshold!")
+                    await triggerSpotNotification(for: waypoint, distance: distance)
+                    logger.info("✅ POI visited: \(waypoint.name) at \(String(format: "%.1f", distance))m")
+                }
+            } else {
+                // For start/end points: just log distance for debugging
+                let spotLocation = CLLocation(
+                    latitude: waypoint.coordinate.latitude,
+                    longitude: waypoint.coordinate.longitude
+                )
+                let distance = userLocation.distance(from: spotLocation)
+                logger.info("📍 Distance to \(isStartPoint ? "START" : "END") point \(waypoint.name): \(String(format: "%.1f", distance))m")
             }
         }
+        
+        // Always check for route completion after location update
+        // This ensures roundtrip completion is checked when returning to start
+        await checkRouteCompletion()
     }
     
     // MARK: - Route Completion Detection
     private func checkRouteCompletion() async {
         guard let route = activeRoute else { return }
         
-        // Route is complete when all POIs (excluding start/end points) have been visited
         let totalPOIs = max(0, route.waypoints.count - 2) // Exclude start and end points
         let visitedCount = visitedSpots.count
         
-        logger.info("🎯 Route progress: \(visitedCount)/\(totalPOIs) POIs visited (excluding start/end points)")
+        logger.info("🎯 Route progress: \(visitedCount)/\(totalPOIs) POIs visited (excluding start/end points), endpoint type: \(route.endpointOption.rawValue)")
         
-        if visitedCount >= totalPOIs && totalPOIs > 0 && !routeCompletionTriggered {
-            logger.info("🎉 Route completed! All \(totalPOIs) POIs visited")
+        // Different completion logic based on endpoint option
+        let isComplete: Bool
+        switch route.endpointOption {
+        case .roundtrip:
+            // For roundtrip: all POIs visited AND back at start point
+            isComplete = visitedCount >= totalPOIs && totalPOIs > 0 && isAtStartPoint()
+            
+        case .lastPlace:
+            // For last place: all POIs visited (traditional logic)
+            isComplete = visitedCount >= totalPOIs && totalPOIs > 0
+            
+        case .custom:
+            // For custom endpoint: all POIs visited AND at custom endpoint
+            isComplete = visitedCount >= totalPOIs && totalPOIs > 0 && isAtCustomEndpoint()
+        }
+        
+        if isComplete && !routeCompletionTriggered {
+            logger.info("🎉 Route completed! All \(totalPOIs) POIs visited and reached endpoint (\(route.endpointOption.rawValue))")
             routeCompletionTriggered = true // Prevent multiple completions
             await triggerRouteCompletionNotification()
             
             // Stop proximity monitoring after completion
             stopProximityMonitoring()
         }
+    }
+    
+    /// Check if user is currently at the start point (for roundtrip completion)
+    private func isAtStartPoint() -> Bool {
+        guard let route = activeRoute,
+              let startPoint = route.waypoints.first,
+              let currentLocation = currentUserLocation else { return false }
+        
+        let startLocation = CLLocation(
+            latitude: startPoint.coordinate.latitude,
+            longitude: startPoint.coordinate.longitude
+        )
+        
+        let distance = currentLocation.distance(from: startLocation)
+        let atStartPoint = distance <= proximityThreshold
+        
+        if atStartPoint {
+            logger.info("🏁 User is at start point! Distance: \(String(format: "%.1f", distance))m")
+        }
+        
+        return atStartPoint
+    }
+    
+    /// Check if user is currently at the custom endpoint (for custom completion)
+    private func isAtCustomEndpoint() -> Bool {
+        guard let route = activeRoute,
+              let endPoint = route.waypoints.last,
+              let currentLocation = currentUserLocation else { return false }
+        
+        let endLocation = CLLocation(
+            latitude: endPoint.coordinate.latitude,
+            longitude: endPoint.coordinate.longitude
+        )
+        
+        let distance = currentLocation.distance(from: endLocation)
+        let atEndPoint = distance <= proximityThreshold
+        
+        if atEndPoint {
+            logger.info("🏁 User is at custom endpoint! Distance: \(String(format: "%.1f", distance))m")
+        }
+        
+        return atEndPoint
     }
     
     // MARK: - Notification Triggering

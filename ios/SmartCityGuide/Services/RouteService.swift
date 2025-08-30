@@ -228,7 +228,8 @@ class RouteService: ObservableObject {
         totalDistance: totalDistance,
         totalTravelTime: totalWalkingTime,
         totalVisitTime: averageVisitTime,
-        totalExperienceTime: totalExperienceTime
+        totalExperienceTime: totalExperienceTime,
+        endpointOption: endpointOption
       )
       
       generatedRoute = route
@@ -309,7 +310,8 @@ class RouteService: ObservableObject {
         totalDistance: totalDistance,
         totalTravelTime: totalWalkingTime,
         totalVisitTime: averageVisitTime,
-        totalExperienceTime: totalExperienceTime
+        totalExperienceTime: totalExperienceTime,
+        endpointOption: endpointOption
       )
       
       generatedRoute = route
@@ -900,7 +902,8 @@ class RouteService: ObservableObject {
       totalDistance: totalDistance,
       totalTravelTime: totalTravelTime,
       totalVisitTime: totalVisitTime,
-      totalExperienceTime: totalExperienceTime
+      totalExperienceTime: totalExperienceTime,
+      endpointOption: endpointOption
     )
 
     // Persist with default meta (best-effort). Use medium + endpointOption as current conventions

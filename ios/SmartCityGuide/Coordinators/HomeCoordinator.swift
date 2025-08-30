@@ -489,8 +489,9 @@ class BasicHomeCoordinator: ObservableObject {
             // Optimize waypoint order first
             let optimizedWaypoints = tspService.optimizeWaypointOrder(newWaypoints)
             
-            // Generate complete new route
-            let newRoute = try await routeGenerationService.generateCompleteRoute(from: optimizedWaypoints)
+            // Generate complete new route (preserve original endpoint option)
+            let originalEndpointOption = activeRoute?.endpointOption ?? .roundtrip
+            let newRoute = try await routeGenerationService.generateCompleteRoute(from: optimizedWaypoints, endpointOption: originalEndpointOption)
             
             // Update active route with regenerated route
             activeRoute = newRoute
@@ -509,7 +510,8 @@ class BasicHomeCoordinator: ObservableObject {
                 totalDistance: currentRoute.totalDistance,
                 totalTravelTime: currentRoute.totalTravelTime,
                 totalVisitTime: currentRoute.totalVisitTime,
-                totalExperienceTime: currentRoute.totalExperienceTime
+                totalExperienceTime: currentRoute.totalExperienceTime,
+                endpointOption: currentRoute.endpointOption
             )
             activeRoute = fallbackRoute
             
@@ -539,8 +541,9 @@ class BasicHomeCoordinator: ObservableObject {
                 // Optimize waypoint order first
                 let optimizedWaypoints = tspService.optimizeWaypointOrder(newWaypoints)
                 
-                // Generate complete new route
-                let newRoute = try await routeGenerationService.generateCompleteRoute(from: optimizedWaypoints)
+                // Generate complete new route (preserve original endpoint option)
+                let originalEndpointOption = activeRoute?.endpointOption ?? .roundtrip
+                let newRoute = try await routeGenerationService.generateCompleteRoute(from: optimizedWaypoints, endpointOption: originalEndpointOption)
                 
                 // Update active route with regenerated route
                 activeRoute = newRoute
@@ -559,7 +562,8 @@ class BasicHomeCoordinator: ObservableObject {
                     totalDistance: currentRoute.totalDistance,
                     totalTravelTime: currentRoute.totalTravelTime,
                     totalVisitTime: currentRoute.totalVisitTime,
-                    totalExperienceTime: currentRoute.totalExperienceTime
+                    totalExperienceTime: currentRoute.totalExperienceTime,
+                    endpointOption: currentRoute.endpointOption
                 )
                 activeRoute = fallbackRoute
                 
@@ -989,6 +993,9 @@ class BasicHomeCoordinator: ObservableObject {
         // Dismiss any active sheets for clean navigation
         dismissActiveSheets()
         
+        // NOTE: Don't end active route immediately - RouteSuccessView needs access to it!
+        // Active route will be ended when the success view is dismissed
+        
         SecureLogger.shared.logInfo("🎉 Showing route completion success view for: \(stats.routeName)", category: .ui)
     }
     
@@ -997,7 +1004,10 @@ class BasicHomeCoordinator: ObservableObject {
         showRouteSuccessView = false
         routeSuccessStats = nil
         
-        // Focus on map after success view dismissal
+        // Now end the active route to clean up map state
+        endActiveRoute()
+        
+        // Focus on map after success view dismissal (route will be nil now)
         focusOnActiveRoute()
     }
     

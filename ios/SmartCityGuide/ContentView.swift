@@ -467,7 +467,8 @@ struct ContentView: View {
       let routeGenerationService = RouteGenerationService()
       let tsp = RouteTSPService()
       let optimized = tsp.optimizeWaypointOrder(newWaypoints)
-      let updated = try await routeGenerationService.generateCompleteRoute(from: optimized)
+      let originalEndpointOption = coordinator.activeRoute?.endpointOption ?? .roundtrip
+      let updated = try await routeGenerationService.generateCompleteRoute(from: optimized, endpointOption: originalEndpointOption)
       await MainActor.run {
         coordinator.handleRouteGenerated(updated)
         addPOISelection.reset()

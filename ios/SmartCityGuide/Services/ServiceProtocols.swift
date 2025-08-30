@@ -131,7 +131,8 @@ class MockRouteService: RouteServiceProtocol {
             totalDistance: 2500.0,
             totalTravelTime: 1800.0, // 30 minutes
             totalVisitTime: 3600.0, // 1 hour
-            totalExperienceTime: 5400.0 // 1.5 hours
+            totalExperienceTime: 5400.0, // 1.5 hours
+            endpointOption: endpointOption
         )
         
         generatedRoute = mockRoute

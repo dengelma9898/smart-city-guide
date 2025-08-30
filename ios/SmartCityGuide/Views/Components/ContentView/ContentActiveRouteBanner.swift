@@ -87,7 +87,8 @@ struct ContentActiveRouteBanner: View {
         totalDistance: 2500.0,
         totalTravelTime: 30.0 * 60,
         totalVisitTime: 90.0 * 60,
-        totalExperienceTime: 120.0 * 60
+        totalExperienceTime: 120.0 * 60,
+        endpointOption: .roundtrip
     )
     
     ContentActiveRouteBanner(

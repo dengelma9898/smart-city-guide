@@ -171,7 +171,8 @@ class RouteGenerationService: ObservableObject {
       totalDistance: totalDistance,
       totalTravelTime: totalTravelTime,
       totalVisitTime: totalVisitTime,
-      totalExperienceTime: totalExperienceTime
+      totalExperienceTime: totalExperienceTime,
+      endpointOption: endpointOption
     )
     
     logger.info("🗺️ Manual route generated: \(waypoints.count) waypoints, \(String(format: "%.1f", totalDistance/1000))km, \(Int(totalTravelTime/60))min walking")
@@ -182,8 +183,9 @@ class RouteGenerationService: ObservableObject {
   /// Generate complete route with MapKit connections
   /// - Parameter waypoints: Optimized waypoints
   /// - Returns: Complete GeneratedRoute object
+  /// - Parameter endpointOption: The endpoint option for route completion logic
   /// - Throws: Error if route calculation fails
-  func generateCompleteRoute(from waypoints: [RoutePoint]) async throws -> GeneratedRoute {
+  func generateCompleteRoute(from waypoints: [RoutePoint], endpointOption: EndpointOption = .roundtrip) async throws -> GeneratedRoute {
     
     logger.info("🗺️ Generating complete route with MapKit for \(waypoints.count) waypoints")
     
@@ -218,7 +220,8 @@ class RouteGenerationService: ObservableObject {
       totalDistance: totalDistance,
       totalTravelTime: totalWalkingTime,
       totalVisitTime: totalVisitTime,
-      totalExperienceTime: totalExperienceTime
+      totalExperienceTime: totalExperienceTime,
+      endpointOption: endpointOption
     )
     
     logger.info("🗺️ Complete route generated: \(String(format: "%.1f", totalDistance/1000))km, \(Int(totalWalkingTime/60))min walking, \(Int(totalVisitTime/60))min visiting")

@@ -148,7 +148,8 @@ class RouteBuilderEditService: ObservableObject {
         totalDistance: newTotalDistance,
         totalTravelTime: newTotalTravelTime,
         totalVisitTime: currentRoute.totalVisitTime,
-        totalExperienceTime: newTotalExperienceTime
+        totalExperienceTime: newTotalExperienceTime,
+        endpointOption: currentRoute.endpointOption
       )
       
       routeService.generatedRoute = updatedRoute
@@ -200,7 +201,8 @@ class RouteBuilderEditService: ObservableObject {
         totalDistance: newTotalDistance,
         totalTravelTime: newTotalTravelTime,
         totalVisitTime: currentRoute.totalVisitTime,
-        totalExperienceTime: newTotalExperienceTime
+        totalExperienceTime: newTotalExperienceTime,
+        endpointOption: currentRoute.endpointOption
       )
       
       if isDeletingLastIntermediate {
@@ -382,7 +384,8 @@ class RouteBuilderEditService: ObservableObject {
         totalDistance: newTotalDistance,
         totalTravelTime: newTotalTravelTime,
         totalVisitTime: originalRoute.totalVisitTime,
-        totalExperienceTime: newTotalExperienceTime
+        totalExperienceTime: newTotalExperienceTime,
+        endpointOption: originalRoute.endpointOption
       )
       
       routeService.generatedRoute = updatedRoute

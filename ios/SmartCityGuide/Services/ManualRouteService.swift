@@ -36,7 +36,8 @@ final class ManualRouteService: ObservableObject {
           totalDistance: 0,
           totalTravelTime: 0,
           totalVisitTime: 0,
-          totalExperienceTime: 0
+          totalExperienceTime: 0,
+          endpointOption: request.config.endpointOption
         )
         generatedRoute = finalRoute
         isGenerating = false
@@ -66,7 +67,8 @@ final class ManualRouteService: ObservableObject {
         totalDistance: metrics.totalDistance,
         totalTravelTime: metrics.totalTravelTime,
         totalVisitTime: metrics.totalVisitTime,
-        totalExperienceTime: metrics.totalExperienceTime
+        totalExperienceTime: metrics.totalExperienceTime,
+        endpointOption: request.config.endpointOption
       )
 
       generatedRoute = finalRoute
@@ -84,7 +86,8 @@ final class ManualRouteService: ObservableObject {
           totalDistance: 0,
           totalTravelTime: 0,
           totalVisitTime: 0,
-          totalExperienceTime: 0
+          totalExperienceTime: 0,
+          endpointOption: request.config.endpointOption
         )
         generatedRoute = finalRoute
         logger.logInfo("🟨 ManualRouteService: UITEST fallback route provided", category: .general)

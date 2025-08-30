@@ -58,7 +58,7 @@ struct ActiveRouteSheetView: View {
         .accessibilityIdentifier("activeRoute.sheet.collapsed")
         
         // EINZIGER SCROLLBEREICH: POI-Liste (List) – kein verschachteltes ScrollView
-        let stops = Array(intermediateWaypoints().prefix(6))
+        let stops = Array(displayedWaypoints().prefix(6))
         List {
           // Header-Zeile
           Text("Nächste Stopps")
@@ -71,11 +71,13 @@ struct ActiveRouteSheetView: View {
           ForEach(stops.indices, id: \.self) { index in
             let wp = stops[index]
             let isNextStop = index == currentStopIndex
+            let isStartOrEndPoint = route.isRoundtrip && (index == 0 || index == stops.count - 1)
 
             POIRowView(
               waypoint: wp,
               index: index,
               isNextStop: isNextStop,
+              isEditable: !isStartOrEndPoint,
               enrichedPOIs: enrichedPOIs,
               onEditPOI: { handleEditPOI(at: index, waypoint: wp) },
               onDeletePOI: { handleDeletePOI(at: index, waypoint: wp) }
@@ -176,10 +178,16 @@ struct ActiveRouteSheetView: View {
     return remMin == 0 ? "\(hours) h" : "\(hours) h \(remMin) min"
   }
 
-  private func intermediateWaypoints() -> [RoutePoint] {
-    let wps = route.waypoints
-    guard wps.count > 2 else { return [] }
-    return Array(wps.dropFirst().dropLast())
+  private func displayedWaypoints() -> [RoutePoint] {
+    // For roundtrip routes: show all waypoints (start, POIs, end)
+    // For other routes: show only intermediate waypoints (POIs only)
+    if route.isRoundtrip {
+      return route.waypoints
+    } else {
+      let wps = route.waypoints
+      guard wps.count > 2 else { return [] }
+      return Array(wps.dropFirst().dropLast())
+    }
   }
   
   // MARK: - POI Management Actions
@@ -316,6 +324,7 @@ struct POIRowView: View {
   let waypoint: RoutePoint
   let index: Int
   let isNextStop: Bool
+  let isEditable: Bool
   let enrichedPOIs: [String: WikipediaEnrichedPOI]
   let onEditPOI: () -> Void
   let onDeletePOI: () -> Void
@@ -348,10 +357,20 @@ struct POIRowView: View {
       }
       
       VStack(alignment: .leading, spacing: 2) {
-        Text(waypoint.name)
-          .font(isNextStop ? .body.weight(.bold) : .body)
-          .foregroundColor(isNextStop ? .primary : .primary)
-          .lineLimit(1)
+        HStack(spacing: 6) {
+          Text(waypoint.name)
+            .font(isNextStop ? .body.weight(.bold) : .body)
+            .foregroundColor(isNextStop ? .primary : .primary)
+            .lineLimit(1)
+          
+          // Show icon for start/end points
+          if !isEditable {
+            Image(systemName: index == 0 ? "play.circle.fill" : "checkered.flag.fill")
+              .font(.system(size: 12))
+              .foregroundColor(.orange)
+          }
+        }
+        
         Text(waypoint.address)
           .font(.caption2)
           .foregroundColor(.secondary)
@@ -364,6 +383,10 @@ struct POIRowView: View {
         Image(systemName: "arrow.right.circle.fill")
           .font(.system(size: 16, weight: .semibold))
           .foregroundColor(.blue)
+      } else if !isEditable {
+        Image(systemName: "lock.fill")
+          .font(.system(size: 12, weight: .semibold))
+          .foregroundColor(.orange)
       } else {
         Image(systemName: "chevron.right")
           .font(.system(size: 12, weight: .semibold))
@@ -377,17 +400,19 @@ struct POIRowView: View {
         .fill(isNextStop ? Color.blue.opacity(0.1) : Color(.systemGray6))
     )
     .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-      Button(action: onDeletePOI) {
-        Label("Löschen", systemImage: "trash")
+      if isEditable {
+        Button(action: onDeletePOI) {
+          Label("Löschen", systemImage: "trash")
+        }
+        .tint(.red)
+        .accessibilityIdentifier("poi.action.delete")
+        
+        Button(action: onEditPOI) {
+          Label("Bearbeiten", systemImage: "pencil")
+        }
+        .tint(.blue)
+        .accessibilityIdentifier("poi.action.edit")
       }
-      .tint(.red)
-      .accessibilityIdentifier("poi.action.delete")
-      
-      Button(action: onEditPOI) {
-        Label("Bearbeiten", systemImage: "pencil")
-      }
-      .tint(.blue)
-      .accessibilityIdentifier("poi.action.edit")
     }
   }
   

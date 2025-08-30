@@ -84,6 +84,7 @@ struct GeneratedRoute {
   let totalTravelTime: TimeInterval
   let totalVisitTime: TimeInterval
   let totalExperienceTime: TimeInterval
+  let endpointOption: EndpointOption
   
   var numberOfStops: Int {
     // Exclude start and end points from stop count
@@ -96,6 +97,25 @@ struct GeneratedRoute {
   
   var walkingDistances: [CLLocationDistance] {
     return routes.map { $0.distance }
+  }
+  
+  /// Returns true if this is a roundtrip route (returns to start point)
+  var isRoundtrip: Bool {
+    return endpointOption == .roundtrip
+  }
+  
+  /// Returns the endpoint waypoint for this route
+  var endpointWaypoint: RoutePoint? {
+    return waypoints.last
+  }
+  
+  /// Returns true if the start and end points are the same location
+  var startsAndEndsAtSameLocation: Bool {
+    guard let firstPoint = waypoints.first,
+          let lastPoint = waypoints.last else { return false }
+    
+    return firstPoint.coordinate.latitude == lastPoint.coordinate.latitude &&
+           firstPoint.coordinate.longitude == lastPoint.coordinate.longitude
   }
 }
 
