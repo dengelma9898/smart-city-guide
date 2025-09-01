@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDisplayName</key>
+	<string>Routiq</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>location</string>
+	</array>
+	<key>NSFaceIDUsageDescription</key>
+	<string>Routiq verwendet Face ID oder Touch ID, um deine gespeicherten Routen und Profileinstellungen sicher zu schützen. Diese biometrische Authentifizierung stellt sicher, dass nur du auf deine persönlichen Daten zugreifen kannst.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Routiq nutzt deinen Standort für die beste Route von deiner Position</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Für Benachrichtigungen bei interessanten Spots auf deiner Route</string>
+	<key>NSUserNotificationsUsageDescription</key>
+	<string>Benachrichtigungen informieren dich wenn du interessante Spots auf deiner Route erreichst</string>
+</dict>
+</plist>

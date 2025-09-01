@@ -443,6 +443,10 @@ struct FAQCategory {
                 FAQ(
                     question: "Warum sehe ich ein Lade‑Overlay bei der Schnell‑Planung?",
                     answer: "Während die Schnell‑Planung läuft, berechnen wir die optimale Reihenfolge, prüfen Gehzeiten und laden Ortsdaten. Damit du siehst, dass etwas passiert, zeigen wir ein kurzes Lade‑Overlay mit Status‑Text (z. B. 'Entdecke coole Orte…' ➝ 'Optimiere deine Route…'). Sobald die Route fertig ist, verschwindet das Overlay automatisch."
+                ),
+                FAQ(
+                    question: "Warum heißt die App jetzt Routiq?",
+                    answer: "Aus Marken‑ und Verfügbarkeitsgründen verwenden wir den neuen Namen 'Routiq'. Der Funktionsumfang bleibt unverändert – auf deinem Homescreen siehst du den Namen 'Routiq'."
                 )
             ]
         ),
