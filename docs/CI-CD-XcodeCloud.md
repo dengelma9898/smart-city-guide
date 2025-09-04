@@ -4,24 +4,23 @@ Diese Doku beschreibt den kombinierten Ansatz aus CI in GitHub Actions und CD ü
 
 ### CI (GitHub Actions)
 - Workflow: `.github/workflows/ci.yml`
-- Läuft auf PRs und Pushes auf allen Branches (für Testzwecke), schreibt Tags nach erfolgreichem Build.
-- Jobs:
-  - Xcode-Setup (16.2), SPM-Resolve, Build + Unit-Tests, optional UI-Tests, Artefakte-Upload (`.xcresult`, IPA).
-- Tagging: Automatisches Tag-Schema `ci-<branch>-<yyyymmdd-hhmmss>-<sha>`; für Produktion kann die Bedingung auf `main` beschränkt werden (`if: github.ref == 'refs/heads/main'`).
+- Läuft auf PRs und Pushes (aktuell auf allen Branches zum Testen), erstellt Auto-Tags nach erfolgreichem Build.
+- Schritte: Xcode-Setup (16.2), SPM-Resolve, Build + Unit-Tests, optional UI-Tests, Artefakt-Upload (`.xcresult`).
+- Tipp: Nach dem Test die Auto-Tag-Bedingung auf `main` einschränken.
 
-### CD (Xcode Cloud)
+### CD (Xcode Cloud) – Clean Flow ohne Skripte
 1. In Xcode > Einstellungen > Accounts: Apple-ID/Team verbinden.
-2. Im Projekt `ios/SmartCityGuide.xcodeproj` sicherstellen:
-   - Scheme `SmartCityGuide` ist shared (unter `Manage Schemes…` aktivieren).
+2. Projektvoraussetzungen:
+   - Scheme `SmartCityGuide` ist shared.
    - Bundle ID: `de.dengelma.smartcity-guide`.
-   - Automatic Signing: aktiv.
-3. Xcode Cloud aktivieren (Xcode oder App Store Connect):
-   - Repository verbinden (GitHub).
-   - Workflow anlegen: Trigger `Tag v*` oder Push auf `main`.
-   - Actions: Build → Tests (optional) → Archive → Distribute to TestFlight.
-   - Devices: z. B. `iPhone 16 (iOS 17.5)`.
-4. Environment:
-   - Keine Secrets nötig, wenn Automatic Signing genutzt wird (Zertifikate/Profiles verwaltet Xcode Cloud).
+   - Automatic Signing aktiv.
+3. Xcode Cloud Workflow anlegen (keine Pre-/Post-Skripte):
+   - Trigger: Push auf `main` oder Tag `v*`.
+   - Build – iOS: Aktion „Build“ (Simulator oder Generic iOS Device). Keine zusätzlichen Skripte.
+   - Archive – iOS: Aktion „Archive“ mit Distribution → TestFlight.
+   - Devices: z. B. `iPhone 16 (iOS 17.5)` (nur für Build/Tests relevant; Archive nutzt Generic Device).
+4. Secrets/Environment:
+   - Für Geoapify: Build Setting/Environment `GEOAPIFY_API_KEY` setzen (wird in `Info.plist` injiziert).
 
 ### Projektkonventionen (aus Repo-Rules)
 - @MainActor bei UI-nahen Services, async/await, Rate Limiting, Fehlertoleranzen beachten.
