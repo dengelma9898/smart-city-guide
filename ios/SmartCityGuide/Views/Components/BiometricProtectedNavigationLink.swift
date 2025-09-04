@@ -41,15 +41,9 @@ struct BiometricProtectedNavigationLink<Destination: View, Label: View>: View {
             label
         }
         .buttonStyle(PlainButtonStyle())
-        .background(
-            NavigationLink(
-                destination: destination,
-                isActive: $isAuthenticated
-            ) {
-                EmptyView()
-            }
-            .hidden()
-        )
+        .navigationDestination(isPresented: $isAuthenticated) {
+            destination
+        }
         .alert("Authentifizierung fehlgeschlagen", isPresented: $showingAuthenticationError) {
             Button("OK") {
                 authenticationError = nil
@@ -121,7 +115,7 @@ extension BiometricProtectedNavigationLink where Label == ProfileRow {
 // MARK: - Preview
 
 #Preview {
-    NavigationView {
+    NavigationStack {
         VStack {
             BiometricProtectedNavigationLink(
                 destination: Text("Geschützter Bereich"),
