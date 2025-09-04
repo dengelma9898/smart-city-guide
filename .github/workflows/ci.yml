@@ -1,0 +1,89 @@
+name: iOS CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-test:
+    runs-on: macos-14
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '16.2'
+
+      - name: Show Xcode and SDKs
+        run: |
+          xcodebuild -version | cat
+          xcodebuild -showsdks | cat
+
+      - name: Cache DerivedData
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Developer/Xcode/DerivedData
+          key: deriveddata-${{ runner.os }}-${{ hashFiles('**/*.swift','**/*.xcodeproj/**','**/*.xcworkspace/**','**/Package.resolved') }}
+
+      - name: Resolve SPM
+        run: |
+          xcodebuild -resolvePackageDependencies \
+            -project ios/SmartCityGuide.xcodeproj | cat
+
+      - name: Build + Unit Tests (Simulator)
+        run: |
+          xcodebuild \
+            -project ios/SmartCityGuide.xcodeproj \
+            -scheme SmartCityGuide \
+            -destination 'platform=iOS Simulator,name=iPhone 16' \
+            -testPlan SmartCityGuide.xctestplan \
+            -resultBundlePath build/Results-Unit \
+            clean test | cat
+        env:
+          NSUnbufferedIO: YES
+
+      - name: UI Tests (optional)
+        continue-on-error: true
+        run: |
+          xcodebuild \
+            -project ios/SmartCityGuide.xcodeproj \
+            -scheme SmartCityGuide \
+            -destination 'platform=iOS Simulator,name=iPhone 16' \
+            -testPlan SmartCityGuide-UITests-Only.xctestplan \
+            -resultBundlePath build/Results-UI \
+            test | cat
+        env:
+          NSUnbufferedIO: YES
+
+      - name: Upload Xcode Results
+        uses: actions/upload-artifact@v4
+        with:
+          name: xcode-results
+          path: |
+            build/Results-Unit.xcresult
+            build/Results-UI.xcresult
+            ios/build
+
+      - name: Auto-tag on success (all branches for testing)
+        if: ${{ success() }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BRANCH=${GITHUB_REF_NAME}
+          DATE=$(date +"%Y%m%d-%H%M%S")
+          SHA_SHORT=$(git rev-parse --short HEAD)
+          # Tag-Schema: ci-<branch>-<yyyymmdd-hhmmss>-<sha>
+          TAG="ci-${BRANCH}-${DATE}-${SHA_SHORT}"
+          echo "Creating tag $TAG"
+          git config user.email "action@github.com"
+          git config user.name "github-actions[bot]"
+          git tag "$TAG"
+          git push origin "$TAG"
+
