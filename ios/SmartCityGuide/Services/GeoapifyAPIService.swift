@@ -13,15 +13,14 @@ class GeoapifyAPIService: ObservableObject {
     // Network Security with Certificate Pinning
     private let networkSecurity = NetworkSecurityManager.shared
     
-    // Secure API Key loading from APIKeys.plist
+    // Sicherer API-Key: aus Info.plist (kein Partnername in Fehlermeldungen)
     private var apiKey: String {
-        guard let path = Bundle.main.path(forResource: "APIKeys", ofType: "plist"),
-              let dict = NSDictionary(contentsOfFile: path),
-              let key = dict["GEOAPIFY_API_KEY"] as? String,
-              !key.isEmpty else {
-            fatalError("GEOAPIFY_API_KEY not found in APIKeys.plist. Please add the APIKeys.plist file to your Xcode project with your Geoapify API Key.")
+        if let value = Bundle.main.object(forInfoDictionaryKey: "GEOAPIFY_API_KEY") as? String,
+           !value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+           !value.contains("$(") { // Platzhalter nicht akzeptieren
+            return value
         }
-        return key
+        fatalError("API-Schlüssel fehlt. Bitte 'GEOAPIFY_API_KEY' in Info.plist konfigurieren.")
     }
     private let baseURL = "https://api.geoapify.com/v2"
     private let geocodeURL = "https://api.geoapify.com/v1/geocode"

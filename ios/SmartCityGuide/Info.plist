@@ -16,5 +16,7 @@
 	<string>Für Benachrichtigungen bei interessanten Spots auf deiner Route</string>
 	<key>NSUserNotificationsUsageDescription</key>
 	<string>Benachrichtigungen informieren dich wenn du interessante Spots auf deiner Route erreichst</string>
+	<key>GEOAPIFY_API_KEY</key>
+	<string>$(GEOAPIFY_API_KEY)</string>
 </dict>
 </plist>

@@ -2,7 +2,7 @@
 
 ### Kontext & Ziel
 - **Zweck**: iOS‑App (SwiftUI) zur smarten Multi‑Stop‑Fußgänger‑Routenplanung in Städten, basierend auf POI‑Discovery und TSP‑Optimierung.
-- **Technik**: SwiftUI, MapKit, CoreLocation, Geoapify (ex HERE), Async/Await, @MainActor, Services als Singletons, Feature Flags.
+- **Technik**: SwiftUI, MapKit, CoreLocation, Geoapify, Async/Await, @MainActor, Services als Singletons, Feature Flags.
 - **Scope dieses Dokuments**: Überblick über Architektur, Datenflüsse, Navigation/UX, Stärken/Schwächen und konkrete Optimierungen mit Priorisierung.
 
 ### High‑Level Überblick
@@ -159,7 +159,7 @@ Empfohlene Zielarchitektur Navigation:
 - Utilities: `Utilities/FeatureFlags.swift`, `Utilities/RateLimiter.swift`
 
 ### Security & Privacy
-- API‑Keys aus `APIKeys.plist` (nicht hardcodiert), Zertifikat‑Pinning, minimaler Logging‑Scope, Validierung von Nutzereingaben.
+- API‑Key über `Info.plist`‑Schlüssel `GEOAPIFY_API_KEY` (aus Build‑Setting/Cloud‑Secret), Zertifikat‑Pinning, minimaler Logging‑Scope, Validierung von Nutzereingaben.
 - Standort & Notifications: Klarer Permission‑Flow, Option für „Always“ nur für Background‑Proximity.
 
 ### Offene Punkte / Backlog

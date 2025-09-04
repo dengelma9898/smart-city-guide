@@ -11,7 +11,7 @@
 		A1234567890ABCDEF0123458 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1234567890ABCDEF0123459 /* ContentView.swift */; };
 		A1234567890ABCDEF012345A /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A1234567890ABCDEF012345B /* Assets.xcassets */; };
 		A1234567890ABCDEF012345C /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A1234567890ABCDEF012345D /* Preview Assets.xcassets */; };
-		E1FEF13D2E3FEF1B00C409C6 /* APIKeys.plist in Resources */ = {isa = PBXBuildFile; fileRef = E1FEF13C2E3FEF1B00C409C6 /* APIKeys.plist */; };
+
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -42,7 +42,7 @@
 		E1048B882E4923BF00FD6F70 /* SmartCityGuideUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SmartCityGuideUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		E1048BB22E492A5A00FD6F70 /* SmartCityGuide.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = SmartCityGuide.xctestplan; sourceTree = "<group>"; };
 		E132EC772E5D6DEC00C910F9 /* SmartCityGuideUnitTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SmartCityGuideUnitTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		E1FEF13C2E3FEF1B00C409C6 /* APIKeys.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = APIKeys.plist; sourceTree = "<group>"; };
+
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -122,7 +122,6 @@
 			children = (
 				E132E3622E53AD3800C910F9 /* Coordinators */,
 				E1048AC62E447EDA00FD6F70 /* Info.plist */,
-				E1FEF13C2E3FEF1B00C409C6 /* APIKeys.plist */,
 				E1FEF0EC2E3E989700C409C6 /* Models */,
 				E1FEF0E32E3E988D00C409C6 /* Services */,
 				E1FEF0DF2E3E988400C409C6 /* Utilities */,
@@ -264,7 +263,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				E1FEF13D2E3FEF1B00C409C6 /* APIKeys.plist in Resources */,
 				A1234567890ABCDEF012345C /* Preview Assets.xcassets in Resources */,
 				A1234567890ABCDEF012345A /* Assets.xcassets in Resources */,
 			);
@@ -378,7 +376,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				HERE_API_KEY = af1u5ah55nDbtsdQtlX059FENEgUqmwuhdrj0QBIKss;
+
 				IPHONEOS_DEPLOYMENT_TARGET = 17.5;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
@@ -436,7 +434,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				HERE_API_KEY = af1u5ah55nDbtsdQtlX059FENEgUqmwuhdrj0QBIKss;
+
 				IPHONEOS_DEPLOYMENT_TARGET = 17.5;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_ENABLE_DEBUG_INFO = NO;
